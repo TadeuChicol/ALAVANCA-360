@@ -2236,7 +2236,7 @@ function aplicarConfigNaInterface() {
     const lnkWhatsConsultoria = document.getElementById('lnkWhatsConsultoria');
     const lnkEmailConsultoria = document.getElementById('lnkEmailConsultoria');
 
-    if (txtNomeClinica) txtNomeClinica.textContent = clinica.nome_clinica || 'Clínica';
+    if (txtNomeClinica) txtNomeClinica.textContent = clinica.nome || 'Clínica';
     if (txtIdSupabase) txtIdSupabase.textContent = (state.usuario && state.usuario.email) || clinica.id;
     if (lnkGoogleSheets) lnkGoogleSheets.href = clinica.url_google_agenda || '#';
     if (lnkCalendly) lnkCalendly.href = clinica.url_calendly || '#';
@@ -2252,7 +2252,7 @@ function aplicarConfigNaInterface() {
     const cfgUrlSheets = document.getElementById('cfgUrlSheets');
     const cfgUrlCalendly = document.getElementById('cfgUrlCalendly');
     const cfgLogoClinicaHub = document.getElementById('cfgLogoClinicaHub');
-    if (cfgNomeClinica) cfgNomeClinica.value = clinica.nome_clinica || '';
+    if (cfgNomeClinica) cfgNomeClinica.value = clinica.nome || '';
     if (cfgEndereco) cfgEndereco.value = clinica.endereco || '';
     if (cfgUrlSheets) cfgUrlSheets.value = clinica.url_google_agenda || '';
     if (cfgUrlCalendly) cfgUrlCalendly.value = clinica.url_calendly || '';
@@ -2613,7 +2613,7 @@ async function renderizarListaClinicas() {
     const { data: todas, error } = await supabaseClient
         .from('clinicas')
         .select('*')
-        .order('nome_clinica', { ascending: true });
+       .order('nome.asc'), { ascending: true });
 
     if (error) {
         console.error("Erro ao listar clínicas no Master:", error);
