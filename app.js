@@ -2728,4 +2728,4 @@ async function cadastrarNovaClinica() {
     } finally {
         if (btn) { btn.disabled = false; btn.textContent = 'Cadastrar Clínica e Gerar Acesso'; }
     }
-}S
+}
