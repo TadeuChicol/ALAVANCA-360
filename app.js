@@ -2302,12 +2302,18 @@ function atualizarLogosVisuais() {
         if (iconDefault) iconDefault.classList.remove('hidden');
     }
 
+   (function atualizarLogoMetodo() {
+    const cfgGlobal = state.configGlobal;
+    const imgLogoMetodo = document.getElementById('imgLogoMetodo');
+    const imgLogoConsultoria = document.getElementById('imgLogoConsultoria');
+    const logoConsultoriaContainer = document.getElementById('logoConsultoriaContainer');
+    
     const logoMetodo = (cfgGlobal && cfgGlobal.logo_metodo_url) || 'images/logo-alavanca-360.png';
     if (imgLogoMetodo) {
         imgLogoMetodo.src = logoMetodo;
         imgLogoMetodo.classList.remove('hidden');
     }
-
+    
     if (cfgGlobal && cfgGlobal.logo_consultoria_url) {
         if (imgLogoConsultoria) imgLogoConsultoria.src = cfgGlobal.logo_consultoria_url;
         if (logoConsultoriaContainer) {
@@ -2320,7 +2326,7 @@ function atualizarLogosVisuais() {
             logoConsultoriaContainer.classList.remove('flex');
         }
     }
-}
+})();
 
 // Auxiliar interna para fazer o upload do arquivo binário para o Storage
 async function uploadLogoClinicaStorage(fileInputId, idClinica) {
@@ -2722,4 +2728,4 @@ async function cadastrarNovaClinica() {
     } finally {
         if (btn) { btn.disabled = false; btn.textContent = 'Cadastrar Clínica e Gerar Acesso'; }
     }
-}
+}S
