@@ -2264,19 +2264,24 @@ function aplicarConfigNaInterface() {
 // ============================================================
 // ATUALIZA LINKS DE WHATSAPP E E-MAIL NO RODAPÉ
 // ============================================================
-if (cfgGlobal.whatsapp_consultoria) {
-    const lnkWhats = document.getElementById('lnkWhatsConsultoria');
-    if (lnkWhats) {
-        lnkWhats.href = 'https://wa.me/' + cfgGlobal.whatsapp_consultoria.replace(/[^0-9]/g, '');
-        lnkWhats.target = '_blank';
+(function atualizarLinksRodape() {
+    const cfgGlobal = state.configGlobal;
+    if (!cfgGlobal) return;
+    
+    if (cfgGlobal.whatsapp_consultoria) {
+        const lnkWhats = document.getElementById('lnkWhatsConsultoria');
+        if (lnkWhats) {
+            lnkWhats.href = 'https://wa.me/' + cfgGlobal.whatsapp_consultoria.replace(/[^0-9]/g, '');
+            lnkWhats.target = '_blank';
+        }
     }
-}
-if (cfgGlobal.email_consultoria) {
-    const lnkEmail = document.getElementById('lnkEmailConsultoria');
-    if (lnkEmail) {
-        lnkEmail.href = 'mailto:' + cfgGlobal.email_consultoria;
+    if (cfgGlobal.email_consultoria) {
+        const lnkEmail = document.getElementById('lnkEmailConsultoria');
+        if (lnkEmail) {
+            lnkEmail.href = 'mailto:' + cfgGlobal.email_consultoria;
+        }
     }
-}
+})();
 
 function atualizarLogosVisuais() {
     const clinica = state.clinicaAtual;
