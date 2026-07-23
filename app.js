@@ -2227,7 +2227,6 @@ function renderizarModuloFinanceiroCompleto() {
 function aplicarConfigNaInterface() {
     const clinica = state.clinicaAtual;
     if (!clinica) return;
-    const cfgGlobal = state.configGlobal;
 
     const txtNomeClinica = document.getElementById('txtNomeClinica');
     const txtIdSupabase = document.getElementById('txtIdSupabase');
