@@ -2236,7 +2236,7 @@ function aplicarConfigNaInterface() {
     const lnkWhatsConsultoria = document.getElementById('lnkWhatsConsultoria');
     const lnkEmailConsultoria = document.getElementById('lnkEmailConsultoria');
 
-    if (txtNomeClinica) txtNomeClinica.textContent = clinica.nome || 'Clínica';
+    if (txtNomeClinica) txtNomeClinica.textContent = clinica.nome_clinica || 'Clínica';
     if (txtIdSupabase) txtIdSupabase.textContent = (state.usuario && state.usuario.email) || clinica.id;
     if (lnkGoogleSheets) lnkGoogleSheets.href = clinica.url_google_agenda || '#';
     if (lnkCalendly) lnkCalendly.href = clinica.url_calendly || '#';
@@ -2252,7 +2252,7 @@ function aplicarConfigNaInterface() {
     const cfgUrlSheets = document.getElementById('cfgUrlSheets');
     const cfgUrlCalendly = document.getElementById('cfgUrlCalendly');
     const cfgLogoClinicaHub = document.getElementById('cfgLogoClinicaHub');
-    if (cfgNomeClinica) cfgNomeClinica.value = clinica.nome || '';
+    if (cfgNomeClinica) cfgNomeClinica.value = clinica.nome_clinica || '';
     if (cfgEndereco) cfgEndereco.value = clinica.endereco || '';
     if (cfgUrlSheets) cfgUrlSheets.value = clinica.url_google_agenda || '';
     if (cfgUrlCalendly) cfgUrlCalendly.value = clinica.url_calendly || '';
@@ -2264,24 +2264,19 @@ function aplicarConfigNaInterface() {
 // ============================================================
 // ATUALIZA LINKS DE WHATSAPP E E-MAIL NO RODAPÉ
 // ============================================================
-(function atualizarLinksRodape() {
-    const cfgGlobal = state.configGlobal;
-    if (!cfgGlobal) return;
-    
-    if (cfgGlobal.whatsapp_consultoria) {
-        const lnkWhats = document.getElementById('lnkWhatsConsultoria');
-        if (lnkWhats) {
-            lnkWhats.href = 'https://wa.me/' + cfgGlobal.whatsapp_consultoria.replace(/[^0-9]/g, '');
-            lnkWhats.target = '_blank';
-        }
+if (cfgGlobal.whatsapp_consultoria) {
+    const lnkWhats = document.getElementById('lnkWhatsConsultoria');
+    if (lnkWhats) {
+        lnkWhats.href = 'https://wa.me/' + cfgGlobal.whatsapp_consultoria.replace(/[^0-9]/g, '');
+        lnkWhats.target = '_blank';
     }
-    if (cfgGlobal.email_consultoria) {
-        const lnkEmail = document.getElementById('lnkEmailConsultoria');
-        if (lnkEmail) {
-            lnkEmail.href = 'mailto:' + cfgGlobal.email_consultoria;
-        }
+}
+if (cfgGlobal.email_consultoria) {
+    const lnkEmail = document.getElementById('lnkEmailConsultoria');
+    if (lnkEmail) {
+        lnkEmail.href = 'mailto:' + cfgGlobal.email_consultoria;
     }
-})();
+}
 
 function atualizarLogosVisuais() {
     const clinica = state.clinicaAtual;
@@ -2613,7 +2608,7 @@ async function renderizarListaClinicas() {
     const { data: todas, error } = await supabaseClient
         .from('clinicas')
         .select('*')
-       .order('nome.asc'), { ascending: true });
+        .order('nome_clinica', { ascending: true });
 
     if (error) {
         console.error("Erro ao listar clínicas no Master:", error);
