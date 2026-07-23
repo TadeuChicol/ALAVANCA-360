@@ -2261,6 +2261,23 @@ function aplicarConfigNaInterface() {
     atualizarLogosVisuais();
 }
 
+// ============================================================
+// ATUALIZA LINKS DE WHATSAPP E E-MAIL NO RODAPÉ
+// ============================================================
+if (cfgGlobal.whatsapp_consultoria) {
+    const lnkWhats = document.getElementById('lnkWhatsConsultoria');
+    if (lnkWhats) {
+        lnkWhats.href = 'https://wa.me/' + cfgGlobal.whatsapp_consultoria.replace(/[^0-9]/g, '');
+        lnkWhats.target = '_blank';
+    }
+}
+if (cfgGlobal.email_consultoria) {
+    const lnkEmail = document.getElementById('lnkEmailConsultoria');
+    if (lnkEmail) {
+        lnkEmail.href = 'mailto:' + cfgGlobal.email_consultoria;
+    }
+}
+
 function atualizarLogosVisuais() {
     const clinica = state.clinicaAtual;
     const cfgGlobal = state.configGlobal;
@@ -2562,6 +2579,26 @@ async function atualizarLogosSistema() {
     aplicarConfigNaInterface();
 }
 
+// ============================================================
+// SALVA CONFIGURAÇÕES GLOBAIS DO HUB MASTER
+// ============================================================
+async function salvarConfigGlobal() {
+    const dados = {
+        logo_metodo_url: document.getElementById('cfgLogoMetodo')?.value || '',
+        logo_consultoria_url: document.getElementById('cfgLogoConsultoria')?.value || '',
+        nome_consultoria: document.getElementById('cfgNomeConsultoriaGlobal')?.value || '',
+        whatsapp_consultoria: document.getElementById('cfgWhatsApp')?.value || '',
+        email_consultoria: document.getElementById('cfgEmailConsultoria')?.value || ''
+    };
+
+    const atualizado = await apiUpdate('config_global', 'global', dados);
+    if (atualizado) {
+        state.configGlobal = atualizado;
+    }
+    atualizarLogosVisuais();
+    aplicarConfigNaInterface();
+}
+
 async function renderizarListaClinicas() {
     const tbody = document.getElementById('tbodyClinicasMaster');
     if (!tbody) return;
@@ -2681,3 +2718,14 @@ async function cadastrarNovaClinica() {
         if (btn) { btn.disabled = false; btn.textContent = 'Cadastrar Clínica e Gerar Acesso'; }
     }
 }
+   
+  
+        
+             
+                
+
+
+
+
+
+
