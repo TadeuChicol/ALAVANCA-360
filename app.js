@@ -2236,7 +2236,7 @@ function aplicarConfigNaInterface() {
     const lnkWhatsConsultoria = document.getElementById('lnkWhatsConsultoria');
     const lnkEmailConsultoria = document.getElementById('lnkEmailConsultoria');
 
-    if (txtNomeClinica) txtNomeClinica.textContent = clinica.nome_clinica || 'Clínica';
+    if (txtNomeClinica) txtNomeClinica.textContent = clinica.nome || 'Clínica';
     if (txtIdSupabase) txtIdSupabase.textContent = (state.usuario && state.usuario.email) || clinica.id;
     if (lnkGoogleSheets) lnkGoogleSheets.href = clinica.url_google_agenda || '#';
     if (lnkCalendly) lnkCalendly.href = clinica.url_calendly || '#';
@@ -2252,7 +2252,7 @@ function aplicarConfigNaInterface() {
     const cfgUrlSheets = document.getElementById('cfgUrlSheets');
     const cfgUrlCalendly = document.getElementById('cfgUrlCalendly');
     const cfgLogoClinicaHub = document.getElementById('cfgLogoClinicaHub');
-    if (cfgNomeClinica) cfgNomeClinica.value = clinica.nome_clinica || '';
+    if (cfgNomeClinica) cfgNomeClinica.value = clinica.nome || '';
     if (cfgEndereco) cfgEndereco.value = clinica.endereco || '';
     if (cfgUrlSheets) cfgUrlSheets.value = clinica.url_google_agenda || '';
     if (cfgUrlCalendly) cfgUrlCalendly.value = clinica.url_calendly || '';
@@ -2302,18 +2302,12 @@ function atualizarLogosVisuais() {
         if (iconDefault) iconDefault.classList.remove('hidden');
     }
 
-   (function atualizarLogoMetodo() {
-    const cfgGlobal = state.configGlobal;
-    const imgLogoMetodo = document.getElementById('imgLogoMetodo');
-    const imgLogoConsultoria = document.getElementById('imgLogoConsultoria');
-    const logoConsultoriaContainer = document.getElementById('logoConsultoriaContainer');
-    
     const logoMetodo = (cfgGlobal && cfgGlobal.logo_metodo_url) || 'images/logo-alavanca-360.png';
     if (imgLogoMetodo) {
         imgLogoMetodo.src = logoMetodo;
         imgLogoMetodo.classList.remove('hidden');
     }
-    
+
     if (cfgGlobal && cfgGlobal.logo_consultoria_url) {
         if (imgLogoConsultoria) imgLogoConsultoria.src = cfgGlobal.logo_consultoria_url;
         if (logoConsultoriaContainer) {
@@ -2326,7 +2320,7 @@ function atualizarLogosVisuais() {
             logoConsultoriaContainer.classList.remove('flex');
         }
     }
-})();
+}
 
 // Auxiliar interna para fazer o upload do arquivo binário para o Storage
 async function uploadLogoClinicaStorage(fileInputId, idClinica) {
