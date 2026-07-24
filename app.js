@@ -1,14 +1,20 @@
 // ============================================================
-// ESCUDO DE PROTEÇÃO GLOBAL CONTRA TRASHING DE EXECUÇÃO
+// ESCUDO DE PROTEÇÃO — Protege a UI sem esconder erros internos
 // ============================================================
 window.addEventListener('error', function(event) {
-    console.warn("🛡️ [Mecanismo Alavanca 360] Erro contido em tempo de execução:", event.message);
-    event.preventDefault(); // Impede o travamento em cascata da interface do usuário
+    // Ignora erros de extensões do navegador (não são problema do sistema)
+    if (event.filename && event.filename.startsWith('chrome-extension://')) {
+        return;
+    }
+    // Erro interno: mostra no console para debug
+    console.error("🛡️ [Alavanca 360] Erro de execução:", event.message);
+    console.error("📍 Arquivo:", event.filename, "Linha:", event.lineno);
+    // NÃO usa preventDefault() — o erro aparece no console para você debuggar
 });
 
 window.addEventListener('unhandledrejection', function(event) {
-    console.warn("🛡️ [Mecanismo Alavanca 360] Promessa assíncrona rejeitada e isolada:", event.reason);
-    event.preventDefault();
+    console.error("🛡️ [Alavanca 360] Promessa rejeitada sem tratamento:", event.reason);
+    // NÃO usa preventDefault() — a rejeição aparece no console para debug
 });
 
 // ============================================================
@@ -265,7 +271,7 @@ async function carregarContextoUsuario(user) {
     const { data: adminData, error: adminErr } = await supabaseClient
         .from('consultoria_admins')
         .select('*')
-        .eq('email_admin', user.email)
+        .eq('user_id', user.id)      
         .maybeSingle();
 
     state.isAdmin = !!adminData;
