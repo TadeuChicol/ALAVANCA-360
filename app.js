@@ -271,7 +271,7 @@ async function carregarContextoUsuario(user) {
     const { data: adminData, error: adminErr } = await supabaseClient
         .from('consultoria_admins')
         .select('*')
-        .eq('user_id', user.id)      
+        .eq('user_id', user.id) 
         .maybeSingle();
 
     state.isAdmin = !!adminData;
@@ -412,7 +412,11 @@ async function carregarDadosFinanceiros() {
 function switchTab(tabId) {
     document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
     const target = document.getElementById(tabId);
-    if (target) target.classList.remove('hidden');
+    if (target) {
+        target.classList.remove('hidden');
+        // Garante que o HUB Master seja preparado sempre que a aba for ativada
+        if (tabId === 'tab-hub-master') prepararHubMaster();
+    }
 
     document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove(
         'text-emerald-400', 'bg-emerald-500/5', 'border', 'border-emerald-500/10'
@@ -2573,6 +2577,7 @@ function prepararHubMaster() {
     if (cfgNomeConsultoriaGlobal) cfgNomeConsultoriaGlobal.value = (state.configGlobal && state.configGlobal.nome_consultoria) || '';
 
     renderizarListaClinicas();
+    carregarConfigGlobal();
 }
 
 async function atualizarLogosSistema() {
