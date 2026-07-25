@@ -333,12 +333,13 @@ async function init() {
         atualizarTemplateDocumento();
         renderizarModuloFinanceiroCompleto();
     } else {
-        // Usuário é apenas administrador da Consultoria, sem clínica operacional própria
-        switchTab('tab-hub-master');
-    }
-
-    if (window.lucide) lucide.createIcons();
+    switchTab('tab-hub-master');
 }
+
+    prepararHubMaster();
+}
+
+if (window.lucide) lucide.createIcons();
 
 // Esconde módulos operacionais (M1-M7 e HUB Clínica) para quem só é admin
 // da Consultoria e não é dono de nenhuma clínica; esconde o HUB Master de
