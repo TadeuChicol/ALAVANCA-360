@@ -337,10 +337,6 @@ async function init() {
         switchTab('tab-hub-master');
     }
 
-    if (state.isAdmin) {
-        prepararHubMaster();
-    }
-
     if (window.lucide) lucide.createIcons();
 }
 
@@ -414,8 +410,9 @@ function switchTab(tabId) {
     const target = document.getElementById(tabId);
     if (target) {
         target.classList.remove('hidden');
-        // Garante que o HUB Master seja preparado sempre que a aba for ativada
-        if (tabId === 'tab-hub-master') prepararHubMaster();
+        if (tabId === 'tab-hub-master') {
+            setTimeout(() => prepararHubMaster(), 100);
+        }
     }
 
     document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove(
