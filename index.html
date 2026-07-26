@@ -1004,51 +1004,54 @@
                         </button>
                     </div>
                 </div>
-            </div>
 
             <!-- CONFIGURAÇÃO HUB B - MASTER CONSULTOR OCULTO -->
-            <div id="tab-hub-master" class="tab-content hidden space-y-6">
+<div id="tab-hub-master" class="tab-content hidden space-y-6">
+    <div>
+        <h2 class="text-xl font-bold text-amber-400 flex items-center gap-1.5">
+            <i data-lucide="settings-2"></i> CONFIGURAÇÃO HUB — Portal Master Alavanca 360
+        </h2>
+    </div>
+
+    <div id="hubGatekeeper" class="bg-slate-900 p-8 text-center rounded-xl border border-amber-500/20 max-w-md mx-auto space-y-4">
+        <i data-lucide="lock" class="w-12 h-12 text-amber-400 mx-auto animate-pulse"></i>
+        <div>
+            <h3 class="text-sm font-bold text-slate-200">Painel do Consultor Restrito</h3>
+            <p class="text-xs text-slate-500 mt-1">Acesso liberado apenas para usuários cadastrados como administradores da Consultoria (tabela <code>consultoria_admins</code> no Supabase). Faça login com uma conta de administrador para ver este painel.</p>
+        </div>
+    </div>
+
+    <div id="hubConteudoOculto" class="hidden space-y-6">
+        
+        <!-- MARCA GLOBAL: MÉTODO + CONSULTORIA -->
+        <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-4">
+            <h3 class="text-sm font-bold text-sky-400">Identidade Visual Global (aplicada a TODAS as clínicas)</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
                 <div>
-                    <h2 class="text-xl font-bold text-amber-400 flex items-center gap-1.5"><i data-lucide="settings-2"></i> CONFIGURAÇÃO HUB — Portal Master Alavanca 360</h2>
+                    <label class="block text-slate-400 mb-1">URL Logo do Método ALAVANCA 360®</label>
+                    <input type="text" id="cfgLogoMetodo" placeholder="images/logo-alavanca-360.png" onchange="atualizarLogosSistema()" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-300 rounded">
                 </div>
-
-                <div id="hubGatekeeper" class="bg-slate-900 p-8 text-center rounded-xl border border-amber-500/20 max-w-md mx-auto space-y-4">
-                    <i data-lucide="lock" class="w-12 h-12 text-amber-400 mx-auto animate-pulse"></i>
-                    <div>
-                        <h3 class="text-sm font-bold text-slate-200">Painel do Consultor Restrito</h3>
-                        <p class="text-xs text-slate-500 mt-1">Acesso liberado apenas para usuários cadastrados como administradores da Consultoria (tabela <code>consultoria_admins</code> no Supabase). Faça login com uma conta de administrador para ver este painel.</p>
-                    </div>
+                <div>
+                    <label class="block text-slate-400 mb-1">URL Logo da Consultoria</label>
+                    <input type="text" id="cfgLogoConsultoria" placeholder="https://..." onchange="atualizarLogosSistema()" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-300 rounded">
                 </div>
-
-                <div id="hubConteudoOculto" class="hidden space-y-6">
-
-                    <!-- MARCA GLOBAL: MÉTODO + CONSULTORIA -->
-                   <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-4">
-                        <h3 class="text-sm font-bold text-sky-400">Identidade Visual Global (aplicada a TODAS as clínicas)</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-                            <div>
-                                <label class="block text-slate-400 mb-1">URL Logo do Método ALAVANCA 360®</label>
-                                <input type="text" id="cfgLogoMetodo" placeholder="images/logo-alavanca-360.png" onchange="atualizarLogosSistema()" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-300 rounded">
-                            </div>
-                            <div>
-                                <label class="block text-slate-400 mb-1">URL Logo da Consultoria</label>
-                                <input type="text" id="cfgLogoConsultoria" placeholder="https://..." onchange="atualizarLogosSistema()" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-300 rounded">
-                            </div>
-                            <div>
-                                <label class="block text-slate-400 mb-1">Nome da Consultoria (rodapé/login)</label>
-                                <input type="text" id="cfgNomeConsultoriaGlobal" placeholder="Alavanca 360 Consultoria" onchange="atualizarLogosSistema()" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-300 rounded">
-                            </div>
-                            <div>
-                                <label class="block text-slate-400 mb-1">WhatsApp da Consultoria (com DDD)</label>
-                                <input type="text" id="cfgWhatsApp" placeholder="5511999999999" onchange="salvarConfigGlobal()" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-300 rounded">
-                            </div>
-                             <div>
-                                <label class="block text-slate-400 mb-1">E-mail de Suporte</label>
-                                <input type="email" id="cfgEmailConsultoria" placeholder="suporte@alavanca360.com.br" onchange="salvarConfigGlobal()" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-300 rounded">
-                            </div>
-                        </div>
-                        <p class="text-[10px] text-slate-500">Alterações aqui se propagam imediatamente pela tela de login, rodapé e emissão de documentos (M7) de todas as clínicas ativas.</p>
-                    </div>
+                <div>
+                    <label class="block text-slate-400 mb-1">Nome da Consultoria (rodapé/login)</label>
+                    <input type="text" id="cfgNomeConsultoriaGlobal" placeholder="Alavanca 360 Consultoria" onchange="atualizarLogosSistema()" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-300 rounded">
+                </div>
+                <div>
+                    <label class="block text-slate-400 mb-1">WhatsApp da Consultoria (com DDD)</label>
+                    <input type="text" id="cfgWhatsApp" placeholder="5511999999999" onchange="salvarConfigGlobal()" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-300 rounded">
+                </div>
+                <div>
+                    <label class="block text-slate-400 mb-1">E-mail de Suporte</label>
+                    <input type="email" id="cfgEmailConsultoria" placeholder="suporte@alavanca360.com.br" onchange="salvarConfigGlobal()" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-300 rounded">
+                </div>
+            </div>
+            <p class="text-[10px] text-slate-500">Alterações aqui se propagam imediatamente pela tela de login, rodapé e emissão de documentos (M7) de todas as clínicas ativas.</p>
+        </div>
+    </div> <!-- Fechamento da div #hubConteudoOculto -->
+</div> <!-- Fechamento da div #tab-hub-master -->
 
                     <!-- CADASTRO DE NOVA CLÍNICA (TENANT) -->
                   <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-4">
