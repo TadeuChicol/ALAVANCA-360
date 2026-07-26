@@ -960,50 +960,69 @@
                 </div>
             </div>
 
-            <!-- CONFIGURAÇÃO HUB A - CLÍNICA -->
+<!-- CONFIGURAÇÃO HUB A - CLÍNICA -->
 <div id="tab-hub-clinica" class="tab-content hidden space-y-6">
+    <div>
+        <h2 class="text-xl font-bold text-emerald-400 flex items-center gap-1.5"><i data-lucide="sliders"></i> CONFIGURAÇÃO HUB — Painel Corporativo da Clínica</h2>
+        <p class="text-xs text-slate-400">Configurações básicas locais do ambiente de trabalho.</p>
+    </div>
+    <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+            <div>
+                <label class="block text-slate-400 mb-1">Nome Fantasia da Unidade</label>
+                <input type="text" id="cfgNomeClinica" value="Clínica Odonto Premium" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-200 rounded">
+            </div>
+            <div>
+                <label class="block text-slate-400 mb-1">Endereço Físico Completo</label>
+                <input type="text" id="cfgEndereco" value="Av. Paulista, 1500 - São Paulo/SP" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-200 rounded">
+            </div>
+            <div>
+                <label class="block text-slate-400 mb-1">Link Integrador Google Agenda</label>
+                <input type="text" id="cfgUrlSheets" value="https://calendar.google.com" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-300 rounded">
+            </div>
+            <div>
+                <label class="block text-slate-400 mb-1">Link Integrador Calendly</label>
+                <input type="text" id="cfgUrlCalendly" value="https://calendly.com" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-300 rounded">
+            </div>
+            <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
-                    <h2 class="text-xl font-bold text-emerald-400 flex items-center gap-1.5"><i data-lucide="sliders"></i> CONFIGURAÇÃO HUB — Painel Corporativo da Clínica</h2>
-                    <p class="text-xs text-slate-400">Configurações básicas locais do ambiente de trabalho.</p>
+                    <label class="block text-slate-400 mb-1">Fazer Upload do Logo (PNG/JPEG do computador)</label>
+                    <input type="file" id="cfgLogoLocalFile" accept="image/png, image/jpeg" onchange="processarLogoLocal(this)" class="w-full bg-slate-950 border border-slate-800 p-1.5 text-slate-300 rounded text-xs file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-emerald-600 file:text-white hover:file:bg-emerald-500 cursor-pointer">
                 </div>
-                <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-4">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                        <div>
-                            <label class="block text-slate-400 mb-1">Nome Fantasia da Unidade</label>
-                            <input type="text" id="cfgNomeClinica" value="Clínica Odonto Premium" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-200 rounded">
-                        </div>
-                        <div>
-                            <label class="block text-slate-400 mb-1">Endereço Físico Completo</label>
-                            <input type="text" id="cfgEndereco" value="Av. Paulista, 1500 - São Paulo/SP" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-200 rounded">
-                        </div>
-                        <div>
-                            <label class="block text-slate-400 mb-1">Link Integrador Google Agenda</label>
-                            <input type="text" id="cfgUrlSheets" value="https://calendar.google.com" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-300 rounded">
-                        </div>
-                        <div>
-                            <label class="block text-slate-400 mb-1">Link Integrador Calendly</label>
-                            <input type="text" id="cfgUrlCalendly" value="https://calendly.com" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-300 rounded">
-                        </div>
-                        <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div>
-                            <label class="block text-slate-400 mb-1">Fazer Upload do Logo (PNG/JPEG do computador)</label>
-                            <input type="file" id="cfgLogoLocalFile" accept="image/png, image/jpeg" onchange="processarLogoLocal(this)" class="w-full bg-slate-950 border border-slate-800 p-1.5 text-slate-300 rounded text-xs file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-emerald-600 file:text-white hover:file:bg-emerald-500 cursor-pointer">
-                        </div>
-                         <div>
-                            <label class="block text-slate-400 mb-1">Ou URL do Logo Remoto</label>
-                            <input type="text" id="cfgLogoClinicaHub" placeholder="https://..." onchange="atualizarLogosSistema()" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-300 rounded text-xs">
-                        </div>
+                <div>
+                    <label class="block text-slate-400 mb-1">Ou URL do Logo Remoto</label>
+                    <input type="text" id="cfgLogoClinicaHub" placeholder="https://..." onchange="atualizarLogosSistema()" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-300 rounded text-xs">
                 </div>
-                </div>
-                    <div class="flex flex-wrap gap-3 justify-end">
-                        <button id="btnSincronizarPlanilha" onclick="sincronizarDadosPlanilhaGoogle()" class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer">
-                            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Sincronizar Insumos (Planilha)
-                        </button>
-                        <button onclick="salvarHubClinicaBasico()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer">
-                            <i data-lucide="save" class="w-3.5 h-3.5"></i> Atualizar Dados Corporativos
-                        </button>
-                    </div>
-                </div>
+            </div>
+        </div>
+        <div class="flex flex-wrap gap-3 justify-end">
+            <button id="btnSincronizarPlanilha" onclick="sincronizarDadosPlanilhaGoogle()" class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer">
+                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Sincronizar Insumos (Planilha)
+            </button>
+            <button onclick="salvarHubClinicaBasico()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer">
+                <i data-lucide="save" class="w-3.5 h-3.5"></i> Atualizar Dados Corporativos
+            </button>
+        </div>
+    </div>
+</div> <!-- <<< FECHAMENTO DA ABA CLÍNICA ADICIONADO AQUI! -->
+
+<!-- CONFIGURAÇÃO HUB B - MASTER CONSULTOR OCULTO -->
+<div id="tab-hub-master" class="tab-content hidden space-y-6">
+    <div>
+        <h2 class="text-xl font-bold text-amber-400 flex items-center gap-1.5">
+            <i data-lucide="settings-2"></i> CONFIGURAÇÃO HUB — Portal Master Alavanca 360
+        </h2>
+    </div>
+
+    <div id="hubGatekeeper" class="bg-slate-900 p-8 text-center rounded-xl border border-amber-500/20 max-w-md mx-auto space-y-4">
+        <i data-lucide="lock" class="w-12 h-12 text-amber-400 mx-auto animate-pulse"></i>
+        <div>
+            <h3 class="text-sm font-bold text-slate-200">Painel do Consultor Restrito</h3>
+            <p class="text-xs text-slate-500 mt-1">Acesso liberado apenas para usuários cadastrados como administradores da Consultoria (tabela <code>consultoria_admins</code> no Supabase). Faça login com uma conta de administrador para ver este painel.</p>
+        </div>
+    </div>
+
+    <div id="hubConteudoOculto" class="hidden space-y-6">
 
             <!-- CONFIGURAÇÃO HUB B - MASTER CONSULTOR OCULTO -->
 <div id="tab-hub-master" class="tab-content hidden space-y-6">
@@ -1022,7 +1041,7 @@
     </div>
 
     <div id="hubConteudoOculto" class="hidden space-y-6">
-        
+
         <!-- MARCA GLOBAL: MÉTODO + CONSULTORIA -->
         <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-4">
             <h3 class="text-sm font-bold text-sky-400">Identidade Visual Global (aplicada a TODAS as clínicas)</h3>
@@ -1131,9 +1150,3 @@
 <script src="app.js"></script>
 </body>
 </html>
-          
-
-   
-       
-  
-                  
