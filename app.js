@@ -2562,32 +2562,25 @@ async function sincronizarDadosPlanilhaGoogle() {
 // state.isAdmin (tabela consultoria_admins) — sem chave extra no cliente.
 
 async function prepararHubMaster() {
-    // Usa querySelector para garantir que pegamos elementos DENTRO do appPrincipal
-    const hubGatekeeper = document.querySelector('#appPrincipal #hubGatekeeper');
-    const hubConteudoOculto = document.querySelector('#appPrincipal #hubConteudoOculto');
-    const masterTab = document.querySelector('#appPrincipal #tab-hub-master');
+    const hubGatekeeper = document.getElementById('hubGatekeeper');
+    const hubConteudoOculto = document.getElementById('hubConteudoOculto');
     
     if (hubGatekeeper) hubGatekeeper.classList.add('hidden');
     if (hubConteudoOculto) hubConteudoOculto.classList.remove('hidden');
-    if (masterTab) {
-        masterTab.classList.remove('hidden');
-        masterTab.style.display = 'block';
-    }
 
-    // Recarrega a config_global do banco e AGUARDA
+    // 1º: carrega os dados do Supabase PRIMEIRO
     await carregarConfigGlobal();
 
-    // Proteção para não travar se o elemento HTML não existir
-    const cfgLogoMetodo = document.querySelector('#appPrincipal #cfgLogoMetodo');
-    const cfgLogoConsultoria = document.querySelector('#appPrincipal #cfgLogoConsultoria');
-    const cfgNomeConsultoriaGlobal = document.querySelector('#appPrincipal #cfgNomeConsultoriaGlobal');
+    // 2º: popula os campos com dados FRESCOS
+    const cfgLogoMetodo = document.getElementById('cfgLogoMetodo');
+    const cfgLogoConsultoria = document.getElementById('cfgLogoConsultoria');
+    const cfgNomeConsultoriaGlobal = document.getElementById('cfgNomeConsultoriaGlobal');
 
-    // Agora popula os campos com dados FRESCOS do banco
-    if (cfgLogoMetodo) cfgLogoMetodo.value = (state.configGlobal && state.configGlobal.logo_metodo_url) || '';
-    if (cfgLogoConsultoria) cfgLogoConsultoria.value = (state.configGlobal && state.configGlobal.logo_consultoria_url) || '';
-    if (cfgNomeConsultoriaGlobal) cfgNomeConsultoriaGlobal.value = (state.configGlobal && state.configGlobal.nome_consultoria) || '';
+    if (cfgLogoMetodo) cfgLogoMetodo.value = (state.configGlobal?.logo_metodo_url) || '';
+    if (cfgLogoConsultoria) cfgLogoConsultoria.value = (state.configGlobal?.logo_consultoria_url) || '';
+    if (cfgNomeConsultoriaGlobal) cfgNomeConsultoriaGlobal.value = (state.configGlobal?.nome_consultoria) || '';
 
-    // Aguarda a lista de clínicas carregar também
+    // 3º: renderiza a lista de clínicas
     await renderizarListaClinicas();
 }
 
