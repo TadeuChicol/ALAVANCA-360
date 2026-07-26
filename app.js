@@ -2562,15 +2562,15 @@ async function sincronizarDadosPlanilhaGoogle() {
 // state.isAdmin (tabela consultoria_admins) — sem chave extra no cliente.
 
 async function prepararHubMaster() {
-    const hubGatekeeper = document.getElementById('hubGatekeeper');
-    const hubConteudoOculto = document.getElementById('hubConteudoOculto');
+    // Usa querySelector para garantir que pegamos elementos DENTRO do appPrincipal
+    const hubGatekeeper = document.querySelector('#appPrincipal #hubGatekeeper');
+    const hubConteudoOculto = document.querySelector('#appPrincipal #hubConteudoOculto');
+    const masterTab = document.querySelector('#appPrincipal #tab-hub-master');
     
     if (hubGatekeeper) hubGatekeeper.classList.add('hidden');
     if (hubConteudoOculto) hubConteudoOculto.classList.remove('hidden');
-    
-    // 🔥 GARANTIA EXTRA: força o display do conteúdo visível
-    const masterTab = document.getElementById('tab-hub-master');
     if (masterTab) {
+        masterTab.classList.remove('hidden');
         masterTab.style.display = 'block';
     }
 
@@ -2578,9 +2578,9 @@ async function prepararHubMaster() {
     await carregarConfigGlobal();
 
     // Proteção para não travar se o elemento HTML não existir
-    const cfgLogoMetodo = document.getElementById('cfgLogoMetodo');
-    const cfgLogoConsultoria = document.getElementById('cfgLogoConsultoria');
-    const cfgNomeConsultoriaGlobal = document.getElementById('cfgNomeConsultoriaGlobal');
+    const cfgLogoMetodo = document.querySelector('#appPrincipal #cfgLogoMetodo');
+    const cfgLogoConsultoria = document.querySelector('#appPrincipal #cfgLogoConsultoria');
+    const cfgNomeConsultoriaGlobal = document.querySelector('#appPrincipal #cfgNomeConsultoriaGlobal');
 
     // Agora popula os campos com dados FRESCOS do banco
     if (cfgLogoMetodo) cfgLogoMetodo.value = (state.configGlobal && state.configGlobal.logo_metodo_url) || '';
