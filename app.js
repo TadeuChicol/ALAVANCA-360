@@ -2738,3 +2738,8 @@ async function cadastrarNovaClinica() {
         if (btn) { btn.disabled = false; btn.textContent = 'Cadastrar Clínica e Gerar Acesso'; }
     }
 }
+
+
+      
+
+   
