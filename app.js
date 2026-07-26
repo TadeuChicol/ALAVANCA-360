@@ -2568,7 +2568,7 @@ async function prepararHubMaster() {
     if (hubGatekeeper) hubGatekeeper.classList.add('hidden');
     if (hubConteudoOculto) hubConteudoOculto.classList.remove('hidden');
 
-    // Recarrega config_global do banco e aguarda
+    // Recarrega a config_global do banco e AGUARDA
     await carregarConfigGlobal();
 
     // Proteção para não travar se o elemento HTML não existir
@@ -2576,10 +2576,12 @@ async function prepararHubMaster() {
     const cfgLogoConsultoria = document.getElementById('cfgLogoConsultoria');
     const cfgNomeConsultoriaGlobal = document.getElementById('cfgNomeConsultoriaGlobal');
 
+    // Agora popula os campos com dados FRESCOS do banco
     if (cfgLogoMetodo) cfgLogoMetodo.value = (state.configGlobal && state.configGlobal.logo_metodo_url) || '';
     if (cfgLogoConsultoria) cfgLogoConsultoria.value = (state.configGlobal && state.configGlobal.logo_consultoria_url) || '';
     if (cfgNomeConsultoriaGlobal) cfgNomeConsultoriaGlobal.value = (state.configGlobal && state.configGlobal.nome_consultoria) || '';
 
+    // Aguarda a lista de clínicas carregar também
     await renderizarListaClinicas();
 }
 
