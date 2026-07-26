@@ -411,7 +411,7 @@ async function carregarDadosFinanceiros() {
 
 function switchTab(tabId) {
     document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-    const target = document.getElementById(tabId);
+    const target = document.querySelector('#appPrincipal #' + tabId);
     if (target) {
         target.classList.remove('hidden');
         if (tabId === 'tab-hub-master') {
