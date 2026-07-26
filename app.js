@@ -2567,6 +2567,12 @@ async function prepararHubMaster() {
     
     if (hubGatekeeper) hubGatekeeper.classList.add('hidden');
     if (hubConteudoOculto) hubConteudoOculto.classList.remove('hidden');
+    
+    // 🔥 GARANTIA EXTRA: força o display do conteúdo visível
+    const masterTab = document.getElementById('tab-hub-master');
+    if (masterTab) {
+        masterTab.style.display = 'block';
+    }
 
     // Recarrega a config_global do banco e AGUARDA
     await carregarConfigGlobal();
