@@ -85,10 +85,13 @@ async function apiGet(table, id) {
             .from(table)
             .select('*')
             .eq('id', id)
-            .single();
+            .limit(1);
 
-        if (error) throw error;
-        return data;
+        if (error) {
+            console.error(`Erro ao buscar id ${id} na tabela ${table}:`, error);
+            return null;
+        }
+        return data && data.length > 0 ? data[0] : null;
     } catch (e) {
         console.error(`Erro ao buscar id ${id} na tabela ${table}:`, e);
         return null;
@@ -2558,12 +2561,15 @@ async function sincronizarDadosPlanilhaGoogle() {
 // Acesso já é garantido pelo login (Supabase Auth) + verificação de
 // state.isAdmin (tabela consultoria_admins) — sem chave extra no cliente.
 
-function prepararHubMaster() {
+async function prepararHubMaster() {
     const hubGatekeeper = document.getElementById('hubGatekeeper');
     const hubConteudoOculto = document.getElementById('hubConteudoOculto');
     
     if (hubGatekeeper) hubGatekeeper.classList.add('hidden');
     if (hubConteudoOculto) hubConteudoOculto.classList.remove('hidden');
+
+    // Recarrega config_global do banco e aguarda
+    await carregarConfigGlobal();
 
     // Proteção para não travar se o elemento HTML não existir
     const cfgLogoMetodo = document.getElementById('cfgLogoMetodo');
@@ -2574,8 +2580,7 @@ function prepararHubMaster() {
     if (cfgLogoConsultoria) cfgLogoConsultoria.value = (state.configGlobal && state.configGlobal.logo_consultoria_url) || '';
     if (cfgNomeConsultoriaGlobal) cfgNomeConsultoriaGlobal.value = (state.configGlobal && state.configGlobal.nome_consultoria) || '';
 
-    renderizarListaClinicas();
-    carregarConfigGlobal();
+    await renderizarListaClinicas();
 }
 
 async function atualizarLogosSistema() {
