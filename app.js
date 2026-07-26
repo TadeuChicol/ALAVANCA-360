@@ -2628,7 +2628,7 @@ async function renderizarListaClinicas() {
     const { data: todas, error } = await supabaseClient
         .from('clinicas')
         .select('*')
-        .order('nome_clinica', { ascending: true });
+        .order('nome', { ascending: true });
 
     if (error) {
         console.error("Erro ao listar clínicas no Master:", error);
