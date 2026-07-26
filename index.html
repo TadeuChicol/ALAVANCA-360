@@ -963,7 +963,9 @@
 <!-- CONFIGURAÇÃO HUB A - CLÍNICA -->
 <div id="tab-hub-clinica" class="tab-content hidden space-y-6">
     <div>
-        <h2 class="text-xl font-bold text-emerald-400 flex items-center gap-1.5"><i data-lucide="sliders"></i> CONFIGURAÇÃO HUB — Painel Corporativo da Clínica</h2>
+        <h2 class="text-xl font-bold text-emerald-400 flex items-center gap-1.5">
+            <i data-lucide="sliders"></i> CONFIGURAÇÃO HUB — Painel Corporativo da Clínica
+        </h2>
         <p class="text-xs text-slate-400">Configurações básicas locais do ambiente de trabalho.</p>
     </div>
     <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-4">
@@ -1004,7 +1006,7 @@
             </button>
         </div>
     </div>
-</div> <!-- <<< FECHAMENTO DA ABA CLÍNICA ADICIONADO AQUI! -->
+</div> <!-- FIM DA ABA CLÍNICA -->
 
 <!-- CONFIGURAÇÃO HUB B - MASTER CONSULTOR OCULTO -->
 <div id="tab-hub-master" class="tab-content hidden space-y-6">
@@ -1014,6 +1016,7 @@
         </h2>
     </div>
 
+    <!-- GATEKEEPER / BLOQUEIO DE SEGURANÇA -->
     <div id="hubGatekeeper" class="bg-slate-900 p-8 text-center rounded-xl border border-amber-500/20 max-w-md mx-auto space-y-4">
         <i data-lucide="lock" class="w-12 h-12 text-amber-400 mx-auto animate-pulse"></i>
         <div>
@@ -1022,25 +1025,13 @@
         </div>
     </div>
 
+    <!-- CONTEÚDO RESTRITO EXIBIDO APÓS AUTENTICAÇÃO MASTER -->
     <div id="hubConteudoOculto" class="hidden space-y-6">
-
-            <!-- CONFIGURAÇÃO HUB B - MASTER CONSULTOR OCULTO -->
-<div id="tab-hub-master" class="tab-content hidden space-y-6">
-    <div>
-        <h2 class="text-xl font-bold text-amber-400 flex items-center gap-1.5">
-            <i data-lucide="settings-2"></i> CONFIGURAÇÃO HUB — Portal Master Alavanca 360
-        </h2>
+        <!-- Seu conteúdo restrito do Hub Master vai aqui -->
     </div>
+</div> <!-- FIM DA ABA HUB MASTER -->
 
-    <div id="hubGatekeeper" class="bg-slate-900 p-8 text-center rounded-xl border border-amber-500/20 max-w-md mx-auto space-y-4">
-        <i data-lucide="lock" class="w-12 h-12 text-amber-400 mx-auto animate-pulse"></i>
-        <div>
-            <h3 class="text-sm font-bold text-slate-200">Painel do Consultor Restrito</h3>
-            <p class="text-xs text-slate-500 mt-1">Acesso liberado apenas para usuários cadastrados como administradores da Consultoria (tabela <code>consultoria_admins</code> no Supabase). Faça login com uma conta de administrador para ver este painel.</p>
-        </div>
-    </div>
-
-    <div id="hubConteudoOculto" class="hidden space-y-6">
+</main> <!-- FECHAMENTO OFICIAL DA MAIN -->
 
         <!-- MARCA GLOBAL: MÉTODO + CONSULTORIA -->
         <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-4">
