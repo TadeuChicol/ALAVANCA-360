@@ -410,8 +410,17 @@ async function carregarDadosFinanceiros() {
 // ============================================================
 
 function switchTab(tabId) {
+    // 1. Esconde todas as abas padrão
     document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-    const target = document.querySelector('#appPrincipal #' + tabId);
+    
+    // 2. FORÇA O HUB MASTER A ESCONDER (Garantia extra)
+    const hubMaster = document.getElementById('tab-hub-master');
+    if (hubMaster) {
+        hubMaster.classList.add('hidden');
+    }
+
+    // 3. Busca e exibe a aba solicitada
+    const target = document.getElementById(tabId) || document.querySelector('#appPrincipal #' + tabId);
     if (target) {
         target.classList.remove('hidden');
         if (tabId === 'tab-hub-master') {
@@ -2738,8 +2747,3 @@ async function cadastrarNovaClinica() {
         if (btn) { btn.disabled = false; btn.textContent = 'Cadastrar Clínica e Gerar Acesso'; }
     }
 }
-
-
-      
-
-   
