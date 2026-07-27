@@ -1025,117 +1025,129 @@
         </div>
     </div>
 
-    <!-- CONTEÚDO RESTRITO EXIBIDO APÓS AUTENTICAÇÃO MASTER -->
-    <div id="hubConteudoOculto" class="hidden space-y-6">
-        <!-- Seu conteúdo restrito do Hub Master vai aqui -->
-    </div>
-</div> <!-- FIM DA ABA HUB MASTER -->
+  <!-- CONTEÚDO RESTRITO EXIBIDO APÓS AUTENTICAÇÃO MASTER -->
+        <div id="hubConteudoOculto" class="hidden space-y-6 w-full">
 
-</main> <!-- FECHAMENTO OFICIAL DA MAIN -->
-
-        <!-- MARCA GLOBAL: MÉTODO + CONSULTORIA -->
-        <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-4">
-            <h3 class="text-sm font-bold text-sky-400">Identidade Visual Global (aplicada a TODAS as clínicas)</h3>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-                <div>
-                    <label class="block text-slate-400 mb-1">URL Logo do Método ALAVANCA 360®</label>
-                    <input type="text" id="cfgLogoMetodo" placeholder="images/logo-alavanca-360.png" onchange="atualizarLogosSistema()" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-300 rounded">
+            <!-- 1. MARCA GLOBAL: MÉTODO + CONSULTORIA -->
+            <div class="bg-slate-900 p-6 rounded-xl border border-slate-800 space-y-4 w-full">
+                <h3 class="text-sm font-bold text-sky-400 flex items-center gap-2">
+                    <i data-lucide="palette" class="w-4 h-4"></i> Identidade Visual Global (aplicada a TODAS as clínicas)
+                </h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                    <div>
+                        <label class="block text-slate-400 mb-1">URL Logo do Método ALAVANCA 360®</label>
+                        <input type="text" id="cfgLogoMetodo" placeholder="images/logo-alavanca-360.png" onchange="atualizarLogosSistema()" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-300 rounded focus:border-sky-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 mb-1">URL Logo da Consultoria</label>
+                        <input type="text" id="cfgLogoConsultoria" placeholder="https://..." onchange="atualizarLogosSistema()" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-300 rounded focus:border-sky-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 mb-1">Nome da Consultoria (rodapé/login)</label>
+                        <input type="text" id="cfgNomeConsultoriaGlobal" placeholder="Alavanca 360 Consultoria" onchange="atualizarLogosSistema()" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-300 rounded focus:border-sky-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 mb-1">WhatsApp da Consultoria (com DDD)</label>
+                        <input type="text" id="cfgWhatsApp" placeholder="5511999999999" onchange="salvarConfigGlobal()" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-300 rounded focus:border-sky-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 mb-1">E-mail de Suporte</label>
+                        <input type="email" id="cfgEmailConsultoria" placeholder="suporte@alavanca360.com.br" onchange="salvarConfigGlobal()" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-300 rounded focus:border-sky-500 outline-none">
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-slate-400 mb-1">URL Logo da Consultoria</label>
-                    <input type="text" id="cfgLogoConsultoria" placeholder="https://..." onchange="atualizarLogosSistema()" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-300 rounded">
-                </div>
-                <div>
-                    <label class="block text-slate-400 mb-1">Nome da Consultoria (rodapé/login)</label>
-                    <input type="text" id="cfgNomeConsultoriaGlobal" placeholder="Alavanca 360 Consultoria" onchange="atualizarLogosSistema()" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-300 rounded">
-                </div>
-                <div>
-                    <label class="block text-slate-400 mb-1">WhatsApp da Consultoria (com DDD)</label>
-                    <input type="text" id="cfgWhatsApp" placeholder="5511999999999" onchange="salvarConfigGlobal()" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-300 rounded">
-                </div>
-                <div>
-                    <label class="block text-slate-400 mb-1">E-mail de Suporte</label>
-                    <input type="email" id="cfgEmailConsultoria" placeholder="suporte@alavanca360.com.br" onchange="salvarConfigGlobal()" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-300 rounded">
-                </div>
+                <p class="text-[10px] text-slate-500 pt-1">
+                    <i data-lucide="info" class="inline w-3 h-3 mr-0.5"></i> Alterações aqui se propagam imediatamente pela tela de login, rodapé e emissão de documentos (M7) de todas as clínicas ativas.
+                </p>
             </div>
-            <p class="text-[10px] text-slate-500">Alterações aqui se propagam imediatamente pela tela de login, rodapé e emissão de documentos (M7) de todas as clínicas ativas.</p>
-        </div>
-    </div> <!-- Fechamento da div #hubConteudoOculto -->
-</div> <!-- Fechamento da div #tab-hub-master -->
 
-                    <!-- CADASTRO DE NOVA CLÍNICA (TENANT) -->
-                  <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-4">
-                        <h3 class="text-sm font-bold text-emerald-400">Cadastrar Nova Clínica (novo Tenant / Login exclusivo)</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-                            <div>
-                                <label class="block text-slate-400 mb-1">Nome da Clínica</label>
-                                <input type="text" id="novaClinicaNome" placeholder="Ex: Studio de Sobrancelhas Bella" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-200 rounded">
-                            </div>
-                            <div>
-                                <label class="block text-slate-400 mb-1">Segmento</label>
-                                <select id="novaClinicaSegmento" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-200 rounded">
-                                    <option value="Odontologia">Odontologia</option>
-                                    <option value="Estética">Estética</option>
-                                    <option value="Design de Sobrancelhas">Design de Sobrancelhas</option>
-                                    <option value="Harmonização Facial">Harmonização Facial</option>
-                                    <option value="Clínica de Beleza">Clínica de Beleza</option>
-                                    <option value="Outro">Outro</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-slate-400 mb-1">Responsável</label>
-                                <input type="text" id="novaClinicaResponsavel" placeholder="Nome da proprietária/gestora" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-200 rounded">
-                            </div>
-                            <div>
-                                <label class="block text-slate-400 mb-1">E-mail de Login da Clínica</label>
-                                <input type="email" id="novaClinicaCodigo" placeholder="clinica@exemplo.com" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-200 rounded font-mono">
-                            </div>
-                            <div>
-                                <label class="block text-slate-400 mb-1">Senha de Acesso (mín. 6 caracteres)</label>
-                                <input type="text" id="novaClinicaSenha" placeholder="Senha inicial" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-200 rounded font-mono">
-                            </div>
-                            <div>
-                                <label class="block text-slate-400 mb-1">Plano Contratado</label>
-                                <select id="novaClinicaPlano" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-200 rounded">
-                                    <option value="Essencial">Essencial</option>
-                                    <option value="Profissional">Profissional</option>
-                                    <option value="Premium White-Label">Premium White-Label</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="flex justify-end">
-                            <button id="btnCadastrarClinica" onclick="cadastrarNovaClinica()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition flex items-center gap-1.5">
-                                <i data-lucide="plus-circle" class="w-4 h-4"></i> Cadastrar Clínica e Gerar Acesso
-                            </button>
-                        </div>
+            <!-- 2. CADASTRO DE NOVA CLÍNICA (TENANT) -->
+            <div class="bg-slate-900 p-6 rounded-xl border border-slate-800 space-y-4 w-full">
+                <h3 class="text-sm font-bold text-emerald-400 flex items-center gap-2">
+                    <i data-lucide="building-2" class="w-4 h-4"></i> Cadastrar Nova Clínica (novo Tenant / Login exclusivo)
+                </h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                    <div>
+                        <label class="block text-slate-400 mb-1">Nome da Clínica</label>
+                        <input type="text" id="novaClinicaNome" placeholder="Ex: Studio de Sobrancelhas Bella" class="w-full bg-slate-950 border border-slate-800 p-2.5 text-slate-200 rounded focus:border-emerald-500 outline-none">
                     </div>
+                    <div>
+                        <label class="block text-slate-400 mb-1">Segmento</label>
+                        <select id="novaClinicaSegmento" class="w-full bg-slate-950 border border-slate-800 p-2.5 text-slate-200 rounded focus:border-emerald-500 outline-none">
+                            <option value="Odontologia">Odontologia</option>
+                            <option value="Estética">Estética</option>
+                            <option value="Design de Sobrancelhas">Design de Sobrancelhas</option>
+                            <option value="Harmonização Facial">Harmonização Facial</option>
+                            <option value="Clínica de Beleza">Clínica de Beleza</option>
+                            <option value="Outro">Outro</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 mb-1">Responsável</label>
+                        <input type="text" id="novaClinicaResponsavel" placeholder="Nome da proprietária/gestora" class="w-full bg-slate-950 border border-slate-800 p-2.5 text-slate-200 rounded focus:border-emerald-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 mb-1">E-mail de Login da Clínica</label>
+                        <input type="email" id="novaClinicaCodigo" placeholder="clinica@exemplo.com" class="w-full bg-slate-950 border border-slate-800 p-2.5 text-slate-200 rounded font-mono focus:border-emerald-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 mb-1">Senha de Acesso (mín. 6 caracteres)</label>
+                        <input type="text" id="novaClinicaSenha" placeholder="Senha inicial" class="w-full bg-slate-950 border border-slate-800 p-2.5 text-slate-200 rounded font-mono focus:border-emerald-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 mb-1">Plano Contratado</label>
+                        <select id="novaClinicaPlano" class="w-full bg-slate-950 border border-slate-800 p-2.5 text-slate-200 rounded focus:border-emerald-500 outline-none">
+                            <option value="Essencial">Essencial</option>
+                            <option value="Profissional">Profissional</option>
+                            <option value="Premium White-Label">Premium White-Label</option>
+                        </select>
+                    </div>
+                </div>
 
-                    <!-- LISTAGEM DE CLÍNICAS (TENANTS) ATIVAS -->
-         <div class="bg-slate-900 p-5 rounded-xl border border-slate-800">
-                        <h3 class="text-sm font-bold text-slate-200 mb-3">Clínicas Cadastradas na Plataforma</h3>
-                        <div class="overflow-x-auto custom-scrollbar">
-                            <table class="w-full text-left text-xs text-slate-300">
-                                <thead class="bg-slate-950 text-slate-400 uppercase text-[10px]">
-                                    <tr>
-                                        <th class="p-2">Clínica</th>
-                                        <th class="p-2">Segmento</th>
-                                        <th class="p-2">E-mail de Login</th>
-                                        <th class="p-2">Plano</th>
-                                        <th class="p-2">Status</th>
-                                        <th class="p-2 text-right">Ações</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="tbodyClinicasMaster">
-                                    <tr><td colspan="6" class="p-3 text-center text-slate-600">Carregando...</td></tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+                <div class="flex justify-end pt-2">
+                    <button id="btnCadastrarClinica" onclick="cadastrarNovaClinica()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition flex items-center gap-2 cursor-pointer shadow-lg shadow-emerald-900/20">
+                        <i data-lucide="plus-circle" class="w-4 h-4"></i> Cadastrar Clínica e Gerar Acesso
+                    </button>
                 </div>
             </div>
 
-        </main>
-    </div>
+            <!-- 3. LISTAGEM DE CLÍNICAS (TENANTS) ATIVAS -->
+            <div class="bg-slate-900 p-6 rounded-xl border border-slate-800 space-y-4 w-full">
+                <h3 class="text-sm font-bold text-slate-200 flex items-center gap-2">
+                    <i data-lucide="list" class="w-4 h-4 text-amber-400"></i> Clínicas Cadastradas na Plataforma
+                </h3>
+
+                <div class="overflow-x-auto rounded-lg border border-slate-800 custom-scrollbar">
+                    <table class="w-full text-left text-xs text-slate-300">
+                        <thead class="bg-slate-950 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
+                            <tr>
+                                <th class="p-3">Clínica</th>
+                                <th class="p-3">Segmento</th>
+                                <th class="p-3">E-mail de Login</th>
+                                <th class="p-3">Plano</th>
+                                <th class="p-3">Status</th>
+                                <th class="p-3 text-right">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyClinicasMaster" class="divide-y divide-slate-800">
+                            <tr>
+                                <td colspan="6" class="p-4 text-center text-slate-500 italic">
+                                    Carregando clínicas...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div> <!-- FECHAMENTO CORRETO DE #hubConteudoOculto -->
+
+    </div> <!-- FECHAMENTO CORRETO DE #tab-hub-master -->
+
+</main> <!-- FECHAMENTO CORRETO DA MAIN -->
+
+</div> <!-- FECHAMENTO DO WRAPPER DE LAYOUT (FLEX) -->
 
 <script src="supabase-config.js"></script>
 <script src="app.js"></script>
