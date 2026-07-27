@@ -1408,7 +1408,7 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
 </div> <!-- FIM DA ABA CLÍNICA -->
 
-<!-- CONFIGURAÇÃO HUB B - MASTER CONSULTOR (TOTALMENTE DESBLOQUEADO) -->
+<!-- CONFIGURAÇÃO HUB B - MASTER CONSULTOR (TOTALMENTE LIBERADO) -->
 <div id="tab-hub-master" class="tab-content hidden space-y-6">
     <div>
         <h2 class="text-xl font-bold text-amber-400 flex items-center gap-1.5">
@@ -1417,106 +1417,93 @@ document.addEventListener('DOMContentLoaded', () => {
         <p class="text-xs text-slate-400">Painel do Consultor Alavanca 360 — Gestão Multi-Tenant & Configurações Globais.</p>
     </div>
 
-    <!-- GATEKEEPER OCULTO POR PADRÃO -->
-    <div id="hubGatekeeper" class="hidden bg-slate-900 p-8 text-center rounded-xl border border-amber-500/20 max-w-md mx-auto space-y-4">
-        <i data-lucide="lock" class="w-12 h-12 text-amber-400 mx-auto"></i>
-        <div>
-            <h3 class="text-sm font-bold text-slate-200">Painel do Consultor Restrito</h3>
-            <p class="text-xs text-slate-500 mt-1">Acesso liberado apenas para administradores.</p>
+    <!-- PAINEL 1: IDENTIDADE VISUAL GLOBAL -->
+    <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-4">
+        <h3 class="text-xs font-bold text-amber-400 uppercase tracking-wider">Identidade Visual Global (aplicada a TODAS as clínicas)</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+            <div>
+                <label class="block text-slate-400 mb-1">URL Logo do Método ALAVANCA 360®</label>
+                <input type="text" id="cfgLogoMetodo" value="images/logo-alavanca-360.png" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-200 rounded">
+            </div>
+            <div>
+                <label class="block text-slate-400 mb-1">URL Logo da Consultoria</label>
+                <input type="text" id="cfgLogoConsultoria" placeholder="https://..." class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-200 rounded">
+            </div>
+            <div>
+                <label class="block text-slate-400 mb-1">Nome da Consultoria (rodapé/login)</label>
+                <input type="text" id="cfgNomeConsultoria" value="Alavanca 360 Consultoria" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-200 rounded">
+            </div>
         </div>
     </div>
 
-    <!-- CONTEÚDO EXIBIDO DIRETO (SEM HIDDEN) -->
-    <div id="hubConteudoOculto" class="space-y-6">
-        
-        <!-- PAINEL 1: IDENTIDADE VISUAL GLOBAL -->
-        <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-4">
-            <h3 class="text-xs font-bold text-amber-400 uppercase tracking-wider">Identidade Visual Global (aplicada a TODAS as clínicas)</h3>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-                <div>
-                    <label class="block text-slate-400 mb-1">URL Logo do Método ALAVANCA 360®</label>
-                    <input type="text" id="cfgLogoMetodo" value="images/logo-alavanca-360.png" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-200 rounded">
-                </div>
-                <div>
-                    <label class="block text-slate-400 mb-1">URL Logo da Consultoria</label>
-                    <input type="text" id="cfgLogoConsultoria" placeholder="https://..." class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-200 rounded">
-                </div>
-                <div>
-                    <label class="block text-slate-400 mb-1">Nome da Consultoria (rodapé/login)</label>
-                    <input type="text" id="cfgNomeConsultoria" value="Alavanca 360 Consultoria" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-200 rounded">
-                </div>
+    <!-- PAINEL 2: CADASTRAR NOVA CLÍNICA (TENANT) -->
+    <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-4">
+        <h3 class="text-xs font-bold text-emerald-400 uppercase tracking-wider">Cadastrar Nova Clínica (novo Tenant / Login exclusivo)</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+            <div>
+                <label class="block text-slate-400 mb-1">Nome da Clínica</label>
+                <input type="text" id="newClinicaNome" placeholder="Ex: Studio de Sobrancelhas Bella" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-200 rounded">
+            </div>
+            <div>
+                <label class="block text-slate-400 mb-1">Segmento</label>
+                <select id="newClinicaSegmento" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-200 rounded">
+                    <option value="Odontologia">Odontologia</option>
+                    <option value="Estética">Estética</option>
+                    <option value="Médico">Médico</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-slate-400 mb-1">Responsável</label>
+                <input type="text" id="newClinicaResponsavel" placeholder="Nome da proprietária/gestora" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-200 rounded">
+            </div>
+            <div>
+                <label class="block text-slate-400 mb-1">E-mail de Login da Clínica</label>
+                <input type="email" id="newClinicaEmail" placeholder="clinica@exemplo.com" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-200 rounded">
+            </div>
+            <div>
+                <label class="block text-slate-400 mb-1">Senha de Acesso (mín. 6 caracteres)</label>
+                <input type="password" id="newClinicaSenha" placeholder="Senha inicial" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-200 rounded">
+            </div>
+            <div>
+                <label class="block text-slate-400 mb-1">Plano Contratado</label>
+                <select id="newClinicaPlano" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-200 rounded">
+                    <option value="Essencial">Essencial</option>
+                    <option value="Pro">Pro</option>
+                    <option value="Master">Master</option>
+                </select>
             </div>
         </div>
-
-        <!-- PAINEL 2: CADASTRAR NOVA CLÍNICA (TENANT) -->
-        <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-4">
-            <h3 class="text-xs font-bold text-emerald-400 uppercase tracking-wider">Cadastrar Nova Clínica (novo Tenant / Login exclusivo)</h3>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-                <div>
-                    <label class="block text-slate-400 mb-1">Nome da Clínica</label>
-                    <input type="text" id="newClinicaNome" placeholder="Ex: Studio de Sobrancelhas Bella" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-200 rounded">
-                </div>
-                <div>
-                    <label class="block text-slate-400 mb-1">Segmento</label>
-                    <select id="newClinicaSegmento" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-200 rounded">
-                        <option value="Odontologia">Odontologia</option>
-                        <option value="Estética">Estética</option>
-                        <option value="Médico">Médico</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-slate-400 mb-1">Responsável</label>
-                    <input type="text" id="newClinicaResponsavel" placeholder="Nome da proprietária/gestora" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-200 rounded">
-                </div>
-                <div>
-                    <label class="block text-slate-400 mb-1">E-mail de Login da Clínica</label>
-                    <input type="email" id="newClinicaEmail" placeholder="clinica@exemplo.com" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-200 rounded">
-                </div>
-                <div>
-                    <label class="block text-slate-400 mb-1">Senha de Acesso (mín. 6 caracteres)</label>
-                    <input type="password" id="newClinicaSenha" placeholder="Senha inicial" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-200 rounded">
-                </div>
-                <div>
-                    <label class="block text-slate-400 mb-1">Plano Contratado</label>
-                    <select id="newClinicaPlano" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-200 rounded">
-                        <option value="Essencial">Essencial</option>
-                        <option value="Pro">Pro</option>
-                        <option value="Master">Master</option>
-                    </select>
-                </div>
-            </div>
-            <div class="flex justify-end">
-                <button onclick="cadastrarNovaClinica()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer">
-                    <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> Cadastrar Clínica e Gerar Acesso
-                </button>
-            </div>
+        <div class="flex justify-end">
+            <button onclick="cadastrarNovaClinica()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer">
+                <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> Cadastrar Clínica e Gerar Acesso
+            </button>
         </div>
-
-        <!-- PAINEL 3: TABELA DE CLÍNICAS CADASTRADAS -->
-        <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-4">
-            <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider">Clínicas Cadastradas na Plataforma</h3>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-xs text-slate-400">
-                    <thead class="bg-slate-950 text-slate-300 uppercase font-semibold border-b border-slate-800">
-                        <tr>
-                            <th class="p-2.5">Clínica</th>
-                            <th class="p-2.5">Segmento</th>
-                            <th class="p-2.5">E-mail de Login</th>
-                            <th class="p-2.5">Plano</th>
-                            <th class="p-2.5">Status</th>
-                            <th class="p-2.5 text-right">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tabelaClinicasMaster">
-                        <tr>
-                            <td colspan="6" class="p-4 text-center text-slate-500">Nenhuma clínica cadastrada ainda.</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
     </div>
+
+    <!-- PAINEL 3: TABELA DE CLÍNICAS CADASTRADAS -->
+    <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-4">
+        <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider">Clínicas Cadastradas na Plataforma</h3>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-400">
+                <thead class="bg-slate-950 text-slate-300 uppercase font-semibold border-b border-slate-800">
+                    <tr>
+                        <th class="p-2.5">Clínica</th>
+                        <th class="p-2.5">Segmento</th>
+                        <th class="p-2.5">E-mail de Login</th>
+                        <th class="p-2.5">Plano</th>
+                        <th class="p-2.5">Status</th>
+                        <th class="p-2.5 text-right">Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="tabelaClinicasMaster">
+                    <tr>
+                        <td colspan="6" class="p-4 text-center text-slate-500">Nenhuma clínica cadastrada ainda.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
 </div> <!-- FIM DA ABA HUB MASTER -->
 
 </main> <!-- FECHAMENTO OFICIAL DA MAIN -->
