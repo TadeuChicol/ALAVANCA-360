@@ -1409,12 +1409,17 @@ document.addEventListener('DOMContentLoaded', () => {
 </div> <!-- FIM DA ABA CLÍNICA -->
 
 <!-- CONFIGURAÇÃO HUB B - MASTER CONSULTOR (TOTALMENTE LIBERADO) -->
-<div id="tab-hub-master" class="tab-content hidden space-y-6">
-    <div>
-        <h2 class="text-xl font-bold text-amber-400 flex items-center gap-1.5">
-            <i data-lucide="settings-2"></i> CONFIGURAÇÃO HUB — Portal Master Alavanca 360
-        </h2>
-        <p class="text-xs text-slate-400">Painel do Consultor Alavanca 360 — Gestão Multi-Tenant & Configurações Globais.</p>
+<div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
+        <div>
+            <h2 class="text-xl font-bold text-amber-400 flex items-center gap-1.5">
+                <i data-lucide="settings-2"></i> CONFIGURAÇÃO HUB — Portal Master Alavanca 360
+            </h2>
+            <p class="text-xs text-slate-400">Painel do Consultor Alavanca 360 — Gestão Multi-Tenant & Configurações Globais.</p>
+        </div>
+        <!-- BOTÃO DE FECHAR -->
+        <button onclick="switchTab('tab-m1-visao')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold px-3 py-1.5 rounded-lg transition border border-slate-700 flex items-center gap-1.5 cursor-pointer">
+            <i data-lucide="x"></i> Fechar Hub
+        </button>
     </div>
 
     <!-- PAINEL 1: IDENTIDADE VISUAL GLOBAL -->
