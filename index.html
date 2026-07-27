@@ -732,128 +732,132 @@
                     </div>
                 </div>
 
-                <!-- SUBABA: CONFIG CONVÊNIO/PARTICULAR -->
-                <div id="subtab-config" class="subtab-content hidden space-y-4">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 space-y-2">
-                            <h3 class="text-xs font-bold uppercase text-sky-400 mb-2">Parâmetros — Convênio</h3>
-                            <label class="block text-[11px] text-slate-400">Pró-labore desejado (R$)</label>
-                            <input type="number" id="cfgConvProLabore" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
-                            <label class="block text-[11px] text-slate-400">Horas/dia</label>
-                            <input type="number" id="cfgConvHorasDia" value="8" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
-                            <label class="block text-[11px] text-slate-400">Dias/mês</label>
-                            <input type="number" id="cfgConvDiasMes" value="22" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
-                            <label class="block text-[11px] text-slate-400">Margem mínima desejada (%)</label>
-                            <input type="number" id="cfgConvMargem" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
-                            <label class="block text-[11px] text-slate-400">Imposto (%)</label>
-                            <input type="number" id="cfgConvImposto" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
-                            <label class="block text-[11px] text-slate-400">Taxa maquininha (%)</label>
-                            <input type="number" id="cfgConvTaxa" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
-                            <button onclick="salvarConfigPrecificacao('convenio')" class="w-full bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition mt-2">Salvar Convênio</button>
-                        </div>
-                        <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 space-y-2">
-                            <h3 class="text-xs font-bold uppercase text-purple-400 mb-2">Parâmetros — Particular</h3>
-                            <label class="block text-[11px] text-slate-400">Pró-labore desejado (R$)</label>
-                            <input type="number" id="cfgPartProLabore" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
-                            <label class="block text-[11px] text-slate-400">Horas/dia</label>
-                            <input type="number" id="cfgPartHorasDia" value="8" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
-                            <label class="block text-[11px] text-slate-400">Dias/mês</label>
-                            <input type="number" id="cfgPartDiasMes" value="22" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
-                            <label class="block text-[11px] text-slate-400">Margem desejada (%)</label>
-                            <input type="number" id="cfgPartMargem" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
-                            <label class="block text-[11px] text-slate-400">Imposto (%)</label>
-                            <input type="number" id="cfgPartImposto" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
-                            <label class="block text-[11px] text-slate-400">Taxa maquininha (%)</label>
-                            <input type="number" id="cfgPartTaxa" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
-                            <button onclick="salvarConfigPrecificacao('particular')" class="w-full bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition mt-2">Salvar Particular</button>
-                        </div>
+                <!-- SUBABA 1: CONFIG CONVÊNIO/PARTICULAR -->
+            <div id="subtab-config" class="subtab-content hidden space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 space-y-2">
+                        <h3 class="text-xs font-bold uppercase text-sky-400 mb-2">Parâmetros — Convênio</h3>
+                        <label class="block text-[11px] text-slate-400">Pró-labore desejado (R$)</label>
+                        <input type="number" id="cfgConvProLabore" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
+                        <label class="block text-[11px] text-slate-400">Horas/dia</label>
+                        <input type="number" id="cfgConvHorasDia" value="8" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
+                        <label class="block text-[11px] text-slate-400">Dias/mês</label>
+                        <input type="number" id="cfgConvDiasMes" value="22" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
+                        <label class="block text-[11px] text-slate-400">Margem mínima desejada (%)</label>
+                        <input type="number" id="cfgConvMargem" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
+                        <label class="block text-[11px] text-slate-400">Imposto (%)</label>
+                        <input type="number" id="cfgConvImposto" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
+                        <label class="block text-[11px] text-slate-400">Taxa maquininha (%)</label>
+                        <input type="number" id="cfgConvTaxa" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
+                        <button onclick="salvarConfigPrecificacao('convenio')" class="w-full bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition mt-2 cursor-pointer">Salvar Convênio</button>
+                    </div>
+                    <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 space-y-2">
+                        <h3 class="text-xs font-bold uppercase text-purple-400 mb-2">Parâmetros — Particular</h3>
+                        <label class="block text-[11px] text-slate-400">Pró-labore desejado (R$)</label>
+                        <input type="number" id="cfgPartProLabore" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
+                        <label class="block text-[11px] text-slate-400">Horas/dia</label>
+                        <input type="number" id="cfgPartHorasDia" value="8" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
+                        <label class="block text-[11px] text-slate-400">Dias/mês</label>
+                        <input type="number" id="cfgPartDiasMes" value="22" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
+                        <label class="block text-[11px] text-slate-400">Margem desejada (%)</label>
+                        <input type="number" id="cfgPartMargem" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
+                        <label class="block text-[11px] text-slate-400">Imposto (%)</label>
+                        <input type="number" id="cfgPartImposto" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
+                        <label class="block text-[11px] text-slate-400">Taxa maquininha (%)</label>
+                        <input type="number" id="cfgPartTaxa" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
+                        <button onclick="salvarConfigPrecificacao('particular')" class="w-full bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition mt-2 cursor-pointer">Salvar Particular</button>
+                    </div>
+                </div>
+            </div> <!-- FECHAMENTO DA SUBABA 1 (#subtab-config) -->
+
+            <!-- SUBABA 2: RESULTADO FINAL -->
+            <div id="subtab-resultado" class="subtab-content hidden space-y-4">
+                <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 overflow-x-auto custom-scrollbar">
+                    <h3 class="text-xs font-bold uppercase text-emerald-400 mb-3">Custo x Preço x Margem — calculado automaticamente</h3>
+                    <table class="w-full text-left text-xs text-slate-300">
+                        <thead class="bg-slate-950 text-slate-400 uppercase text-[10px]">
+                            <tr><th class="p-2">Serviço</th><th class="p-2">Modalidade</th><th class="p-2">Custo Total</th><th class="p-2">Preço Venda</th><th class="p-2">Margem R$</th><th class="p-2">Margem %</th><th class="p-2">Status</th></tr>
+                        </thead>
+                        <tbody id="tbodyResultadoCustos"><tr><td colspan="7" class="p-3 text-center text-slate-600">Cadastre serviços e configurações para ver o resultado.</td></tr></tbody>
+                    </table>
+                </div>
+            </div> <!-- FECHAMENTO DA SUBABA 2 (#subtab-resultado) -->
+
+            <!-- SUBABA 3: IMPORTAR CSV -->
+            <div id="subtab-importar" class="subtab-content hidden space-y-4">
+
+                <div class="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-4 text-[11px] text-slate-300 leading-relaxed max-w-3xl">
+                    <p class="font-bold text-emerald-400 uppercase text-[10px] mb-2">Migração sem retrabalho — siga esta ordem</p>
+                    <p>Se você já tem a planilha de custos pronta no Google Sheets, dá para trazer os dados <strong>sem redigitar nada</strong>: exporte cada aba como CSV ("Arquivo → Fazer Download → Valores separados por vírgula") e importe abaixo, <strong>nesta ordem</strong>:</p>
+                    <ol class="list-decimal list-inside mt-2 space-y-0.5">
+                        <li><strong>1. Insumos</strong> (aba CUSTOS_INSUMOS_UNID)</li>
+                        <li><strong>2. Serviços/Procedimentos</strong> (aba SERVIÇOS_PROCEDIMENTOS)</li>
+                        <li><strong>3. Vínculo Insumo × Serviço</strong> (aba MAP_INSUMOS_SERVICOS) — precisa dos passos 1 e 2 feitos antes</li>
+                        <li><strong>4. Custos Fixos</strong> (aba CUSTOS_FIXOS_VARIAVEIS)</li>
+                        <li><strong>5. Config. Convênio e Particular</strong> (abas CONFIG_CONVENIO / CONFIG_PARTICULAR)</li>
+                    </ol>
+                    <p class="mt-2">Pode reimportar o mesmo arquivo depois de atualizar a planilha — o sistema atualiza os registros existentes em vez de duplicar. Só o preço de venda (Convênio/Particular) por serviço, se não vier pronto na planilha de custos, precisa ser digitado uma única vez na aba "Serviços".</p>
+                </div>
+
+                <!-- 1. INSUMOS -->
+                <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-3 max-w-2xl">
+                    <h3 class="text-xs font-bold uppercase text-emerald-400">1. Importar Insumos (CUSTOS_INSUMOS_UNID)</h3>
+                    <p class="text-[11px] text-slate-400">Colunas reconhecidas automaticamente: Nome_Insumo, Apresentação, Quantidade, Unidade_Medida, Preço_Apresentação, Observacao.</p>
+                    <input type="file" id="inputCsvInsumos" accept=".csv" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
+                    <button onclick="importarInsumosCsv()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition cursor-pointer">Importar Insumos</button>
+                    <p id="lblImportStatus" class="text-[11px] text-slate-500"></p>
+                </div>
+
+                <!-- 2. SERVIÇOS -->
+                <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-3 max-w-2xl">
+                    <h3 class="text-xs font-bold uppercase text-sky-400">2. Importar Serviços/Procedimentos (SERVIÇOS_PROCEDIMENTOS)</h3>
+                    <p class="text-[11px] text-slate-400">Colunas reconhecidas: ID_Servico, Nome_Servico, Categoria, Tempo_Medio_min, Custo_Servico_Externo, Custo_Radiografia, Outros_Custos_Diretos. Se sua planilha não tiver Preço de Convênio/Particular (comum quando essa aba só guarda CUSTO), preencha esses dois preços depois, uma única vez, na aba "Serviços".</p>
+                    <input type="file" id="inputCsvServicos" accept=".csv" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
+                    <button onclick="importarServicosCsv()" class="bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition cursor-pointer">Importar Serviços</button>
+                    <p id="lblImportStatusServicos" class="text-[11px] text-slate-500"></p>
+                </div>
+
+                <!-- 3. MAPA INSUMO x SERVIÇO -->
+                <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-3 max-w-2xl">
+                    <h3 class="text-xs font-bold uppercase text-purple-400">3. Importar Vínculo Insumo × Serviço (MAP_INSUMOS_SERVICOS)</h3>
+                    <p class="text-[11px] text-slate-400">Requer que os passos 1 e 2 já tenham sido feitos — o sistema casa cada linha pelo nome do insumo e do serviço já cadastrados. Colunas reconhecidas: ID_Servico, Nome_Servico, ID_Insumo, Nome_Insumo, Qtd_Consumida.</p>
+                    <input type="file" id="inputCsvMapa" accept=".csv" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
+                    <button onclick="importarMapaInsumosServicosCsv()" class="bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition cursor-pointer">Importar Vínculos</button>
+                    <p id="lblImportStatusMapa" class="text-[11px] text-slate-500"></p>
+                </div>
+
+                <!-- 4. CUSTOS FIXOS -->
+                <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-3 max-w-2xl">
+                    <h3 class="text-xs font-bold uppercase text-amber-400">4. Importar Custos Fixos (CUSTOS_FIXOS_VARIAVEIS)</h3>
+                    <p class="text-[11px] text-slate-400">Colunas reconhecidas: Tipo, Categoria (uma ou duas colunas), Valor Mensal (R$). A linha de total geral da planilha é identificada e ignorada automaticamente.</p>
+                    <input type="file" id="inputCsvFixos" accept=".csv" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
+                    <button onclick="importarCustosFixosCsv()" class="bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition cursor-pointer">Importar Custos Fixos</button>
+                    <p id="lblImportStatusFixos" class="text-[11px] text-slate-500"></p>
+                </div>
+
+                <!-- 5. CONFIG CONVÊNIO / PARTICULAR -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl">
+                    <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-3">
+                        <h3 class="text-xs font-bold uppercase text-sky-400">5a. Importar Config. Convênio (CONFIG_CONVENIO)</h3>
+                        <p class="text-[11px] text-slate-400">Lê pró-labore, horas/dia, dias/mês, margem e impostos direto da aba de parâmetros do convênio.</p>
+                        <input type="file" id="inputCsvConfigConvenio" accept=".csv" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
+                        <button onclick="importarConfigCsv('convenio')" class="w-full bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition cursor-pointer">Importar Config. Convênio</button>
+                        <p id="lblImportStatusConfigConvenio" class="text-[11px] text-slate-500"></p>
+                    </div>
+                    <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-3">
+                        <h3 class="text-xs font-bold uppercase text-purple-400">5b. Importar Config. Particular (CONFIG_PARTICULAR)</h3>
+                        <p class="text-[11px] text-slate-400">Mesma lógica, para os parâmetros de precificação do atendimento particular.</p>
+                        <input type="file" id="inputCsvConfigParticular" accept=".csv" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
+                        <button onclick="importarConfigCsv('particular')" class="w-full bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition cursor-pointer">Importar Config. Particular</button>
+                        <p id="lblImportStatusConfigParticular" class="text-[11px] text-slate-500"></p>
                     </div>
                 </div>
 
-                <!-- SUBABA: RESULTADO FINAL -->
-                <div id="subtab-resultado" class="subtab-content hidden space-y-4">
-                    <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 overflow-x-auto custom-scrollbar">
-                        <h3 class="text-xs font-bold uppercase text-emerald-400 mb-3">Custo x Preço x Margem — calculado automaticamente</h3>
-                        <table class="w-full text-left text-xs text-slate-300">
-                            <thead class="bg-slate-950 text-slate-400 uppercase text-[10px]">
-                                <tr><th class="p-2">Serviço</th><th class="p-2">Modalidade</th><th class="p-2">Custo Total</th><th class="p-2">Preço Venda</th><th class="p-2">Margem R$</th><th class="p-2">Margem %</th><th class="p-2">Status</th></tr>
-                            </thead>
-                            <tbody id="tbodyResultadoCustos"><tr><td colspan="7" class="p-3 text-center text-slate-600">Cadastre serviços e configurações para ver o resultado.</td></tr></tbody>
-                        </table>
-                    </div>
-                </div>
+            </div> <!-- FECHAMENTO DA SUBABA 3 (#subtab-importar) -->
 
-                <!-- SUBABA: IMPORTAR CSV -->
-                <div id="subtab-importar" class="subtab-content hidden space-y-4">
+        </div> <!-- FECHAMENTO DO CONTAINER INTERNO DO MÓDULO 8 -->
 
-                    <div class="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-4 text-[11px] text-slate-300 leading-relaxed max-w-3xl">
-                        <p class="font-bold text-emerald-400 uppercase text-[10px] mb-2">Migração sem retrabalho — siga esta ordem</p>
-                        <p>Se você já tem a planilha de custos pronta no Google Sheets, dá para trazer os dados <strong>sem redigitar nada</strong>: exporte cada aba como CSV ("Arquivo → Fazer Download → Valores separados por vírgula") e importe abaixo, <strong>nesta ordem</strong>:</p>
-                        <ol class="list-decimal list-inside mt-2 space-y-0.5">
-                            <li><strong>1. Insumos</strong> (aba CUSTOS_INSUMOS_UNID)</li>
-                            <li><strong>2. Serviços/Procedimentos</strong> (aba SERVIÇOS_PROCEDIMENTOS)</li>
-                            <li><strong>3. Vínculo Insumo × Serviço</strong> (aba MAP_INSUMOS_SERVICOS) — precisa dos passos 1 e 2 feitos antes</li>
-                            <li><strong>4. Custos Fixos</strong> (aba CUSTOS_FIXOS_VARIAVEIS)</li>
-                            <li><strong>5. Config. Convênio e Particular</strong> (abas CONFIG_CONVENIO / CONFIG_PARTICULAR)</li>
-                        </ol>
-                        <p class="mt-2">Pode reimportar o mesmo arquivo depois de atualizar a planilha — o sistema atualiza os registros existentes em vez de duplicar. Só o preço de venda (Convênio/Particular) por serviço, se não vier pronto na planilha de custos, precisa ser digitado uma única vez na aba "Serviços".</p>
-                    </div>
-
-                    <!-- 1. INSUMOS -->
-                    <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-3 max-w-2xl">
-                        <h3 class="text-xs font-bold uppercase text-emerald-400">1. Importar Insumos (CUSTOS_INSUMOS_UNID)</h3>
-                        <p class="text-[11px] text-slate-400">Colunas reconhecidas automaticamente: Nome_Insumo, Apresentação, Quantidade, Unidade_Medida, Preço_Apresentação, Observacao.</p>
-                        <input type="file" id="inputCsvInsumos" accept=".csv" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
-                        <button onclick="importarInsumosCsv()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition">Importar Insumos</button>
-                        <p id="lblImportStatus" class="text-[11px] text-slate-500"></p>
-                    </div>
-
-                    <!-- 2. SERVIÇOS -->
-                    <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-3 max-w-2xl">
-                        <h3 class="text-xs font-bold uppercase text-sky-400">2. Importar Serviços/Procedimentos (SERVIÇOS_PROCEDIMENTOS)</h3>
-                        <p class="text-[11px] text-slate-400">Colunas reconhecidas: ID_Servico, Nome_Servico, Categoria, Tempo_Medio_min, Custo_Servico_Externo, Custo_Radiografia, Outros_Custos_Diretos. Se sua planilha não tiver Preço de Convênio/Particular (comum quando essa aba só guarda CUSTO), preencha esses dois preços depois, uma única vez, na aba "Serviços".</p>
-                        <input type="file" id="inputCsvServicos" accept=".csv" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
-                        <button onclick="importarServicosCsv()" class="bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition">Importar Serviços</button>
-                        <p id="lblImportStatusServicos" class="text-[11px] text-slate-500"></p>
-                    </div>
-
-                    <!-- 3. MAPA INSUMO x SERVIÇO -->
-                    <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-3 max-w-2xl">
-                        <h3 class="text-xs font-bold uppercase text-purple-400">3. Importar Vínculo Insumo × Serviço (MAP_INSUMOS_SERVICOS)</h3>
-                        <p class="text-[11px] text-slate-400">Requer que os passos 1 e 2 já tenham sido feitos — o sistema casa cada linha pelo nome do insumo e do serviço já cadastrados. Colunas reconhecidas: ID_Servico, Nome_Servico, ID_Insumo, Nome_Insumo, Qtd_Consumida.</p>
-                        <input type="file" id="inputCsvMapa" accept=".csv" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
-                        <button onclick="importarMapaInsumosServicosCsv()" class="bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition">Importar Vínculos</button>
-                        <p id="lblImportStatusMapa" class="text-[11px] text-slate-500"></p>
-                    </div>
-
-                    <!-- 4. CUSTOS FIXOS -->
-                    <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-3 max-w-2xl">
-                        <h3 class="text-xs font-bold uppercase text-amber-400">4. Importar Custos Fixos (CUSTOS_FIXOS_VARIAVEIS)</h3>
-                        <p class="text-[11px] text-slate-400">Colunas reconhecidas: Tipo, Categoria (uma ou duas colunas), Valor Mensal (R$). A linha de total geral da planilha é identificada e ignorada automaticamente.</p>
-                        <input type="file" id="inputCsvFixos" accept=".csv" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
-                        <button onclick="importarCustosFixosCsv()" class="bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition">Importar Custos Fixos</button>
-                        <p id="lblImportStatusFixos" class="text-[11px] text-slate-500"></p>
-                    </div>
-
-                    <!-- 5. CONFIG CONVÊNIO / PARTICULAR -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl">
-                        <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-3">
-                            <h3 class="text-xs font-bold uppercase text-sky-400">5a. Importar Config. Convênio (CONFIG_CONVENIO)</h3>
-                            <p class="text-[11px] text-slate-400">Lê pró-labore, horas/dia, dias/mês, margem e impostos direto da aba de parâmetros do convênio.</p>
-                            <input type="file" id="inputCsvConfigConvenio" accept=".csv" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
-                            <button onclick="importarConfigCsv('convenio')" class="w-full bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition">Importar Config. Convênio</button>
-                            <p id="lblImportStatusConfigConvenio" class="text-[11px] text-slate-500"></p>
-                        </div>
-                        <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-3">
-                            <h3 class="text-xs font-bold uppercase text-purple-400">5b. Importar Config. Particular (CONFIG_PARTICULAR)</h3>
-                            <p class="text-[11px] text-slate-400">Mesma lógica, para os parâmetros de precificação do atendimento particular.</p>
-                            <input type="file" id="inputCsvConfigParticular" accept=".csv" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
-                            <button onclick="importarConfigCsv('particular')" class="w-full bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition">Importar Config. Particular</button>
-                            <p id="lblImportStatusConfigParticular" class="text-[11px] text-slate-500"></p>
-                        </div>
-                    </div>
-                </div>
-            </div>
+    </div> <!-- FECHAMENTO DA ABA PRINCIPAL MÓDULO 8 (#tab-custos) -->
 
             <!-- MÓDULO 9: ATENDIMENTOS (CONVÊNIO x PARTICULAR x MISTO) -->
             <div id="tab-atendimentos" class="tab-content hidden space-y-6">
@@ -1112,48 +1116,45 @@
             </div>
         </div>
 
-        <!-- 3. LISTAGEM DE CLÍNICAS (TENANTS) ATIVAS -->
-        <div class="bg-slate-900 p-6 rounded-xl border border-slate-800 space-y-4 w-full">
-            <h3 class="text-sm font-bold text-slate-200 flex items-center gap-2">
-                <i data-lucide="list" class="w-4 h-4 text-amber-400"></i> Clínicas Cadastradas na Plataforma
-            </h3>
+<!-- 3. LISTAGEM DE CLÍNICAS (TENANTS) ATIVAS -->
+                        <div class="bg-slate-900 p-6 rounded-xl border border-slate-800 space-y-4 w-full">
+                            <h3 class="text-sm font-bold text-slate-200 flex items-center gap-2">
+                                <i data-lucide="list" class="w-4 h-4 text-amber-400"></i> Clínicas Cadastradas na Plataforma
+                            </h3>
 
-            <div class="overflow-x-auto rounded-lg border border-slate-800 custom-scrollbar">
-                <table class="w-full text-left text-xs text-slate-300">
-                    <thead class="bg-slate-950 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
-                        <tr>
-                            <th class="p-3">Clínica</th>
-                            <th class="p-3">Segmento</th>
-                            <th class="p-3">E-mail de Login</th>
-                            <th class="p-3">Plano</th>
-                            <th class="p-3">Status</th>
-                            <th class="p-3 text-right">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tbodyClinicasMaster" class="divide-y divide-slate-800">
-                        <tr>
-                            <td colspan="6" class="p-4 text-center text-slate-500 italic">
-                                Carregando clínicas...
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
+                            <div class="overflow-x-auto rounded-lg border border-slate-800 custom-scrollbar">
+                                <table class="w-full text-left text-xs text-slate-300">
+                                    <thead class="bg-slate-950 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
+                                        <tr>
+                                            <th class="p-3">Clínica</th>
+                                            <th class="p-3">Segmento</th>
+                                            <th class="p-3">E-mail de Login</th>
+                                            <th class="p-3">Plano</th>
+                                            <th class="p-3">Status</th>
+                                            <th class="p-3 text-right">Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tbodyClinicasMaster" class="divide-y divide-slate-800">
+                                        <tr>
+                                            <td colspan="6" class="p-4 text-center text-slate-500 italic">
+                                                Carregando clínicas...
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
 
-    </div> <!-- FECHAMENTO DE #hubConteudoOculto -->
+                    </div> <!-- FECHAMENTO DE #hubConteudoOculto -->
 
-</div> <!-- FECHAMENTO DE #tab-hub-master -->
+                </div> <!-- FECHAMENTO DE #tab-hub-master -->
 
-<!-- ============================================================ -->
-<!-- FECHAMENTO DAS TAGS ESTRUTURAIS DO LAYOUT (ESSENCIAL!)       -->
-<!-- ============================================================ -->
-        </main> <!-- Fechamento da tag MAIN do conteúdo principal -->
-    </div> <!-- Fechamento da div .flex.flex-1.overflow-hidden do layout -->
-</div> <!-- Fechamento da div #appPrincipal -->
+            </main> <!-- Fechamento da tag MAIN (área de conteúdo principal) -->
+        </div> <!-- Fechamento da div .flex.flex-1.overflow-hidden (Sidebar + Main) -->
+    </div> <!-- Fechamento da div #appPrincipal -->
 
-<!-- SCRIPTS DO SISTEMA -->
-<script src="supabase-config.js"></script>
-<script src="app.js"></script>
+    <!-- SCRIPTS DO SISTEMA -->
+    <script src="supabase-config.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>
