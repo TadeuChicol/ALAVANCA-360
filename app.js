@@ -417,12 +417,14 @@ function switchTab(tabId) {
     const hubMaster = document.getElementById('tab-hub-master');
     if (hubMaster) {
         hubMaster.classList.add('hidden');
+        hubMaster.style.display = 'none';
     }
 
     // 3. Busca e exibe a aba solicitada
     const target = document.getElementById(tabId) || document.querySelector('#appPrincipal #' + tabId);
     if (target) {
         target.classList.remove('hidden');
+        target.style.display = '';
         if (tabId === 'tab-hub-master') {
             setTimeout(() => prepararHubMaster(), 100);
         }
