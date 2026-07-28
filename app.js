@@ -307,13 +307,6 @@ async function entrarNoSistema() {
     document.getElementById('telaLogin').classList.add('hidden');
     document.getElementById('appPrincipal').classList.remove('hidden');
     await init();
-
-    // Redirecionamento correto conforme o perfil logado
-    if (state.isAdmin) {
-        switchTab('tab-hub-master'); // Se for Consultoria Master
-    } else {
-        switchTab('tab-m1-visao');   // Se for Clínica, força o Módulo 1 (Visão Executiva)
-    }
 }
 
 // ============================================================
@@ -322,6 +315,29 @@ async function entrarNoSistema() {
 
 async function init() {
     if (window.lucide) lucide.createIcons();
+
+    ajustarMenuConformePermissoes();
+
+    if (state.clinicaAtual) {
+        await Promise.all([
+            carregarProfissionais(),
+            carregarPacientes(),
+            carregarAgendamentos(),
+            carregarProntuario(),
+            carregarDadosFinanceiros()
+        ]);
+    }
+
+    aplicarConfigNaInterface();
+    rebuildSelects();
+
+    // Redirecionamento correto da aba ao finalizar o carregamento
+    if (state.isAdmin) {
+        switchTab('tab-hub-master');
+    } else {
+        switchTab('tab-m1-visao');
+    }
+}
 
     ajustarMenuConformePermissoes();
 
