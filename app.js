@@ -286,7 +286,7 @@ async function carregarContextoUsuario(user) {
         .eq('owner_user_id', user.id)
         .maybeSingle();
 
-    if (!error && clinicas) {
+    if (!error && clinicas) {switchTab
         if (clinicas.ativo === false && !state.isAdmin) {
             return false; // clínica suspensa e usuário não é admin
         }
@@ -336,10 +336,11 @@ async function init() {
         if (typeof atualizarTemplateDocumento === 'function') atualizarTemplateDocumento();
         if (typeof renderizarModuloFinanceiroCompleto === 'function') renderizarModuloFinanceiroCompleto();
         
-        switchTab('tab-m1-visao');
-    } else {
+        // Redirecionamento correto da aba ao finalizar a inicialização
+    if (state.isAdmin && !state.clinicaAtual) {
         switchTab('tab-hub-master');
-        if (typeof prepararHubMaster === 'function') prepararHubMaster();
+    } else {
+        switchTab('tab-ceo'); // <--- ID correto do Módulo 1 (CEO Dashboard)
     }
 }
 
@@ -409,29 +410,49 @@ async function carregarDadosFinanceiros() {
 // ============================================================
 
 function switchTab(tabId) {
-    // 1. Esconde todas as abas padrão
+    // 1. Esconde todo o conteúdo de abas
     document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
 
-    // 2. Esconde o Hub Master
-    const hubMaster = document.getElementById('tab-hub-master');
-    if (hubMaster) hubMaster.classList.add('hidden');
-
-    // 3. Busca e exibe a aba solicitada
-    const target = document.getElementById(tabId) || document.querySelector('#appPrincipal #' + tabId);
+    // 2. Procura a div no index.html
+    const target = document.getElementById(tabId);
     if (target) {
         target.classList.remove('hidden');
-        if (tabId === 'tab-hub-master') {
-            setTimeout(() => prepararHubMaster(), 100);
-        }
+    } else {
+        console.warn(`[Aviso] Div com id "${tabId}" não encontrada no HTML.`);
     }
 
+    // 3. Destaca o botão selecionado na barra lateral
     document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove(
         'text-emerald-400', 'bg-emerald-500/5', 'border', 'border-emerald-500/10'
     ));
-
     const activeBtn = document.getElementById(`btn-${tabId}`);
     if (activeBtn) {
         activeBtn.classList.add('text-emerald-400', 'bg-emerald-500/5', 'border', 'border-emerald-500/10');
+    }
+
+    // 4. Carrega a lógica específica do módulo ativo
+    try {
+        switch (tabId) {
+            case 'tab-ceo':
+                if (typeof calcularMetricasGerais === 'function') calcularMetricasGerais();
+                break;
+            case 'tab-agenda':
+                if (typeof renderizarAgendaLocal === 'function') renderizarAgendaLocal();
+                break;
+            case 'tab-documentos':
+                if (typeof atualizarTemplateDocumento === 'function') atualizarTemplateDocumento();
+                break;
+            case 'tab-financeiro':
+            case 'tab-custos':
+            case 'tab-atendimentos':
+                if (typeof renderizarModuloFinanceiroCompleto === 'function') renderizarModuloFinanceiroCompleto();
+                break;
+            case 'tab-hub-master':
+                if (typeof prepararHubMaster === 'function') prepararHubMaster();
+                break;
+        }
+    } catch (err) {
+        console.error(`[Erro de Renderização na aba ${tabId}]:`, err);
     }
 
     if (window.lucide) lucide.createIcons();
