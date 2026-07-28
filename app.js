@@ -326,46 +326,22 @@ async function init() {
             carregarProntuario(),
             carregarDadosFinanceiros()
         ]);
-    }
-
-    aplicarConfigNaInterface();
-    rebuildSelects();
-
-    // Redirecionamento correto da aba ao finalizar o carregamento
-    if (state.isAdmin) {
-        switchTab('tab-hub-master');
-    } else {
-        switchTab('tab-m1-visao');
-    }
-}
-
-    ajustarMenuConformePermissoes();
-
-    if (state.clinicaAtual) {
-        await Promise.all([
-            carregarProfissionais(),
-            carregarPacientes(),
-            carregarAgendamentos(),
-            carregarProntuario(),
-            carregarDadosFinanceiros()
-        ]);
 
         aplicarConfigNaInterface();
         rebuildSelects();
-        calcularMetricasGerais();
-        calcularMetricasTratamentos();
-        calcularFunilComercial();
-        renderizarAgendaLocal();
-        atualizarTemplateDocumento();hubConteudoOculto
-        renderizarModuloFinanceiroCompleto();
+        if (typeof calcularMetricasGerais === 'function') calcularMetricasGerais();
+        if (typeof calcularMetricasTratamentos === 'function') calcularMetricasTratamentos();
+        if (typeof calcularFunilComercial === 'function') calcularFunilComercial();
+        if (typeof renderizarAgendaLocal === 'function') renderizarAgendaLocal();
+        if (typeof atualizarTemplateDocumento === 'function') atualizarTemplateDocumento();
+        if (typeof renderizarModuloFinanceiroCompleto === 'function') renderizarModuloFinanceiroCompleto();
+        
+        switchTab('tab-m1-visao');
     } else {
-    switchTab('tab-hub-master');
+        switchTab('tab-hub-master');
+        if (typeof prepararHubMaster === 'function') prepararHubMaster();
+    }
 }
-
-    prepararHubMaster();
-}
-
-if (window.lucide) lucide.createIcons();
 
 // Esconde módulos operacionais (M1-M7 e HUB Clínica) para quem só é admin
 // da Consultoria e não é dono de nenhuma clínica; esconde o HUB Master de
