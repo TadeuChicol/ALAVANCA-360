@@ -413,7 +413,13 @@ function switchTab(tabId) {
     // 1. Esconde todas as abas padrão
     document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
     
-    // 2. FORÇA O HUB MASTER A ESCONDER (Garantia extra)
+    // 2. FORÇA O HUB MASTER E SEU CONTEÚDO A ESCONDER
+    const hubConteudo = document.getElementById('hubConteudoOculto');
+    if (hubConteudo) {
+        hubConteudo.classList.add('hidden');
+        hubConteudo.style.display = 'none';
+    }
+
     const hubMaster = document.getElementById('tab-hub-master');
     if (hubMaster) {
         hubMaster.classList.add('hidden');
@@ -426,8 +432,11 @@ function switchTab(tabId) {
         target.classList.remove('hidden');
         target.style.display = '';
         if (tabId === 'tab-hub-master') {
-            setTimeout(() => prepararHubMaster(), 100);
+        if (hubConteudo) {
+            hubConteudo.classList.remove('hidden');
+            hubConteudo.style.display = '';
         }
+        setTimeout(() => prepararHubMaster(), 100);
     }
 
     document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove(
