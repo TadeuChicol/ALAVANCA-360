@@ -307,6 +307,13 @@ async function entrarNoSistema() {
     document.getElementById('telaLogin').classList.add('hidden');
     document.getElementById('appPrincipal').classList.remove('hidden');
     await init();
+
+    // Redirecionamento correto conforme o perfil logado
+    if (state.isAdmin) {
+        switchTab('tab-hub-master'); // Se for Consultoria Master
+    } else {
+        switchTab('tab-m1-visao');   // Se for Clínica, força o Módulo 1 (Visão Executiva)
+    }
 }
 
 // ============================================================
@@ -333,7 +340,7 @@ async function init() {
         calcularMetricasTratamentos();
         calcularFunilComercial();
         renderizarAgendaLocal();
-        atualizarTemplateDocumento();
+        atualizarTemplateDocumento();hubConteudoOculto
         renderizarModuloFinanceiroCompleto();
     } else {
     switchTab('tab-hub-master');
@@ -412,31 +419,18 @@ async function carregarDadosFinanceiros() {
 function switchTab(tabId) {
     // 1. Esconde todas as abas padrão
     document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-    
-    // 2. FORÇA O HUB MASTER E SEU CONTEÚDO A ESCONDER
-    const hubConteudo = document.getElementById('hubConteudoOculto');
-    if (hubConteudo) {
-        hubConteudo.classList.add('hidden');
-        hubConteudo.style.display = 'none';
-    }
 
+    // 2. Esconde o Hub Master
     const hubMaster = document.getElementById('tab-hub-master');
-    if (hubMaster) {
-        hubMaster.classList.add('hidden');
-        hubMaster.style.display = 'none';
-    }
+    if (hubMaster) hubMaster.classList.add('hidden');
 
     // 3. Busca e exibe a aba solicitada
     const target = document.getElementById(tabId) || document.querySelector('#appPrincipal #' + tabId);
     if (target) {
         target.classList.remove('hidden');
-        target.style.display = '';
         if (tabId === 'tab-hub-master') {
-        if (hubConteudo) {
-            hubConteudo.classList.remove('hidden');
-            hubConteudo.style.display = '';
+            setTimeout(() => prepararHubMaster(), 100);
         }
-        setTimeout(() => prepararHubMaster(), 100);
     }
 
     document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove(
