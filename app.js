@@ -221,8 +221,8 @@ function mostrarTelaLogin(mensagemErro) {
 }
 
 async function autenticarClinica() {
-    const email = (document.getElementById('inputCodigoAcesso').value || '').trim();
-    const senha = (document.getElementById('inputSenhaAcesso').value || '').trim();
+    const email = (document.getElementById('inputCodigoAcesso')?.value || '').trim();
+    const senha = (document.getElementById('inputSenhaAcesso')?.value || '').trim();
 
     if (!email || !senha) {
         mostrarTelaLogin('Informe o e-mail e a senha de acesso.');
@@ -230,9 +230,11 @@ async function autenticarClinica() {
     }
 
     const btn = document.getElementById('btnEntrarSistema');
-    const textoOriginal = btn.textContent;
-    btn.textContent = 'Verificando...';
-    btn.disabled = true;
+    const textoOriginal = btn ? btn.textContent : '→ Entrar no Sistema';
+    if (btn) {
+        btn.textContent = 'Verificando...';
+        btn.disabled = true;
+    }
 
     try {
         const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password: senha });
@@ -254,15 +256,31 @@ async function autenticarClinica() {
         console.error(e);
         mostrarTelaLogin('Erro ao autenticar. Tente novamente.');
     } finally {
-        btn.textContent = textoOriginal;
-        btn.disabled = false;
+        if (btn) {
+            btn.textContent = textoOriginal;
+            btn.disabled = false;
+        }
+    }
+}
+
+function mostrarTelaLogin(mensagem) {
+    const elErro = document.getElementById('loginErro');
+    if (elErro) {
+        if (mensagem) {
+            elErro.textContent = mensagem;
+            elErro.classList.remove('hidden');
+        } else {
+            elErro.classList.add('hidden');
+        }
+    } else if (mensagem) {
+        alert(mensagem);
     }
 }
 
 function traduzErroSupabase(msg) {
     if (/invalid login credentials/i.test(msg)) return 'E-mail ou senha inválidos.';
     if (/email not confirmed/i.test(msg)) return 'E-mail ainda não confirmado. Verifique a caixa de entrada (ou peça para a Consultoria desativar a confirmação de e-mail no Supabase).';
-    return msg;
+    return msg || 'Erro ao conectar ao servidor.';
 }
 
 // Carrega: se o usuário é admin da Consultoria, e/ou dono de alguma clínica.
@@ -286,7 +304,7 @@ async function carregarContextoUsuario(user) {
         .eq('owner_user_id', user.id)
         .maybeSingle();
 
-    if (!error && clinicas) {switchTab
+    if (!error && clinicas) {
         if (clinicas.ativo === false && !state.isAdmin) {
             return false; // clínica suspensa e usuário não é admin
         }
