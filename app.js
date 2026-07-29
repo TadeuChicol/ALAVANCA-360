@@ -2785,7 +2785,7 @@ async function cadastrarNovaClinica() {
 }
 
 // ============================================================
-// AUTENTICAÇÃO E CONTEXTO DO USUÁRIO
+// BLOCO DE AUTENTICAÇÃO E CONTEXTO (INTEGRAL)
 // ============================================================
 
 async function autenticarClinica() {
@@ -2854,7 +2854,7 @@ function traduzErroSupabase(msg) {
 async function carregarContextoUsuario(user) {
     state.usuario = user;
 
-    // Busca Administrador
+    // 1. Busca Administrador
     const { data: adminData } = await supabaseClient
         .from('consultoria_admins')
         .select('*')
@@ -2863,7 +2863,7 @@ async function carregarContextoUsuario(user) {
 
     state.isAdmin = !!adminData;
 
-    // Busca Clínica do Usuário
+    // 2. Busca Clínica do Usuário
     const { data: clinicas, error } = await supabaseClient
         .from('clinicas')
         .select('*')
