@@ -2785,7 +2785,7 @@ async function cadastrarNovaClinica() {
 }
 
 // ============================================================
-// SISTEMA DE LOGIN E AUTENTICAÇÃO
+// AUTENTICAÇÃO E CONTEXTO DO USUÁRIO
 // ============================================================
 
 async function autenticarClinica() {
