@@ -2631,17 +2631,17 @@ async function prepararHubMaster() {
 
 async function atualizarLogosSistema() {
     const dados = {
-        logo_metodo_url: document.getElementById('cfgLogoMetodo').value,
-        logo_consultoria_url: document.getElementById('cfgLogoConsultoria').value,
-        nome_consultoria: document.getElementById('cfgNomeConsultoriaGlobal').value
+        logo_metodo_url: document.getElementById('cfgLogoMetodo')?.value || '',
+        logo_consultoria_url: document.getElementById('cfgLogoConsultoria')?.value || '',
+        nome_consultoria: document.getElementById('cfgNomeConsultoriaGlobal')?.value || ''
     };
 
     const atualizado = await apiUpdate('config_global', 'global', dados);
     if (atualizado) {
-        state.configGlobal = atualizado; // ✔️ Corrigido para 'atualizado'
+        state.configGlobal = atualizado;
     }
-    atualizarLogosVisuais();
-    aplicarConfigNaInterface();
+    if (typeof atualizarLogosVisuais === 'function') atualizarLogosVisuais();
+    if (typeof aplicarConfigNaInterface === 'function') aplicarConfigNaInterface();
 }
 
 // ============================================================
@@ -2735,7 +2735,6 @@ async function cadastrarNovaClinica() {
             throw new Error('O cliente auxiliar do Supabase não está configurado corretamente.');
         }
 
-        // 1) Cria a conta de login (Supabase Auth) usando o cliente AUXILIAR.
         const { data: signUpData, error: signUpError } = await supabaseAuxClient.auth.signUp({
             email: email_login,
             password: senha_login
@@ -2748,11 +2747,10 @@ async function cadastrarNovaClinica() {
 
         const novoUserId = signUpData.user ? signUpData.user.id : null;
         if (!novoUserId) {
-            alert('Não foi possível obter o ID do novo usuário. Verifique as configurações de e-mail do Supabase.');
+            alert('Não foi possível obter o ID do novo usuário.');
             return;
         }
 
-        // 2) Cria o registro da clínica vinculado a esse usuário
         await apiCreate('clinicas', {
             owner_user_id: novoUserId,
             nome_clinica,
@@ -2768,13 +2766,12 @@ async function cadastrarNovaClinica() {
             ativo: true
         });
 
-        // Limpa os campos do formulário
         document.getElementById('novaClinicaNome').value = '';
         document.getElementById('novaClinicaCodigo').value = '';
         document.getElementById('novaClinicaSenha').value = '';
         document.getElementById('novaClinicaResponsavel').value = '';
 
-        alert('Clínica cadastrada com sucesso!\n\nLogin: ' + email_login + '\n\nCaso a confirmação de e-mail esteja ativada no seu projeto Supabase, a clínica precisa confirmar o e-mail antes do primeiro acesso.');
+        alert('Clínica cadastrada com sucesso!\n\nLogin: ' + email_login);
         renderizarListaClinicas();
     } catch (e) {
         console.error(e);
@@ -2782,10 +2779,10 @@ async function cadastrarNovaClinica() {
     } finally {
         if (btn) { btn.disabled = false; btn.textContent = 'Cadastrar Clínica e Gerar Acesso'; }
     }
-}
+} // <--- CHAVE RESTAURADA AQUI
 
 // ============================================================
-// BLOCO DE AUTENTICAÇÃO E CONTEXTO (INTEGRAL)
+// BLOCO DE AUTENTICAÇÃO E CONTEXTO (VERSÃO ESTÁVEL DO PROJETO)
 // ============================================================
 
 async function autenticarClinica() {
@@ -2854,7 +2851,6 @@ function traduzErroSupabase(msg) {
 async function carregarContextoUsuario(user) {
     state.usuario = user;
 
-    // 1. Busca Administrador
     const { data: adminData } = await supabaseClient
         .from('consultoria_admins')
         .select('*')
@@ -2863,7 +2859,6 @@ async function carregarContextoUsuario(user) {
 
     state.isAdmin = !!adminData;
 
-    // 2. Busca Clínica do Usuário
     const { data: clinicas, error } = await supabaseClient
         .from('clinicas')
         .select('*')
@@ -2890,5 +2885,7 @@ async function sairDoSistema() {
 async function entrarNoSistema() {
     document.getElementById('telaLogin').classList.add('hidden');
     document.getElementById('appPrincipal').classList.remove('hidden');
-    await init();
+    if (typeof init === 'function') {
+        await init();
+    }
 }
