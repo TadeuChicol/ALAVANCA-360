@@ -353,14 +353,15 @@ async function init() {
         if (typeof renderizarAgendaLocal === 'function') renderizarAgendaLocal();
         if (typeof atualizarTemplateDocumento === 'function') atualizarTemplateDocumento();
         if (typeof renderizarModuloFinanceiroCompleto === 'function') renderizarModuloFinanceiroCompleto();
-        
-        // Redirecionamento correto da aba ao finalizar a inicialização
+    } // <--- FECHA O "if (state.clinicaAtual)"
+
+    // Redirecionamento de abas
     if (state.isAdmin && !state.clinicaAtual) {
         switchTab('tab-hub-master');
     } else {
-        switchTab('tab-ceo'); // <--- ID correto do Módulo 1 (CEO Dashboard)
+        switchTab('tab-ceo');
     }
-}
+} // <--- FECHA A FUNÇÃO init() CORRETAMENTE AQUI
 
 // Esconde módulos operacionais (M1-M7 e HUB Clínica) para quem só é admin
 // da Consultoria e não é dono de nenhuma clínica; esconde o HUB Master de
@@ -2779,7 +2780,7 @@ async function cadastrarNovaClinica() {
     } finally {
         if (btn) { btn.disabled = false; btn.textContent = 'Cadastrar Clínica e Gerar Acesso'; }
     }
-} // <--- CHAVE RESTAURADA AQUI
+}
 
 // ============================================================
 // BLOCO DE AUTENTICAÇÃO E CONTEXTO (VERSÃO ESTÁVEL DO PROJETO)
