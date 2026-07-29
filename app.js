@@ -2783,3 +2783,112 @@ async function cadastrarNovaClinica() {
         if (btn) { btn.disabled = false; btn.textContent = 'Cadastrar Clínica e Gerar Acesso'; }
     }
 }
+
+// ============================================================
+// SISTEMA DE LOGIN E AUTENTICAÇÃO
+// ============================================================
+
+async function autenticarClinica() {
+    const email = (document.getElementById('inputCodigoAcesso')?.value || '').trim();
+    const senha = (document.getElementById('inputSenhaAcesso')?.value || '').trim();
+
+    if (!email || !senha) {
+        mostrarTelaLogin('Informe o e-mail e a senha de acesso.');
+        return;
+    }
+
+    const btn = document.getElementById('btnEntrarSistema');
+    const textoOriginal = btn ? btn.textContent : '→ Entrar no Sistema';
+    if (btn) {
+        btn.textContent = 'Verificando...';
+        btn.disabled = true;
+    }
+
+    try {
+        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password: senha });
+
+        if (error) {
+            mostrarTelaLogin(traduzErroSupabase(error.message));
+            return;
+        }
+
+        const ok = await carregarContextoUsuario(data.user);
+        if (!ok) {
+            await supabaseClient.auth.signOut();
+            mostrarTelaLogin('Este usuário não está vinculado a nenhuma clínica ativa nem é administrador da Consultoria.');
+            return;
+        }
+
+        await entrarNoSistema();
+    } catch (e) {
+        console.error(e);
+        mostrarTelaLogin('Erro ao autenticar. Tente novamente.');
+    } finally {
+        if (btn) {
+            btn.textContent = textoOriginal;
+            btn.disabled = false;
+        }
+    }
+}
+
+function mostrarTelaLogin(mensagem) {
+    const elErro = document.getElementById('loginErro');
+    if (elErro) {
+        if (mensagem) {
+            elErro.textContent = mensagem;
+            elErro.classList.remove('hidden');
+        } else {
+            elErro.classList.add('hidden');
+        }
+    } else if (mensagem) {
+        alert(mensagem);
+    }
+}
+
+function traduzErroSupabase(msg) {
+    if (/invalid login credentials/i.test(msg)) return 'E-mail ou senha inválidos.';
+    if (/email not confirmed/i.test(msg)) return 'E-mail ainda não confirmado. Verifique a caixa de entrada.';
+    return msg || 'Erro ao conectar ao servidor.';
+}
+
+async function carregarContextoUsuario(user) {
+    state.usuario = user;
+
+    // Busca Administrador
+    const { data: adminData } = await supabaseClient
+        .from('consultoria_admins')
+        .select('*')
+        .eq('user_id', user.id) 
+        .maybeSingle();
+
+    state.isAdmin = !!adminData;
+
+    // Busca Clínica do Usuário
+    const { data: clinicas, error } = await supabaseClient
+        .from('clinicas')
+        .select('*')
+        .eq('owner_user_id', user.id)
+        .maybeSingle();
+
+    if (!error && clinicas) {
+        if (clinicas.ativo === false && !state.isAdmin) {
+            return false;
+        }
+        state.clinicaAtual = clinicas;
+    } else {
+        state.clinicaAtual = null;
+    }
+
+    return state.isAdmin || !!state.clinicaAtual;
+}
+
+async function sairDoSistema() {
+    await supabaseClient.auth.signOut();
+    window.location.reload();
+}
+
+async function entrarNoSistema() {
+    document.getElementById('telaLogin').classList.add('hidden');
+    document.getElementById('appPrincipal').classList.remove('hidden');
+    await init();
+}
