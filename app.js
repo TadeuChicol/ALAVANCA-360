@@ -936,10 +936,15 @@ function pertenceAoFiltro(dataHoraStr, filtro) {
 }
 
 function renderizarAgendaLocal() {
-    const tbody = document.getElementById('tbodyAgendaLocal');
-    const filtrados = state.agendamentos
-        .filter(a => pertenceAoFiltro(a.data_hora, state.filtroAgendaAtivo))
-        .sort((a, b) => new Date(a.data_hora) - new Date(b.data_hora));
+  const tbody = document.getElementById('tbodyAgendaLocal');
+  if (!tbody) {
+    console.error('[Alavanca 360] ERRO: Elemento #tbodyAgendaLocal não encontrado no DOM. Aba agenda não renderiza.');
+    return;
+  }
+  console.log('[Alavanca 360] renderizarAgendaLocal() chamada. state.agendamentos:', state.agendamentos?.length || 0, 'registros');
+  const filtrados = state.agendamentos
+    .filter(a => pertenceAoFiltro(a.data_hora, state.filtroAgendaAtivo))
+    .sort((a, b) => new Date(a.data_hora) - new Date(b.data_hora));
 
     if (filtrados.length === 0) {
         tbody.innerHTML = `<tr><td colspan="6" class="p-3 text-center text-slate-600">Nenhum agendamento registrado nesta visão.</td></tr>`;
@@ -1054,10 +1059,19 @@ async function emitirEDarComoProntoDocumento() {
 }
 
 function atualizarTemplateDocumento() {
-    const pacName = document.getElementById('selectDocPaciente').value || 'Paciente';
-    const dentName = document.getElementById('selectDocDentista').value || 'Profissional Responsável';
-    const tipo = document.getElementById('selectTipoDoc').value;
-    const preview = document.getElementById('areaPreviewDocumento');
+  const selPac = document.getElementById('selectDocPaciente');
+  const selDent = document.getElementById('selectDocDentista');
+  const selTipo = document.getElementById('selectTipoDoc');
+  const preview = document.getElementById('areaPreviewDocumento');
+  
+  if (!selPac) { console.error('[Alavanca 360] ERRO: #selectDocPaciente não encontrado'); return; }
+  if (!selDent) { console.error('[Alavanca 360] ERRO: #selectDocDentista não encontrado'); return; }
+  if (!selTipo) { console.error('[Alavanca 360] ERRO: #selectTipoDoc não encontrado'); return; }
+  if (!preview) { console.error('[Alavanca 360] ERRO: #areaPreviewDocumento não encontrado'); return; }
+  
+  const pacName = selPac.value || 'Paciente';
+  const dentName = selDent.value || 'Profissional Responsável';
+  const tipo = selTipo.value;
 
     const clinica = (state.clinicaAtual && state.clinicaAtual.nome_clinica) || 'Clínica';
     const endereco = (state.clinicaAtual && state.clinicaAtual.endereco) || '';
@@ -2047,12 +2061,16 @@ async function removerAtendimento(id) {
 }
 
 function renderizarAtendimentos() {
-    const tbody = document.getElementById('tbodyAtendimentos');
-    if (!tbody) return;
-    if (state.atendimentos.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="p-3 text-center text-slate-600">Nenhum atendimento registrado.</td></tr>`;
+  const tbody = document.getElementById('tbodyAtendimentos');
+  if (!tbody) {
+    console.error('[Alavanca 360] ERRO: #tbodyAtendimentos não encontrado no DOM');
+    return;
+  }
+  console.log('[Alavanca 360] renderizarAtendimentos() chamada. state.atendimentos:', state.atendimentos?.length || 0, 'registros');
+  if (state.atendimentos.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" class="p-3 text-center text-slate-600">Nenhum atendimento registrado.</td></tr>`;
         return;
-    }
+  }
     const ordenados = [...state.atendimentos].sort((a, b) => (b.data_atendimento || '').localeCompare(a.data_atendimento || ''));
     tbody.innerHTML = ordenados.map(a => {
         const total = (Number(a.valor_convenio) || 0) + (Number(a.valor_particular) || 0);
@@ -2075,8 +2093,11 @@ function renderizarAtendimentos() {
 // ============================================================
 
 function renderizarDashboardVivo() {
-    const el = document.getElementById('dvFaturamentoTotal');
-    if (!el) return; // tela ainda não montada
+  const el = document.getElementById('dvFaturamentoTotal');
+  if (!el) {
+    console.error('[Alavanca 360] ERRO: Elemento #dvFaturamentoTotal não encontrado no DOM. A aba dashboard-vivo não será renderizada.');
+    return;
+  }
 
     const atendimentos = state.atendimentos;
     const faturamentoTotal = atendimentos.reduce((s, a) => s + (Number(a.valor_convenio) || 0) + (Number(a.valor_particular) || 0), 0);
