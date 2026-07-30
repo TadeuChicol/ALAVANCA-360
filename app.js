@@ -425,77 +425,96 @@ async function carregarDadosFinanceiros() {
 }
 
 // ============================================================
-// 4. NAVEGAÇÃO ENTRE MÓDULOS
+// 4. NAVEGAÇÃO ENTRE MÓDULOS (VERSÃO CORRIGIDA & PROTEGIDA)
 // ============================================================
 
 function switchTab(tabId) {
-    // 1. Esconde todo o conteúdo de abas
+    console.log(`[Alavanca 360] Alternando para aba: ${tabId}`);
+
+    // 1. Oculta todos os conteúdos de abas
     document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
 
-    // 2. Procura a div no index.html
-    const target = document.getElementById(tabId);
+    // 2. Garante que o Gatekeeper do Consultor não bloqueie a visualização de abas normais
+    const gatekeeper = document.getElementById('hubGatekeeper');
+    if (gatekeeper && tabId !== 'tab-hub-master') {
+        gatekeeper.classList.add('hidden');
+    }
+
+    // 3. Mapeamento de fallback para garantir compatibilidade de nomes de ID
+    const mapIDs = {
+        'm6': 'tab-agenda',
+        'm7': 'tab-documentos',
+        'm8': 'tab-custos',
+        'tab-m6': 'tab-agenda',
+        'tab-m7': 'tab-documentos',
+        'tab-m8': 'tab-custos'
+    };
+
+    const targetId = mapIDs[tabId] || tabId;
+    const target = document.getElementById(targetId);
+
     if (target) {
         target.classList.remove('hidden');
     } else {
-        console.warn(`[Aviso] Div com id "${tabId}" não encontrada no HTML.`);
+        console.warn(`[Aviso] Div com id "${tabId}" (buscado como "${targetId}") não encontrada no HTML.`);
+        return;
     }
 
-    // 3. Destaca o botão selecionado na barra lateral
+    // 4. Atualiza destaque visual dos botões na barra lateral
     document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove(
         'text-emerald-400', 'bg-emerald-500/5', 'border', 'border-emerald-500/10'
     ));
-    const activeBtn = document.getElementById(`btn-${tabId}`);
+
+    const activeBtn = document.getElementById(`btn-${tabId}`) || document.getElementById(`btn-${targetId}`);
     if (activeBtn) {
         activeBtn.classList.add('text-emerald-400', 'bg-emerald-500/5', 'border', 'border-emerald-500/10');
     }
 
-    // 4. Carrega a lógica específica do módulo ativo
+    // 5. Executa a inicialização do módulo com proteção Try/Catch
     try {
-        switch (tabId) {
-    case 'tab-ceo':
-        if (typeof calcularMetricasGerais === 'function') calcularMetricasGerais();
-        break;
-    case 'tab-financeiro':
-        if (typeof renderizarModuloFinanceiroCompleto === 'function') renderizarModuloFinanceiroCompleto();
-        break;
-    case 'tab-comercial':
-        if (typeof calcularFunilComercial === 'function') calcularFunilComercial();
-        break;
-    case 'tab-tratamentos':
-        if (typeof calcularMetricasTratamentos === 'function') calcularMetricasTratamentos();
-        break;
-    case 'tab-pacientes':
-        if (typeof carregarPacientes === 'function') carregarPacientes();
-        break;
-    case 'tab-agenda':
-        if (typeof renderizarAgendaLocal === 'function') renderizarAgendaLocal();
-        break;
-    case 'tab-documentos':
-        if (typeof atualizarTemplateDocumento === 'function') atualizarTemplateDocumento();
-        break;
-    case 'tab-custos':
-        if (typeof renderizarModuloFinanceiroCompleto === 'function') renderizarModuloFinanceiroCompleto();
-        break;
-    case 'tab-atendimentos':
-        if (typeof renderizarModuloFinanceiroCompleto === 'function') renderizarModuloFinanceiroCompleto();
-        break;
-    case 'tab-dashboard-vivo':
-        if (typeof renderizarDashboardVivo === 'function') renderizarDashboardVivo();
-        break;
-    case 'tab-assistente':
-        if (typeof inicializarAssistenteDecisao === 'function') inicializarAssistenteDecisao();
-        break;
-    case 'tab-hub-clinica':
-        if (typeof aplicarConfigNaInterface === 'function') aplicarConfigNaInterface();
-        break;
-    case 'tab-hub-master':
-        if (typeof prepararHubMaster === 'function') prepararHubMaster();
-        break;
-}
+        switch (targetId) {
+            case 'tab-ceo':
+                if (typeof calcularMetricasGerais === 'function') calcularMetricasGerais();
+                break;
+            case 'tab-financeiro':
+            case 'tab-custos':
+            case 'tab-atendimentos':
+                if (typeof renderizarModuloFinanceiroCompleto === 'function') renderizarModuloFinanceiroCompleto();
+                break;
+            case 'tab-comercial':
+                if (typeof calcularFunilComercial === 'function') calcularFunilComercial();
+                break;
+            case 'tab-tratamentos':
+                if (typeof calcularMetricasTratamentos === 'function') calcularMetricasTratamentos();
+                break;
+            case 'tab-pacientes':
+                if (typeof carregarPacientes === 'function') carregarPacientes();
+                break;
+            case 'tab-agenda':
+                if (typeof renderizarAgendaLocal === 'function') renderizarAgendaLocal();
+                break;
+            case 'tab-documentos':
+                if (typeof atualizarTemplateDocumento === 'function') atualizarTemplateDocumento();
+                break;
+            case 'tab-dashboard-vivo':
+                if (typeof renderizarDashboardVivo === 'function') renderizarDashboardVivo();
+                break;
+            case 'tab-assistente':
+                if (typeof inicializarAssistenteDecisao === 'function') inicializarAssistenteDecisao();
+                break;
+            case 'tab-hub-clinica':
+                if (typeof aplicarConfigNaInterface === 'function') aplicarConfigNaInterface();
+                break;
+            case 'tab-hub-master':
+                if (gatekeeper) gatekeeper.classList.remove('hidden');
+                if (typeof prepararHubMaster === 'function') prepararHubMaster();
+                break;
+        }
     } catch (err) {
-        console.error(`[Erro de Renderização na aba ${tabId}]:`, err);
+        console.error(`[Erro na renderização da aba ${targetId}]:`, err);
     }
 
+    // Renderiza ícones Lucide
     if (window.lucide) lucide.createIcons();
 }
 
