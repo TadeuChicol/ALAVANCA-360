@@ -452,24 +452,46 @@ function switchTab(tabId) {
     // 4. Carrega a lógica específica do módulo ativo
     try {
         switch (tabId) {
-            case 'tab-ceo':
-                if (typeof calcularMetricasGerais === 'function') calcularMetricasGerais();
-                break;
-            case 'tab-agenda':
-                if (typeof renderizarAgendaLocal === 'function') renderizarAgendaLocal();
-                break;
-            case 'tab-documentos':
-                if (typeof atualizarTemplateDocumento === 'function') atualizarTemplateDocumento();
-                break;
-            case 'tab-financeiro':
-            case 'tab-custos':
-            case 'tab-atendimentos':
-                if (typeof renderizarModuloFinanceiroCompleto === 'function') renderizarModuloFinanceiroCompleto();
-                break;
-            case 'tab-hub-master':
-                if (typeof prepararHubMaster === 'function') prepararHubMaster();
-                break;
-        }
+    case 'tab-ceo':
+        if (typeof calcularMetricasGerais === 'function') calcularMetricasGerais();
+        break;
+    case 'tab-financeiro':
+        if (typeof renderizarModuloFinanceiroCompleto === 'function') renderizarModuloFinanceiroCompleto();
+        break;
+    case 'tab-comercial':
+        if (typeof calcularFunilComercial === 'function') calcularFunilComercial();
+        break;
+    case 'tab-tratamentos':
+        if (typeof calcularMetricasTratamentos === 'function') calcularMetricasTratamentos();
+        break;
+    case 'tab-pacientes':
+        if (typeof carregarPacientes === 'function') carregarPacientes();
+        break;
+    case 'tab-agenda':
+        if (typeof renderizarAgendaLocal === 'function') renderizarAgendaLocal();
+        break;
+    case 'tab-documentos':
+        if (typeof atualizarTemplateDocumento === 'function') atualizarTemplateDocumento();
+        break;
+    case 'tab-custos':
+        if (typeof renderizarModuloFinanceiroCompleto === 'function') renderizarModuloFinanceiroCompleto();
+        break;
+    case 'tab-atendimentos':
+        if (typeof renderizarModuloFinanceiroCompleto === 'function') renderizarModuloFinanceiroCompleto();
+        break;
+    case 'tab-dashboard-vivo':
+        if (typeof renderizarDashboardVivo === 'function') renderizarDashboardVivo();
+        break;
+    case 'tab-assistente':
+        if (typeof inicializarAssistenteDecisao === 'function') inicializarAssistenteDecisao();
+        break;
+    case 'tab-hub-clinica':
+        if (typeof aplicarConfigNaInterface === 'function') aplicarConfigNaInterface();
+        break;
+    case 'tab-hub-master':
+        if (typeof prepararHubMaster === 'function') prepararHubMaster();
+        break;
+}
     } catch (err) {
         console.error(`[Erro de Renderização na aba ${tabId}]:`, err);
     }
