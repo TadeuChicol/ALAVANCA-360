@@ -955,24 +955,44 @@ function pertenceAoFiltro(dataHoraStr, filtro) {
 }
 
 function renderizarAgendaLocal() {
-  const tbody = document.getElementById('tbodyAgendaLocal');
-  if (!tbody) {
-    console.error('[Alavanca 360] ERRO: Elemento #tbodyAgendaLocal não encontrado no DOM. Aba agenda não renderiza.');
-    return;
-  }
-  console.log('[Alavanca 360] renderizarAgendaLocal() chamada. state.agendamentos:', state.agendamentos?.length || 0, 'registros');
-  const filtrados = state.agendamentos
-    .filter(a => pertenceAoFiltro(a.data_hora, state.filtroAgendaAtivo))
-    .sort((a, b) => new Date(a.data_hora) - new Date(b.data_hora));
+    const tbody = document.getElementById('tbodyAgendaLocal');
+    const tabAgenda = document.getElementById('tab-agenda');
+
+    if (!tabAgenda) {
+        console.error('[Alavanca 360] ERRO: Container #tab-agenda não existe no HTML.');
+        return;
+    }
+
+    // Garante que o container da aba está visível
+    tabAgenda.classList.remove('hidden');
+
+    if (!tbody) {
+        console.error('[Alavanca 360] ERRO: Elemento #tbodyAgendaLocal não encontrado no DOM.');
+        return;
+    }
+
+    console.log('[Alavanca 360] renderizarAgendaLocal() executada. Registros:', state.agendamentos?.length || 0);
+
+    const filtrados = (state.agendamentos || [])
+        .filter(a => pertenceAoFiltro(a.data_hora, state.filtroAgendaAtivo))
+        .sort((a, b) => new Date(a.data_hora) - new Date(b.data_hora));
 
     if (filtrados.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="p-3 text-center text-slate-600">Nenhum agendamento registrado nesta visão.</td></tr>`;
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="p-8 text-center text-slate-400 bg-slate-900/50 rounded-lg">
+                    <div class="flex flex-col items-center justify-center space-y-2">
+                        <p class="text-sm font-semibold text-slate-300">Nenhum agendamento encontrado nesta visão.</p>
+                        <p class="text-xs text-slate-500">Utilize o formulário ao lado para reservar um horário operacional.</p>
+                    </div>
+                </td>
+            </tr>`;
         return;
     }
 
     tbody.innerHTML = filtrados.map(a => `
         <tr class="hover:bg-slate-900/60 text-xs">
-            <td class="p-2 text-slate-200 font-semibold">${a.paciente_nome}</td>
+            <td class="p-2 text-slate-200 font-semibold">${a.paciente_nome || ''}</td>
             <td class="p-2 text-sky-400">${a.data_hora ? new Date(a.data_hora).toLocaleString('pt-BR') : ''}</td>
             <td class="p-2 text-slate-300">${a.dentista || ''}</td>
             <td class="p-2"><span class="bg-slate-950 px-2 py-0.5 rounded border border-slate-800 text-[11px] text-amber-400">${a.cadeira_sala || 'Geral'}</span></td>
