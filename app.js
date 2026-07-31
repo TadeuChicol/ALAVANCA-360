@@ -455,6 +455,13 @@ async function carregarDadosFinanceiros() {
 
 function switchTab(tabId) {
     console.log(`[Alavanca 360] Alternando para aba: ${tabId}`);
+        // 🛡️ GUARDA DE SEGURANÇA: HUB Master somente para administradores master
+    if (tabId === 'tab-hub-master') {
+        if (!state.isAdmin) {
+            console.warn('[Alavanca 360] Acesso negado ao HUB Master: perfil sem permissão de administrador.');
+            return;
+        }
+    }
 
     // 1. Oculta todos os conteúdos de abas
     document.querySelectorAll('.tab-content').forEach(el => {
