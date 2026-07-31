@@ -520,34 +520,42 @@
             </div>
 
 <!-- MÓDULO 6: AGENDA INTERNA DA CLÍNICA -->
-<div id="tab-agenda" class="tab-content hidden space-y-6 min-h-[500px]">
+<div id="tab-agenda" class="tab-content hidden w-full space-y-6 block">
+    
+    <!-- Cabeçalho & Links Externos -->
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-            <h2 class="text-xl font-bold text-slate-100">Módulo 6 — Quadro de Agendamentos & Recursos</h2>
+            <h2 class="text-xl font-bold text-slate-100 flex items-center gap-2">
+                <i data-lucide="calendar" class="text-emerald-400 w-5 h-5"></i>
+                Módulo 6 — Quadro de Agendamentos & Recursos
+            </h2>
             <p class="text-xs text-slate-400">Gerenciamento interno síncrono integrado às agendas digitais externas.</p>
         </div>
         <div class="flex gap-2">
-            <a id="lnkGoogleSheets" href="#" target="_blank" class="bg-slate-900 border border-slate-700 text-slate-300 text-xs px-3 py-1.5 rounded-lg flex items-center gap-1 hover:bg-slate-800">
+            <a id="lnkGoogleSheets" href="#" target="_blank" class="bg-slate-900 border border-slate-700 text-slate-300 text-xs px-3 py-1.5 rounded-lg flex items-center gap-1 hover:bg-slate-800 transition">
                 <i data-lucide="external-link" class="w-3.5 h-3.5 text-emerald-400"></i> Google Agenda
             </a>
-            <a id="lnkCalendly" href="#" target="_blank" class="bg-slate-900 border border-slate-700 text-slate-300 text-xs px-3 py-1.5 rounded-lg flex items-center gap-1 hover:bg-slate-800">
+            <a id="lnkCalendly" href="#" target="_blank" class="bg-slate-900 border border-slate-700 text-slate-300 text-xs px-3 py-1.5 rounded-lg flex items-center gap-1 hover:bg-slate-800 transition">
                 <i data-lucide="external-link" class="w-3.5 h-3.5 text-sky-400"></i> Calendly
             </a>
         </div>
     </div>
 
     <!-- Filtros de visualização de calendário -->
-    <div class="flex bg-slate-900 p-2 rounded-xl border border-slate-800 w-fit gap-1 text-xs">
+    <div class="flex bg-slate-900 p-1.5 rounded-xl border border-slate-800 w-fit gap-1 text-xs">
         <button onclick="filtrarPeriodoAgenda('dia')" id="btnFilterdia" class="px-4 py-1.5 rounded-lg bg-sky-600 text-white font-medium transition">Visão Dia</button>
         <button onclick="filtrarPeriodoAgenda('semana')" id="btnFiltersemana" class="px-4 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition">Visão Semana</button>
         <button onclick="filtrarPeriodoAgenda('mes')" id="btnFiltermes" class="px-4 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition">Visão Mês</button>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Form Agendamento -->
-        <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-4 h-fit">
+    <!-- Grid Principal (Formulário + Tabela) -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full">
+        
+        <!-- Formulário de Agendamento -->
+        <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-4 h-fit shadow-lg">
             <h3 id="lblTituloAgendaForm" class="text-xs font-bold text-emerald-400 uppercase tracking-wider">Reservar Horário Operacional</h3>
             <input type="hidden" id="agendaIndexEditando" value="-1">
+            
             <div class="space-y-3 text-xs">
                 <div>
                     <label class="block text-slate-400 mb-1">Paciente</label>
@@ -580,7 +588,7 @@
         </div>
 
         <!-- Listagem Geral da Agenda -->
-        <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 lg:col-span-2">
+        <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 lg:col-span-2 shadow-lg min-h-[400px]">
             <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-4">Compromissos do Quadro Técnico Ativo</h3>
             <div class="overflow-x-auto custom-scrollbar">
                 <table class="w-full text-left text-xs text-slate-300">
@@ -600,6 +608,7 @@
                 </table>
             </div>
         </div>
+
     </div>
 </div>
 
