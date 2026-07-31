@@ -956,54 +956,71 @@ function pertenceAoFiltro(dataHoraStr, filtro) {
 
 function renderizarAgendaLocal() {
     const tbody = document.getElementById('tbodyAgendaLocal');
-    const tabAgenda = document.getElementById('tab-agenda');
-
-    if (!tabAgenda) {
-        console.error('[Alavanca 360] ERRO: Container #tab-agenda não existe no HTML.');
-        return;
-    }
-
-    // Garante que o container da aba está visível
-    tabAgenda.classList.remove('hidden');
 
     if (!tbody) {
         console.error('[Alavanca 360] ERRO: Elemento #tbodyAgendaLocal não encontrado no DOM.');
         return;
     }
 
-    console.log('[Alavanca 360] renderizarAgendaLocal() executada. Registros:', state.agendamentos?.length || 0);
+    const totalRegistros = state.agendamentos?.length || 0;
+    console.log('[Alavanca 360] renderizarAgendaLocal() executada. Total no State:', totalRegistros);
 
-    const filtrados = (state.agendamentos || [])
-        .filter(a => pertenceAoFiltro(a.data_hora, state.filtroAgendaAtivo))
+    // Garante array válido
+    const listaGeral = Array.isArray(state.agendamentos) ? state.agendamentos : [];
+
+    // Aplica o filtro de período (Visão Dia / Semana / Mês)
+    const filtrados = listaGeral
+        .filter(a => {
+            if (!a.data_hora) return false;
+            // Caso a função pertenceAoFiltro falhe ou não exista, não bloqueia os dados
+            if (typeof pertenceAoFiltro === 'function') {
+                return pertenceAoFiltro(a.data_hora, state.filtroAgendaAtivo || 'dia');
+            }
+            return true;
+        })
         .sort((a, b) => new Date(a.data_hora) - new Date(b.data_hora));
 
+    // Se não houver registros para o filtro ativo
     if (filtrados.length === 0) {
         tbody.innerHTML = `
             <tr>
                 <td colspan="6" class="p-8 text-center text-slate-400 bg-slate-900/50 rounded-lg">
                     <div class="flex flex-col items-center justify-center space-y-2">
-                        <p class="text-sm font-semibold text-slate-300">Nenhum agendamento encontrado nesta visão.</p>
-                        <p class="text-xs text-slate-500">Utilize o formulário ao lado para reservar um horário operacional.</p>
+                        <p class="text-sm font-semibold text-slate-300">Nenhum agendamento encontrado para este período.</p>
+                        <p class="text-xs text-slate-500">Total de registros no banco: ${totalRegistros}. Alterne o filtro (Dia/Semana/Mês) ou use o formulário ao lado.</p>
                     </div>
                 </td>
             </tr>`;
         return;
     }
 
-    tbody.innerHTML = filtrados.map(a => `
-        <tr class="hover:bg-slate-900/60 text-xs">
-            <td class="p-2 text-slate-200 font-semibold">${a.paciente_nome || ''}</td>
-            <td class="p-2 text-sky-400">${a.data_hora ? new Date(a.data_hora).toLocaleString('pt-BR') : ''}</td>
-            <td class="p-2 text-slate-300">${a.dentista || ''}</td>
-            <td class="p-2"><span class="bg-slate-950 px-2 py-0.5 rounded border border-slate-800 text-[11px] text-amber-400">${a.cadeira_sala || 'Geral'}</span></td>
-            <td class="p-2 text-slate-400">${a.procedimento || ''}</td>
-            <td class="p-2 text-right space-x-1">
-                <button onclick="prepararEdicaoAgenda('${a.id}')" class="text-sky-400 hover:underline">Editar</button>
-                <span class="text-slate-700">|</span>
-                <button onclick="removerAgenda('${a.id}')" class="text-rose-400 hover:underline">Excluir</button>
-            </td>
-        </tr>
-    `).join('');
+    // Renderiza as linhas da tabela
+    tbody.innerHTML = filtrados.map(a => {
+        let dataFormatada = '--';
+        if (a.data_hora) {
+            const d = new Date(a.data_hora);
+            dataFormatada = isNaN(d.getTime()) ? a.data_hora : d.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+        }
+
+        return `
+            <tr class="hover:bg-slate-800/60 text-xs transition border-b border-slate-800/40">
+                <td class="p-3 text-slate-200 font-semibold">${a.paciente_nome || 'Paciente não informado'}</td>
+                <td class="p-3 text-sky-400 font-medium">${dataFormatada}</td>
+                <td class="p-3 text-slate-300">${a.dentista || 'Não atribuído'}</td>
+                <td class="p-3">
+                    <span class="bg-slate-950 px-2 py-0.5 rounded border border-slate-800 text-[11px] text-amber-400 font-mono">
+                        ${a.cadeira_sala || 'Geral'}
+                    </span>
+                </td>
+                <td class="p-3 text-slate-400">${a.procedimento || 'Avaliação'}</td>
+                <td class="p-3 text-right space-x-2">
+                    <button onclick="prepararEdicaoAgenda('${a.id}')" class="text-sky-400 hover:text-sky-300 font-medium transition">Editar</button>
+                    <span class="text-slate-700">|</span>
+                    <button onclick="removerAgenda('${a.id}')" class="text-rose-400 hover:text-rose-300 font-medium transition">Excluir</button>
+                </td>
+            </tr>
+        `;
+    }).join('');
 }
 
 function prepararEdicaoAgenda(id) {
