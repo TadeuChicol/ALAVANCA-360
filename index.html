@@ -254,270 +254,271 @@
                 </div>
             </div>
 
-            <!-- MÓDULO 5: BASE DE CLIENTES (FICHA + EDICAO + PRONTUARIO HISTORICO) -->
-            <div id="tab-pacientes" class="tab-content hidden space-y-6">
-                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div>
-                        <h2 class="text-xl font-bold text-slate-100">Módulo 5 — Inteligência e Cadastro de Pacientes</h2>
-                        <p class="text-xs text-slate-400">Motor de Inteligência de Negócios Odontológicos.</p>
-                    </div>
-                    <div class="w-full md:w-72">
-                        <input type="text" id="matchCodeProntuario" onkeyup="filtrarProntuario()" placeholder="Buscar cliente cadastrado para visualizar/editar..." class="w-full bg-slate-900 border border-slate-700 text-xs rounded-xl px-4 py-2.5 text-slate-200 focus:outline-none focus:border-emerald-500">
-                    </div>
-                </div>
-
-                <!-- FORMULÁRIO ENTRADA / EDIÇÃO DE DADOS -->
-                <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-4">
-                    <div class="flex justify-between items-center">
-                        <h3 id="lblTituloFormM5" class="text-xs font-bold uppercase text-emerald-400 tracking-wider">Novo Cadastro Estruturado (Paciente)</h3>
-                        <button id="btnCancelarEdicao" onclick="limparEPararEdicao()" class="hidden bg-rose-600/20 text-rose-400 hover:bg-rose-600/30 text-[11px] px-3 py-1 rounded-lg transition">Cancelar Edição</button>
-                    </div>
-
-                    <input type="hidden" id="formIndexEditando" value="-1">
-
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
-                        <div class="md:col-span-2">
-                            <label class="block text-slate-400 mb-1">Nome Completo</label>
-                            <input type="text" id="formNome" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
-                        </div>
-                        <div>
-                            <label class="block text-slate-400 mb-1">Data de Nascimento</label>
-                            <input type="date" id="formDataNasc" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
-                        </div>
-                        <div>
-                            <label class="block text-slate-400 mb-1">Sexo</label>
-                            <select id="formSexo" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
-                                <option value="Feminino">Feminino</option>
-                                <option value="Masculino">Masculino</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-slate-400 mb-1">Estado Civil</label>
-                            <input type="text" id="formEstadoCivil" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
-                        </div>
-                        <div>
-                            <label class="block text-slate-400 mb-1">Filhos</label>
-                            <input type="text" id="formFilhos" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
-                        </div>
-                        <div>
-                            <label class="block text-slate-400 mb-1">Cidade</label>
-                            <input type="text" id="formCidade" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
-                        </div>
-                        <div>
-                            <label class="block text-slate-400 mb-1">Bairro</label>
-                            <input type="text" id="formBairro" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
-                        </div>
-                        <div>
-                            <label class="block text-slate-400 mb-1">CEP</label>
-                            <input type="text" id="formCep" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
-                        </div>
-                        <div>
-                            <label class="block text-slate-400 mb-1">Profissão</label>
-                            <input type="text" id="formProfissao" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
-                        </div>
-                        <div>
-                            <label class="block text-slate-400 mb-1">Empresa</label>
-                            <input type="text" id="formEmpresa" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
-                        </div>
-                        <div>
-                            <label class="block text-slate-400 mb-1">Faixa de Renda Estimada</label>
-                            <input type="number" id="formRenda" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
-                        </div>
-                        <div>
-                            <label class="block text-slate-400 mb-1">Modalidade Comercial</label>
-                            <select id="formModalidade" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
-                                <option value="Particular">Particular</option>
-                                <option value="Convênio">Convênio</option>
-                                <option value="Plano Próprio">Plano Próprio</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-slate-400 mb-1">Momento de Vida</label>
-                            <select id="formMomentoVida" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
-                                <option value="Mulher 35+">Mulher 35+</option>
-                                <option value="Mulher 50+">Mulher 50+</option>
-                                <option value="Gestante">Gestante</option>
-                                <option value="Executivo">Executivo</option>
-                                <option value="Empresário">Empresário</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-slate-400 mb-1">Comparecimento</label>
-                            <select id="formScoreComparecer" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
-                                <option value="Comparece sempre">Comparece sempre</option>
-                                <option value="Falta frequentemente">Falta frequentemente</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-slate-400 mb-1">Engajamento WhatsApp</label>
-                            <select id="formScoreWhats" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
-                                <option value="Responde WhatsApp">Responde WhatsApp</option>
-                                <option value="Interage">Interage</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-slate-400 mb-1">Score de Decisão</label>
-                            <select id="formScoreDecisao" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
-                                <option value="Decide rápido">Decide rápido</option>
-                                <option value="Decide devagar">Decide devagar</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-slate-400 mb-1">Adesão ao Tratamento</label>
-                            <select id="formScoreConfianca" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
-                                <option value="Alta Adesão">Alta Adesão</option>
-                                <option value="Média Adesão">Média Adesão</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-slate-400 mb-1">Categoria Principal</label>
-                            <select id="formCategoriaClinica" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
-                                <option value="implantes">Implantes</option>
-                                <option value="ortodontia">Ortodontia</option>
-                                <option value="harmonizacao">Harmonização</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-slate-400 mb-1">Tratamento Inicial / LTV</label>
-                            <input type="number" id="formLtvInput" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
-                        </div>
-                        <div>
-                            <label class="block text-slate-400 mb-1">Riscos Diagnosticados</label>
-                            <select id="formRiscos" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
-                                <option value="Nenhum relevante">Nenhum relevante</option>
-                                <option value="perda óssea">Perda óssea</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-slate-400 mb-1">Necessidades Futuras (Meses)</label>
-                            <input type="text" id="formNecessidades" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
-                        </div>
-                        <div>
-                            <label class="block text-slate-400 mb-1">Motivação Principal</label>
-                            <select id="formMotivacao" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
-                                <option value="Estética">Estética</option>
-                                <option value="Autoestima">Autoestima</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-slate-400 mb-1">Principal Queixa</label>
-                            <select id="formQueixa" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
-                                <option value="vergonha ao sorrir">Vergonha ao sorrir</option>
-                                <option value="dentes escurecidos">Dentes escurecidos</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-slate-400 mb-1">Objetivo Declarado</label>
-                            <select id="formObjetivo" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
-                                <option value="voltar a sorrir">Voltar a sorrir</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-slate-400 mb-1">Ciclo de Vida do Relacionamento</label>
-                            <select id="formCicloRelacionamento" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
-                                <option value="Novo">Novo (0-90 dias)</option>
-                                <option value="Ativo">Ativo (Em andamento)</option>
-                                <option value="Recorrente">Recorrente</option>
-                            </select>
-                        </div>
-
-<!-- Bloco de Autoestima Inteligente (M5) -->
-<div class="p-6 bg-slate-800/50 rounded-2xl border border-emerald-500/20 shadow-xl">
-    <label class="block text-emerald-400 font-bold text-lg mb-4 flex items-center gap-2">
-        <span>✨</span> Autoestima Atual (1 a 10)
-    </label>
-    <div class="flex justify-between gap-2" id="score-container">
-        <!-- Botões gerados dinamicamente -->
-        <script>
-            for(let i=1; i<=10; i++) {
-                document.write(`
-                    <button type="button" 
-                        onclick="setScore('autoestima', ${i})" 
-                        id="btn-auto-${i}" 
-                        class="w-10 h-10 rounded-full border border-emerald-700/50 text-sm font-semibold hover:bg-emerald-500 hover:text-white transition-all duration-300">
-                        ${i}
-                    </button>
-                `);
-            }
-        </script>
+<!-- MÓDULO 5: BASE DE CLIENTES (FICHA + EDICAO + PRONTUARIO HISTORICO) -->
+<div id="tab-pacientes" class="tab-content hidden space-y-6">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <h2 class="text-xl font-bold text-slate-100">Módulo 5 — Inteligência e Cadastro de Pacientes</h2>
+            <p class="text-xs text-slate-400">Motor de Inteligência de Negócios Odontológicos.</p>
+        </div>
+        <div class="w-full md:w-72">
+            <input type="text" id="matchCodeProntuario" onkeyup="filtrarProntuario()" placeholder="Buscar cliente cadastrado para visualizar/editar..." class="w-full bg-slate-900 border border-slate-700 text-xs rounded-xl px-4 py-2.5 text-slate-200 focus:outline-none focus:border-emerald-500">
+        </div>
     </div>
-    <input type="hidden" id="pacienteAutoestima" value="5">
-    <p class="text-slate-400 text-xs mt-4 italic">* Este dado alimenta o motor de conversão comercial.</p>
-</div>
 
-                <!-- FICHA DE VISUALIZAÇÃO ATIVA E PRONTUÁRIO HISTÓRICO -->
-                <div id="containerFichaPaciente" class="hidden bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-6">
-                    <div class="border-b border-slate-800 pb-3 flex justify-between items-center">
-                        <div>
-                            <h3 id="lblNomePacienteFicha" class="text-base font-bold text-slate-100">--</h3>
-                            <p class="text-xs text-purple-400">Momento de Vida: <span id="lblFichaMomento" class="font-medium">--</span></p>
-                        </div>
-                        <div class="flex items-center gap-4">
-                            <button id="btnEditarFichaAtiva" class="bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs px-4 py-2 rounded-xl transition flex items-center gap-1"><i data-lucide="edit-3" class="w-3.5 h-3.5"></i> Editar Dados do Cliente</button>
-                            <div class="text-right">
-                                <span class="text-[10px] uppercase text-slate-500 font-mono">Opportunity Score</span>
-                                <div class="text-2xl font-black text-emerald-400" id="lblFichaOpportunity">0/100</div>
-                            </div>
-                        </div>
-                    </div>
+    <!-- FORMULÁRIO ENTRADA / EDIÇÃO DE DADOS -->
+    <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-4">
+        <div class="flex justify-between items-center">
+            <h3 id="lblTituloFormM5" class="text-xs font-bold uppercase text-emerald-400 tracking-wider">Novo Cadastro Estruturado (Paciente)</h3>
+            <button id="btnCancelarEdicao" onclick="limparEPararEdicao()" class="hidden bg-rose-600/20 text-rose-400 hover:bg-rose-600/30 text-[11px] px-3 py-1 rounded-lg transition">Cancelar Edição</button>
+        </div>
 
-                    <!-- GRID INFOS -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                        <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 space-y-1">
-                            <p class="text-sky-400 font-bold uppercase text-[10px]">1. Dados Pessoais</p>
-                            <div>Localidade: <span id="vLocal" class="text-slate-300"></span></div>
-                            <div>Profissão / Renda: <span id="vProf" class="text-slate-300"></span></div>
-                            <div>Plano: <span id="vPlano" class="text-slate-300"></span></div>
-                        </div>
-                        <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 space-y-1">
-                            <p class="text-purple-400 font-bold uppercase text-[10px]">2. Comportamental</p>
-                            <div>Comparecimento: <span id="vComp" class="text-slate-300"></span></div>
-                            <div>Engajamento / Decisão: <span id="vEng" class="text-slate-300"></span></div>
-                        </div>
-                    </div>
+        <input type="hidden" id="formIndexEditando" value="-1">
 
-                    <!-- SEÇÃO: PRONTUÁRIO EVOLUTIVO HISTÓRICO -->
-                    <div class="border-t border-slate-800 pt-4 space-y-4">
-                        <div class="flex justify-between items-center">
-                            <h4 class="text-xs font-bold uppercase text-amber-400 flex items-center gap-1"><i data-lucide="history" class="w-4 h-4"></i> Linha do Tempo de Prontuário / Evolutiva</h4>
-                            <span class="text-[10px] text-slate-500 italic">Documentos gerados no M7 entram aqui travados para exclusão</span>
-                        </div>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
+            <div class="md:col-span-2">
+                <label class="block text-slate-400 mb-1">Nome Completo</label>
+                <input type="text" id="formNome" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
+            </div>
+            <div>
+                <label class="block text-slate-400 mb-1">Data de Nascimento</label>
+                <input type="date" id="formDataNasc" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
+            </div>
+            <div>
+                <label class="block text-slate-400 mb-1">Sexo</label>
+                <select id="formSexo" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
+                    <option value="Feminino">Feminino</option>
+                    <option value="Masculino">Masculino</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-slate-400 mb-1">Estado Civil</label>
+                <input type="text" id="formEstadoCivil" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
+            </div>
+            <div>
+                <label class="block text-slate-400 mb-1">Filhos</label>
+                <input type="text" id="formFilhos" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
+            </div>
+            <div>
+                <label class="block text-slate-400 mb-1">Cidade</label>
+                <input type="text" id="formCidade" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
+            </div>
+            <div>
+                <label class="block text-slate-400 mb-1">Bairro</label>
+                <input type="text" id="formBairro" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
+            </div>
+            <div>
+                <label class="block text-slate-400 mb-1">CEP</label>
+                <input type="text" id="formCep" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
+            </div>
+            <div>
+                <label class="block text-slate-400 mb-1">Profissão</label>
+                <input type="text" id="formProfissao" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
+            </div>
+            <div>
+                <label class="block text-slate-400 mb-1">Empresa</label>
+                <input type="text" id="formEmpresa" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
+            </div>
+            <div>
+                <label class="block text-slate-400 mb-1">Faixa de Renda Estimada</label>
+                <input type="number" id="formRenda" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
+            </div>
+            <div>
+                <label class="block text-slate-400 mb-1">Modalidade Comercial</label>
+                <select id="formModalidade" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
+                    <option value="Particular">Particular</option>
+                    <option value="Convênio">Convênio</option>
+                    <option value="Plano Próprio">Plano Próprio</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-slate-400 mb-1">Momento de Vida</label>
+                <select id="formMomentoVida" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
+                    <option value="Mulher 35+">Mulher 35+</option>
+                    <option value="Mulher 50+">Mulher 50+</option>
+                    <option value="Gestante">Gestante</option>
+                    <option value="Executivo">Executivo</option>
+                    <option value="Empresário">Empresário</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-slate-400 mb-1">Comparecimento</label>
+                <select id="formScoreComparecer" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
+                    <option value="Comparece sempre">Comparece sempre</option>
+                    <option value="Falta frequentemente">Falta frequentemente</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-slate-400 mb-1">Engajamento WhatsApp</label>
+                <select id="formScoreWhats" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
+                    <option value="Responde WhatsApp">Responde WhatsApp</option>
+                    <option value="Interage">Interage</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-slate-400 mb-1">Score de Decisão</label>
+                <select id="formScoreDecisao" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
+                    <option value="Decide rápido">Decide rápido</option>
+                    <option value="Decide devagar">Decide devagar</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-slate-400 mb-1">Adesão ao Tratamento</label>
+                <select id="formScoreConfianca" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
+                    <option value="Alta Adesão">Alta Adesão</option>
+                    <option value="Média Adesão">Média Adesão</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-slate-400 mb-1">Categoria Principal</label>
+                <select id="formCategoriaClinica" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
+                    <option value="implantes">Implantes</option>
+                    <option value="ortodontia">Ortodontia</option>
+                    <option value="harmonizacao">Harmonização</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-slate-400 mb-1">Tratamento Inicial / LTV</label>
+                <input type="number" id="formLtvInput" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
+            </div>
+            <div>
+                <label class="block text-slate-400 mb-1">Riscos Diagnosticados</label>
+                <select id="formRiscos" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
+                    <option value="Nenhum relevante">Nenhum relevante</option>
+                    <option value="perda óssea">Perda óssea</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-slate-400 mb-1">Necessidades Futuras (Meses)</label>
+                <input type="text" id="formNecessidades" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
+            </div>
+            <div>
+                <label class="block text-slate-400 mb-1">Motivação Principal</label>
+                <select id="formMotivacao" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
+                    <option value="Estética">Estética</option>
+                    <option value="Autoestima">Autoestima</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-slate-400 mb-1">Principal Queixa</label>
+                <select id="formQueixa" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
+                    <option value="vergonha ao sorrir">Vergonha ao sorrir</option>
+                    <option value="dentes escurecidos">Dentes escurecidos</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-slate-400 mb-1">Objetivo Declarado</label>
+                <select id="formObjetivo" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
+                    <option value="voltar a sorrir">Voltar a sorrir</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-slate-400 mb-1">Ciclo de Vida do Relacionamento</label>
+                <select id="formCicloRelacionamento" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
+                    <option value="Novo">Novo (0-90 dias)</option>
+                    <option value="Ativo">Ativo (Em andamento)</option>
+                    <option value="Recorrente">Recorrente</option>
+                </select>
+            </div>
+        </div> <!-- FECHAMENTO CORRETO: grid grid-cols-1 md:grid-cols-4 -->
 
-                        <!-- Form para add prontuário local -->
-                        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 grid grid-cols-1 md:grid-cols-5 gap-2 text-xs">
-                            <input type="date" id="pntData" class="bg-slate-900 border border-slate-700 p-1.5 rounded text-slate-200">
-                            <select id="pntModalidade" class="bg-slate-900 border border-slate-700 p-1.5 rounded text-slate-200">
-                                <option value="Presencial">Presencial</option>
-                                <option value="Online">Online</option>
-                            </select>
-                            <input type="text" id="pntTratado" placeholder="O que foi tratado nesta consulta?" class="md:col-span-2 bg-slate-900 border border-slate-700 p-1.5 rounded text-slate-200">
-                            <input type="text" id="pntReceita" placeholder="Receituário / Prescrição médica" class="bg-slate-900 border border-slate-700 p-1.5 rounded text-slate-200">
+        <!-- Bloco de Autoestima Inteligente (M5) -->
+        <div class="p-6 bg-slate-800/50 rounded-2xl border border-emerald-500/20 shadow-xl mt-4">
+            <label class="block text-emerald-400 font-bold text-lg mb-4 flex items-center gap-2">
+                <span>✨</span> Autoestima Atual (1 a 10)
+            </label>
+            <div class="flex justify-between gap-2" id="score-container">
+                <script>
+                    for(let i=1; i<=10; i++) {
+                        document.write(`
+                            <button type="button" 
+                                onclick="setScore('autoestima', ${i})" 
+                                id="btn-auto-${i}" 
+                                class="w-10 h-10 rounded-full border border-emerald-700/50 text-sm font-semibold hover:bg-emerald-500 hover:text-white transition-all duration-300">
+                                ${i}
+                            </button>
+                        `);
+                    }
+                </script>
+            </div>
+            <input type="hidden" id="pacienteAutoestima" value="5">
+            <p class="text-slate-400 text-xs mt-4 italic">* Este dado alimenta o motor de conversão comercial.</p>
+        </div>
+    </div> <!-- FECHAMENTO CORRETO: bg-slate-900 (Formulário Entrada) -->
 
-                            <div class="md:col-span-5 flex justify-end">
-                                <button onclick="adicionarLinhaProntuarioManual()" class="bg-amber-600 hover:bg-amber-500 text-white font-bold text-[11px] px-3 py-1.5 rounded-lg transition">Inserir Consulta na Linha do Tempo</button>
-                            </div>
-                        </div>
-
-                        <!-- Tabela Evolutiva -->
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left text-xs text-slate-300">
-                                <thead class="bg-slate-950 text-slate-400 text-[10px] uppercase">
-                                    <tr>
-                                        <th class="p-2">Data</th>
-                                        <th class="p-2">Tipo</th>
-                                        <th class="p-2">Tratamento Realizado</th>
-                                        <th class="p-2">Receituário Emitido</th>
-                                        <th class="p-2 text-right">Ações</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="tbodyHistoricoProntuario" class="divide-y divide-slate-800/40">
-                                    <!-- Dinâmico -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+    <!-- FICHA DE VISUALIZAÇÃO ATIVA E PRONTUÁRIO HISTÓRICO -->
+    <div id="containerFichaPaciente" class="hidden bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-6">
+        <div class="border-b border-slate-800 pb-3 flex justify-between items-center">
+            <div>
+                <h3 id="lblNomePacienteFicha" class="text-base font-bold text-slate-100">--</h3>
+                <p class="text-xs text-purple-400">Momento de Vida: <span id="lblFichaMomento" class="font-medium">--</span></p>
+            </div>
+            <div class="flex items-center gap-4">
+                <button id="btnEditarFichaAtiva" class="bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs px-4 py-2 rounded-xl transition flex items-center gap-1"><i data-lucide="edit-3" class="w-3.5 h-3.5"></i> Editar Dados do Cliente</button>
+                <div class="text-right">
+                    <span class="text-[10px] uppercase text-slate-500 font-mono">Opportunity Score</span>
+                    <div class="text-2xl font-black text-emerald-400" id="lblFichaOpportunity">0/100</div>
                 </div>
             </div>
+        </div>
+
+        <!-- GRID INFOS -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+            <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 space-y-1">
+                <p class="text-sky-400 font-bold uppercase text-[10px]">1. Dados Pessoais</p>
+                <div>Localidade: <span id="vLocal" class="text-slate-300"></span></div>
+                <div>Profissão / Renda: <span id="vProf" class="text-slate-300"></span></div>
+                <div>Plano: <span id="vPlano" class="text-slate-300"></span></div>
+            </div>
+            <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 space-y-1">
+                <p class="text-purple-400 font-bold uppercase text-[10px]">2. Comportamental</p>
+                <div>Comparecimento: <span id="vComp" class="text-slate-300"></span></div>
+                <div>Engajamento / Decisão: <span id="vEng" class="text-slate-300"></span></div>
+            </div>
+        </div>
+
+        <!-- SEÇÃO: PRONTUÁRIO EVOLUTIVO HISTÓRICO -->
+        <div class="border-t border-slate-800 pt-4 space-y-4">
+            <div class="flex justify-between items-center">
+                <h4 class="text-xs font-bold uppercase text-amber-400 flex items-center gap-1"><i data-lucide="history" class="w-4 h-4"></i> Linha do Tempo de Prontuário / Evolutiva</h4>
+                <span class="text-[10px] text-slate-500 italic">Documentos gerados no M7 entram aqui travados para exclusão</span>
+            </div>
+
+            <!-- Form para add prontuário local -->
+            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 grid grid-cols-1 md:grid-cols-5 gap-2 text-xs">
+                <input type="date" id="pntData" class="bg-slate-900 border border-slate-700 p-1.5 rounded text-slate-200">
+                <select id="pntModalidade" class="bg-slate-900 border border-slate-700 p-1.5 rounded text-slate-200">
+                    <option value="Presencial">Presencial</option>
+                    <option value="Online">Online</option>
+                </select>
+                <input type="text" id="pntTratado" placeholder="O que foi tratado nesta consulta?" class="md:col-span-2 bg-slate-900 border border-slate-700 p-1.5 rounded text-slate-200">
+                <input type="text" id="pntReceita" placeholder="Receituário / Prescrição médica" class="bg-slate-900 border border-slate-700 p-1.5 rounded text-slate-200">
+
+                <div class="md:col-span-5 flex justify-end">
+                    <button onclick="adicionarLinhaProntuarioManual()" class="bg-amber-600 hover:bg-amber-500 text-white font-bold text-[11px] px-3 py-1.5 rounded-lg transition">Inserir Consulta na Linha do Tempo</button>
+                </div>
+            </div>
+
+            <!-- Tabela Evolutiva -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs text-slate-300">
+                    <thead class="bg-slate-950 text-slate-400 text-[10px] uppercase">
+                        <tr>
+                            <th class="p-2">Data</th>
+                            <th class="p-2">Tipo</th>
+                            <th class="p-2">Tratamento Realizado</th>
+                            <th class="p-2">Receituário Emitido</th>
+                            <th class="p-2 text-right">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbodyHistoricoProntuario" class="divide-y divide-slate-800/40">
+                        <!-- Dinâmico -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div> <!-- FECHAMENTO CORRETO: #containerFichaPaciente -->
+</div> <!-- FECHAMENTO CORRETO: #tab-pacientes (Módulo 5 completo) -->
 
 <!-- MÓDULO 6: AGENDA INTERNA DA CLÍNICA -->
 <div id="tab-agenda" class="tab-content hidden w-full space-y-6 block">
