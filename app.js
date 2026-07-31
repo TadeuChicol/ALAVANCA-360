@@ -457,7 +457,10 @@ function switchTab(tabId) {
     console.log(`[Alavanca 360] Alternando para aba: ${tabId}`);
 
     // 1. Oculta todos os conteúdos de abas
-    document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+    document.querySelectorAll('.tab-content').forEach(el => {
+        el.classList.add('hidden');
+        el.style.display = 'none'; // Garante ocultamento rígido sem conflito de CSS
+    });
 
     // 2. Garante que o Gatekeeper do Consultor não bloqueie a visualização de abas normais
     const gatekeeper = document.getElementById('hubGatekeeper');
@@ -480,6 +483,7 @@ function switchTab(tabId) {
 
     if (target) {
         target.classList.remove('hidden');
+        target.style.display = 'block'; // Força exibição visível do contêiner
     } else {
         console.warn(`[Aviso] Div com id "${tabId}" (buscado como "${targetId}") não encontrada no HTML.`);
         return;
@@ -993,17 +997,20 @@ function renderizarAgendaLocal() {
     // Garante array válido
     const listaGeral = Array.isArray(state.agendamentos) ? state.agendamentos : [];
 
-    // Aplica o filtro de período (Visão Dia / Semana / Mês)
+    // Aplica o filtro de período sem bloquear dados caso a função ou data falhe
     const filtrados = listaGeral
         .filter(a => {
-            if (!a.data_hora) return false;
-            // Caso a função pertenceAoFiltro falhe ou não exista, não bloqueia os dados
-            if (typeof pertenceAoFiltro === 'function') {
-                return pertenceAoFiltro(a.data_hora, state.filtroAgendaAtivo || 'dia');
+            if (!a.data_hora) return true; // Mostra o registro mesmo se a data_hora vier vazia
+            if (typeof pertenceAoFiltro === 'function' && state.filtroAgendaAtivo) {
+                try {
+                    return pertenceAoFiltro(a.data_hora, state.filtroAgendaAtivo);
+                } catch (e) {
+                    return true; // Fallback para não sumir com o dado na tela
+                }
             }
             return true;
         })
-        .sort((a, b) => new Date(a.data_hora) - new Date(b.data_hora));
+        .sort((a, b) => new Date(a.data_hora || 0) - new Date(b.data_hora || 0));
 
     // Se não houver registros para o filtro ativo
     if (filtrados.length === 0) {
