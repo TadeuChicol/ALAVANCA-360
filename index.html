@@ -160,629 +160,699 @@
         </aside>
 
         <!-- CONTEÚDO PRINCIPAL -->
-<main class="flex-1 overflow-y-auto p-6 bg-slate-950 custom-scrollbar">
+        <main class="flex-1 overflow-y-auto p-6 bg-slate-950 custom-scrollbar">
 
-    <!-- MÓDULO 1: CEO DASHBOARD -->
-    <div id="tab-ceo" class="tab-content space-y-6">
-        <div>
-            <h2 class="text-xl font-bold text-slate-100">Módulo 1 — Visão Executiva (CEO Dashboard)</h2>
-            <p class="text-xs text-slate-400">Dados dinâmicos calculados a partir dos dados reais inseridos no sistema.</p>
-        </div>
-        <!-- CARDS DINÂMICOS -->
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-            <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
-                <p class="text-xs font-medium text-slate-400">Receita Bruta Acumulada</p>
-                <h3 id="cardReceitaBruta" class="text-2xl font-bold text-slate-100 mt-1">R$ 0,00</h3>
-                <p class="text-[10px] text-slate-500 mt-2">Atualizado dinamicamente</p>
-            </div>
-            <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
-                <p class="text-xs font-medium text-slate-400">Pacientes Cadastrados</p>
-                <h3 id="cardTotalPacientes" class="text-2xl font-bold text-sky-400 mt-1">0</h3>
-                <p class="text-[10px] text-slate-500 mt-2">Meta do mês: 50 novos</p>
-            </div>
-            <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
-                <p class="text-xs font-medium text-slate-400">Ticket Médio Real</p>
-                <h3 id="cardTicketMedio" class="text-2xl font-bold text-emerald-400 mt-1">R$ 0,00</h3>
-                <p class="text-[10px] text-slate-500 mt-2">Baseado em contratos ativos</p>
-            </div>
-            <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
-                <p class="text-xs font-medium text-slate-400">LTV Médio Geral</p>
-                <h3 id="cardLTVGeral" class="text-2xl font-bold text-amber-400 mt-1">R$ 0,00</h3>
-                <p class="text-[10px] text-slate-500 mt-2">Valor vitalício por cliente</p>
-            </div>
-        </div>
-    </div>
+            <!-- MÓDULO 1: CEO DASHBOARD -->
+            <div id="tab-ceo" class="tab-content space-y-6">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-100">Módulo 1 — Visão Executiva (CEO Dashboard)</h2>
+                    <p class="text-xs text-slate-400">Dados dinâmicos calculados a partir dos dados reais inseridos no sistema.</p>
+                </div>
 
-    <!-- MÓDULO 2: INTELIGÊNCIA FINANCEIRA -->
-    <div id="tab-financeiro" class="tab-content hidden space-y-6">
-        <div>
-            <h2 class="text-xl font-bold text-slate-100">Módulo 2 — Inteligência Financeira</h2>
-            <p class="text-xs text-slate-400">Auditoria protegida por Match Code.</p>
-        </div>
-        <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-4">
-            <input type="text" id="matchCodeFinanceiro" onkeyup="filtrarFinanceiro()" placeholder="Digite o nome exato do cliente para auditar lançamentos..." class="w-full bg-slate-950 border border-slate-700 text-xs rounded-xl px-4 py-2.5 text-slate-200">
-            <div class="overflow-x-auto custom-scrollbar">
-                <table class="w-full text-left text-xs text-slate-300">
-                    <thead class="bg-slate-950 text-slate-400 uppercase text-[10px]">
-                        <tr>
-                            <th class="p-3">Paciente</th>
-                            <th class="p-3">LTV</th>
-                            <th class="p-3">Ticket Médio</th>
-                            <th class="p-3">Score Fin.</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tbodyFinanceiro">
-                        <tr><td colspan="4" class="p-4 text-center text-slate-500">Aguardando termo de pesquisa válido...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <!-- MÓDULO 3: INTELIGÊNCIA COMERCIAL -->
-    <div id="tab-comercial" class="tab-content hidden space-y-6">
-        <div>
-            <h2 class="text-xl font-bold text-slate-100">Módulo 3 — Inteligência Comercial</h2>
-            <p class="text-xs text-slate-400">Funil de Atração Estratégica.</p>
-        </div>
-        <div id="comercialPlaceholder" class="bg-slate-900 p-5 rounded-xl border border-slate-800 text-center text-xs text-slate-400">
-            Os dados estatísticos deste funil serão renderizados automaticamente assim que a base de clientes do M5 atingir volume amostral (mínimo 3 pacientes cadastrados).
-        </div>
-        <div id="comercialFunilContainer" class="hidden"></div>
-    </div>
-
-    <!-- MÓDULO 4: TRATAMENTOS -->
-    <div id="tab-tratamentos" class="tab-content hidden space-y-6">
-        <div>
-            <h2 class="text-xl font-bold text-slate-100">Módulo 4 — Inteligência de Tratamentos e Categorias</h2>
-            <p class="text-xs text-slate-400">Análise de Receita por Categoria Operacional.</p>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
-                <p class="text-xs text-slate-400">Implantes</p>
-                <h4 id="revImplantes" class="text-lg font-bold text-slate-200 mt-1">R$ 0,00</h4>
-            </div>
-            <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
-                <p class="text-xs text-slate-400">Ortodontia</p>
-                <h4 id="revOrto" class="text-lg font-bold text-slate-200 mt-1">R$ 0,00</h4>
-            </div>
-            <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
-                <p class="text-xs text-slate-400">Harmonização</p>
-                <h4 id="revHarmonizacao" class="text-lg font-bold text-slate-200 mt-1">R$ 0,00</h4>
-            </div>
-        </div>
-    </div>
-
-    <!-- MÓDULO 5: BASE DE CLIENTES (FICHA + EDICAO + PRONTUARIO HISTORICO) -->
-    <div id="tab-pacientes" class="tab-content hidden space-y-6">
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-                <h2 class="text-xl font-bold text-slate-100">Módulo 5 — Inteligência e Cadastro de Pacientes</h2>
-                <p class="text-xs text-slate-400">Motor de Inteligência de Negócios Odontológicos.</p>
-            </div>
-            <div class="w-full md:w-72">
-                <input type="text" id="matchCodeProntuario" onkeyup="filtrarProntuario()" placeholder="Buscar cliente cadastrado para visualizar/editar..." class="w-full bg-slate-900 border border-slate-700 text-xs rounded-xl px-4 py-2.5 text-slate-200 focus:outline-none focus:border-emerald-500">
-            </div>
-        </div>
-
-        <!-- FORMULÁRIO ENTRADA / EDIÇÃO DE DADOS -->
-        <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-4">
-            <div class="flex justify-between items-center">
-                <h3 id="lblTituloFormM5" class="text-xs font-bold uppercase text-emerald-400 tracking-wider">Novo Cadastro Estruturado (Paciente)</h3>
-                <button id="btnCancelarEdicao" onclick="limparEPararEdicao()" class="hidden bg-rose-600/20 text-rose-400 hover:bg-rose-600/30 text-[11px] px-3 py-1 rounded-lg transition">Cancelar Edição</button>
-            </div>
-            <input type="hidden" id="formIndexEditando" value="-1">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
-                <div class="md:col-span-2">
-                    <label class="block text-slate-400 mb-1">Nome Completo</label>
-                    <input type="text" id="formNome" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
-                </div>
-                <div>
-                    <label class="block text-slate-400 mb-1">Data de Nascimento</label>
-                    <input type="date" id="formDataNasc" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
-                </div>
-                <div>
-                    <label class="block text-slate-400 mb-1">Sexo</label>
-                    <select id="formSexo" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
-                        <option value="Feminino">Feminino</option>
-                        <option value="Masculino">Masculino</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-slate-400 mb-1">Estado Civil</label>
-                    <input type="text" id="formEstadoCivil" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
-                </div>
-                <div>
-                    <label class="block text-slate-400 mb-1">Filhos</label>
-                    <input type="text" id="formFilhos" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
-                </div>
-                <div>
-                    <label class="block text-slate-400 mb-1">Cidade</label>
-                    <input type="text" id="formCidade" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
-                </div>
-                <div>
-                    <label class="block text-slate-400 mb-1">Bairro</label>
-                    <input type="text" id="formBairro" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
-                </div>
-                <div>
-                    <label class="block text-slate-400 mb-1">CEP</label>
-                    <input type="text" id="formCep" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
-                </div>
-                <div>
-                    <label class="block text-slate-400 mb-1">Profissão</label>
-                    <input type="text" id="formProfissao" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
-                </div>
-                <div>
-                    <label class="block text-slate-400 mb-1">Empresa</label>
-                    <input type="text" id="formEmpresa" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
-                </div>
-                <div>
-                    <label class="block text-slate-400 mb-1">Faixa de Renda Estimada</label>
-                    <input type="number" id="formRenda" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
-                </div>
-                <div>
-                    <label class="block text-slate-400 mb-1">Modalidade Comercial</label>
-                    <select id="formModalidade" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
-                        <option value="Particular">Particular</option>
-                        <option value="Convênio">Convênio</option>
-                        <option value="Plano Próprio">Plano Próprio</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-slate-400 mb-1">Momento de Vida</label>
-                    <select id="formMomentoVida" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
-                        <option value="Mulher 35+">Mulher 35+</option>
-                        <option value="Mulher 50+">Mulher 50+</option>
-                        <option value="Gestante">Gestante</option>
-                        <option value="Executivo">Executivo</option>
-                        <option value="Empresário">Empresário</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-slate-400 mb-1">Comparecimento</label>
-                    <select id="formScoreComparecer" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
-                        <option value="Comparece sempre">Comparece sempre</option>
-                        <option value="Falta frequentemente">Falta frequentemente</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-slate-400 mb-1">Engajamento WhatsApp</label>
-                    <select id="formScoreWhats" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
-                        <option value="Responde WhatsApp">Responde WhatsApp</option>
-                        <option value="Interage">Interage</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-slate-400 mb-1">Score de Decisão</label>
-                    <select id="formScoreDecisao" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
-                        <option value="Decide rápido">Decide rápido</option>
-                        <option value="Decide devagar">Decide devagar</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-slate-400 mb-1">Adesão ao Tratamento</label>
-                    <select id="formScoreConfianca" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
-                        <option value="Alta Adesão">Alta Adesão</option>
-                        <option value="Média Adesão">Média Adesão</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-slate-400 mb-1">Categoria Principal</label>
-                    <select id="formCategoriaClinica" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
-                        <option value="implantes">Implantes</option>
-                        <option value="ortodontia">Ortodontia</option>
-                        <option value="harmonizacao">Harmonização</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-slate-400 mb-1">Tratamento Inicial / LTV</label>
-                    <input type="number" id="formLtvInput" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
-                </div>
-                <div>
-                    <label class="block text-slate-400 mb-1">Riscos Diagnosticados</label>
-                    <select id="formRiscos" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
-                        <option value="Nenhum relevante">Nenhum relevante</option>
-                        <option value="perda óssea">Perda óssea</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-slate-400 mb-1">Necessidades Futuras (Meses)</label>
-                    <input type="text" id="formNecessidades" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
-                </div>
-                <div>
-                    <label class="block text-slate-400 mb-1">Motivação Principal</label>
-                    <select id="formMotivacao" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
-                        <option value="Estética">Estética</option>
-                        <option value="Autoestima">Autoestima</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-slate-400 mb-1">Principal Queixa</label>
-                    <select id="formQueixa" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
-                        <option value="vergonha ao sorrir">Vergonha ao sorrir</option>
-                        <option value="dentes escurecidos">Dentes escurecidos</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-slate-400 mb-1">Objetivo Declarado</label>
-                    <select id="formObjetivo" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
-                        <option value="voltar a sorrir">Voltar a sorrir</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-slate-400 mb-1">Ciclo de Vida do Relacionamento</label>
-                    <select id="formCicloRelacionamento" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
-                        <option value="Novo">Novo (0-90 dias)</option>
-                        <option value="Ativo">Ativo (Em andamento)</option>
-                        <option value="Recorrente">Recorrente</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- Bloco de Autoestima Inteligente (M5) -->
-            <div class="p-6 bg-slate-800/50 rounded-2xl border border-emerald-500/20 shadow-xl mt-4">
-                <label class="block text-emerald-400 font-bold text-lg mb-4 flex items-center gap-2">
-                    <span>✨</span> Autoestima Atual (1 a 10)
-                </label>
-                <div class="flex justify-between gap-2" id="score-container">
-                    <!-- Botões estáticos (Substituindo o document.write para evitar a quebra do DOM) -->
-                    <button type="button" onclick="setScore('autoestima', 1)" id="btn-auto-1" class="w-10 h-10 rounded-full border border-emerald-700/50 text-sm font-semibold hover:bg-emerald-500 hover:text-white transition-all duration-300">1</button>
-                    <button type="button" onclick="setScore('autoestima', 2)" id="btn-auto-2" class="w-10 h-10 rounded-full border border-emerald-700/50 text-sm font-semibold hover:bg-emerald-500 hover:text-white transition-all duration-300">2</button>
-                    <button type="button" onclick="setScore('autoestima', 3)" id="btn-auto-3" class="w-10 h-10 rounded-full border border-emerald-700/50 text-sm font-semibold hover:bg-emerald-500 hover:text-white transition-all duration-300">3</button>
-                    <button type="button" onclick="setScore('autoestima', 4)" id="btn-auto-4" class="w-10 h-10 rounded-full border border-emerald-700/50 text-sm font-semibold hover:bg-emerald-500 hover:text-white transition-all duration-300">4</button>
-                    <button type="button" onclick="setScore('autoestima', 5)" id="btn-auto-5" class="w-10 h-10 rounded-full border border-emerald-700/50 text-sm font-semibold hover:bg-emerald-500 hover:text-white transition-all duration-300">5</button>
-                    <button type="button" onclick="setScore('autoestima', 6)" id="btn-auto-6" class="w-10 h-10 rounded-full border border-emerald-700/50 text-sm font-semibold hover:bg-emerald-500 hover:text-white transition-all duration-300">6</button>
-                    <button type="button" onclick="setScore('autoestima', 7)" id="btn-auto-7" class="w-10 h-10 rounded-full border border-emerald-700/50 text-sm font-semibold hover:bg-emerald-500 hover:text-white transition-all duration-300">7</button>
-                    <button type="button" onclick="setScore('autoestima', 8)" id="btn-auto-8" class="w-10 h-10 rounded-full border border-emerald-700/50 text-sm font-semibold hover:bg-emerald-500 hover:text-white transition-all duration-300">8</button>
-                    <button type="button" onclick="setScore('autoestima', 9)" id="btn-auto-9" class="w-10 h-10 rounded-full border border-emerald-700/50 text-sm font-semibold hover:bg-emerald-500 hover:text-white transition-all duration-300">9</button>
-                    <button type="button" onclick="setScore('autoestima', 10)" id="btn-auto-10" class="w-10 h-10 rounded-full border border-emerald-700/50 text-sm font-semibold hover:bg-emerald-500 hover:text-white transition-all duration-300">10</button>
-                </div>
-                <input type="hidden" id="pacienteAutoestima" value="5">
-                <p class="text-slate-400 text-xs mt-4 italic">* Este dado alimenta o motor de conversão comercial.</p>
-            </div>
-        </div>
-
-        <!-- FICHA DE VISUALIZAÇÃO ATIVA E PRONTUÁRIO HISTÓRICO -->
-        <div id="containerFichaPaciente" class="hidden bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-6">
-            <div class="border-b border-slate-800 pb-3 flex justify-between items-center">
-                <div>
-                    <h3 id="lblNomePacienteFicha" class="text-base font-bold text-slate-100">--</h3>
-                    <p class="text-xs text-purple-400">Momento de Vida: <span id="lblFichaMomento" class="font-medium">--</span></p>
-                </div>
-                <div class="flex items-center gap-4">
-                    <button id="btnEditarFichaAtiva" class="bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs px-4 py-2 rounded-xl transition flex items-center gap-1"><i data-lucide="edit-3" class="w-3.5 h-3.5"></i> Editar Dados do Cliente</button>
-                    <div class="text-right">
-                        <span class="text-[10px] uppercase text-slate-500 font-mono">Opportunity Score</span>
-                        <div class="text-2xl font-black text-emerald-400" id="lblFichaOpportunity">0/100</div>
+                <!-- CARDS DINÂMICOS -->
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                    <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+                        <p class="text-xs font-medium text-slate-400">Receita Bruta Acumulada</p>
+                        <h3 id="cardReceitaBruta" class="text-2xl font-bold text-slate-100 mt-1">R$ 0,00</h3>
+                        <p class="text-[10px] text-slate-500 mt-2">Atualizado dinamicamente</p>
+                    </div>
+                    <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+                        <p class="text-xs font-medium text-slate-400">Pacientes Cadastrados</p>
+                        <h3 id="cardTotalPacientes" class="text-2xl font-bold text-sky-400 mt-1">0</h3>
+                        <p class="text-[10px] text-slate-500 mt-2">Meta do mês: 50 novos</p>
+                    </div>
+                    <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+                        <p class="text-xs font-medium text-slate-400">Ticket Médio Real</p>
+                        <h3 id="cardTicketMedio" class="text-2xl font-bold text-emerald-400 mt-1">R$ 0,00</h3>
+                        <p class="text-[10px] text-slate-500 mt-2">Baseado em contratos ativos</p>
+                    </div>
+                    <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+                        <p class="text-xs font-medium text-slate-400">LTV Médio Geral</p>
+                        <h3 id="cardLTVGeral" class="text-2xl font-bold text-amber-400 mt-1">R$ 0,00</h3>
+                        <p class="text-[10px] text-slate-500 mt-2">Valor vitalício por cliente</p>
                     </div>
                 </div>
             </div>
-            <!-- GRID INFOS -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 space-y-1">
-                    <p class="text-sky-400 font-bold uppercase text-[10px]">1. Dados Pessoais</p>
-                    <div>Localidade: <span id="vLocal" class="text-slate-300"></span></div>
-                    <div>Profissão / Renda: <span id="vProf" class="text-slate-300"></span></div>
-                    <div>Plano: <span id="vPlano" class="text-slate-300"></span></div>
+
+            <!-- MÓDULO 2: INTELIGÊNCIA FINANCEIRA -->
+            <div id="tab-financeiro" class="tab-content hidden space-y-6">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-100">Módulo 2 — Inteligência Financeira</h2>
+                    <p class="text-xs text-slate-400">Auditoria protegida por Match Code.</p>
                 </div>
-                <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 space-y-1">
-                    <p class="text-purple-400 font-bold uppercase text-[10px]">2. Comportamental</p>
-                    <div>Comparecimento: <span id="vComp" class="text-slate-300"></span></div>
-                    <div>Engajamento / Decisão: <span id="vEng" class="text-slate-300"></span></div>
+                <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-4">
+                    <input type="text" id="matchCodeFinanceiro" onkeyup="filtrarFinanceiro()" placeholder="Digite o nome exato do cliente para auditar lançamentos..." class="w-full bg-slate-950 border border-slate-700 text-xs rounded-xl px-4 py-2.5 text-slate-200">
+                    <div class="overflow-x-auto custom-scrollbar">
+                        <table class="w-full text-left text-xs text-slate-300">
+                            <thead class="bg-slate-950 text-slate-400 uppercase text-[10px]">
+                                <tr>
+                                    <th class="p-3">Paciente</th>
+                                    <th class="p-3">LTV</th>
+                                    <th class="p-3">Ticket Médio</th>
+                                    <th class="p-3">Score Fin.</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbodyFinanceiro">
+                                <tr><td colspan="4" class="p-4 text-center text-slate-500">Aguardando termo de pesquisa válido...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
-            <!-- SEÇÃO: PRONTUÁRIO EVOLUTIVO HISTÓRICO -->
-            <div class="border-t border-slate-800 pt-4 space-y-4">
+
+            <!-- MÓDULO 3: INTELIGÊNCIA COMERCIAL -->
+            <div id="tab-comercial" class="tab-content hidden space-y-6">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-100">Módulo 3 — Inteligência Comercial</h2>
+                    <p class="text-xs text-slate-400">Funil de Atração Estratégica.</p>
+                </div>
+                <div id="comercialPlaceholder" class="bg-slate-900 p-5 rounded-xl border border-slate-800 text-center text-xs text-slate-400">
+                    Os dados estatísticos deste funil serão renderizados automaticamente assim que a base de clientes do M5 atingir volume amostral (mínimo 3 pacientes cadastrados).
+                </div>
+                <div id="comercialFunilContainer" class="hidden"></div>
+            </div>
+
+            <!-- MÓDULO 4: TRATAMENTOS -->
+            <div id="tab-tratamentos" class="tab-content hidden space-y-6">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-100">Módulo 4 — Inteligência de Tratamentos e Categorias</h2>
+                    <p class="text-xs text-slate-400">Análise de Receita por Categoria Operacional.</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+                        <p class="text-xs text-slate-400">Implantes</p>
+                        <h4 id="revImplantes" class="text-lg font-bold text-slate-200 mt-1">R$ 0,00</h4>
+                    </div>
+                    <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+                        <p class="text-xs text-slate-400">Ortodontia</p>
+                        <h4 id="revOrto" class="text-lg font-bold text-slate-200 mt-1">R$ 0,00</h4>
+                    </div>
+                    <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+                        <p class="text-xs text-slate-400">Harmonização</p>
+                        <h4 id="revHarmonizacao" class="text-lg font-bold text-slate-200 mt-1">R$ 0,00</h4>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MÓDULO 5: BASE DE CLIENTES (FICHA + EDICAO + PRONTUARIO HISTORICO) -->
+            <div id="tab-pacientes" class="tab-content hidden space-y-6">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-100">Módulo 5 — Inteligência e Cadastro de Pacientes</h2>
+                        <p class="text-xs text-slate-400">Motor de Inteligência de Negócios Odontológicos.</p>
+                    </div>
+                    <div class="w-full md:w-72">
+                        <input type="text" id="matchCodeProntuario" onkeyup="filtrarProntuario()" placeholder="Buscar cliente cadastrado para visualizar/editar..." class="w-full bg-slate-900 border border-slate-700 text-xs rounded-xl px-4 py-2.5 text-slate-200 focus:outline-none focus:border-emerald-500">
+                    </div>
+                </div>
+
+                <!-- FORMULÁRIO ENTRADA / EDIÇÃO DE DADOS -->
+                <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-4">
+                    <div class="flex justify-between items-center">
+                        <h3 id="lblTituloFormM5" class="text-xs font-bold uppercase text-emerald-400 tracking-wider">Novo Cadastro Estruturado (Paciente)</h3>
+                        <button id="btnCancelarEdicao" onclick="limparEPararEdicao()" class="hidden bg-rose-600/20 text-rose-400 hover:bg-rose-600/30 text-[11px] px-3 py-1 rounded-lg transition">Cancelar Edição</button>
+                    </div>
+
+                    <input type="hidden" id="formIndexEditando" value="-1">
+
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
+                        <div class="md:col-span-2">
+                            <label class="block text-slate-400 mb-1">Nome Completo</label>
+                            <input type="text" id="formNome" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 mb-1">Data de Nascimento</label>
+                            <input type="date" id="formDataNasc" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 mb-1">Sexo</label>
+                            <select id="formSexo" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
+                                <option value="Feminino">Feminino</option>
+                                <option value="Masculino">Masculino</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 mb-1">Estado Civil</label>
+                            <input type="text" id="formEstadoCivil" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 mb-1">Filhos</label>
+                            <input type="text" id="formFilhos" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 mb-1">Cidade</label>
+                            <input type="text" id="formCidade" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 mb-1">Bairro</label>
+                            <input type="text" id="formBairro" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 mb-1">CEP</label>
+                            <input type="text" id="formCep" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 mb-1">Profissão</label>
+                            <input type="text" id="formProfissao" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 mb-1">Empresa</label>
+                            <input type="text" id="formEmpresa" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 mb-1">Faixa de Renda Estimada</label>
+                            <input type="number" id="formRenda" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 mb-1">Modalidade Comercial</label>
+                            <select id="formModalidade" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
+                                <option value="Particular">Particular</option>
+                                <option value="Convênio">Convênio</option>
+                                <option value="Plano Próprio">Plano Próprio</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 mb-1">Momento de Vida</label>
+                            <select id="formMomentoVida" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
+                                <option value="Mulher 35+">Mulher 35+</option>
+                                <option value="Mulher 50+">Mulher 50+</option>
+                                <option value="Gestante">Gestante</option>
+                                <option value="Executivo">Executivo</option>
+                                <option value="Empresário">Empresário</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 mb-1">Comparecimento</label>
+                            <select id="formScoreComparecer" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
+                                <option value="Comparece sempre">Comparece sempre</option>
+                                <option value="Falta frequentemente">Falta frequentemente</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 mb-1">Engajamento WhatsApp</label>
+                            <select id="formScoreWhats" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
+                                <option value="Responde WhatsApp">Responde WhatsApp</option>
+                                <option value="Interage">Interage</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 mb-1">Score de Decisão</label>
+                            <select id="formScoreDecisao" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
+                                <option value="Decide rápido">Decide rápido</option>
+                                <option value="Decide devagar">Decide devagar</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 mb-1">Adesão ao Tratamento</label>
+                            <select id="formScoreConfianca" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
+                                <option value="Alta Adesão">Alta Adesão</option>
+                                <option value="Média Adesão">Média Adesão</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 mb-1">Categoria Principal</label>
+                            <select id="formCategoriaClinica" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
+                                <option value="implantes">Implantes</option>
+                                <option value="ortodontia">Ortodontia</option>
+                                <option value="harmonizacao">Harmonização</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 mb-1">Tratamento Inicial / LTV</label>
+                            <input type="number" id="formLtvInput" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 mb-1">Riscos Diagnosticados</label>
+                            <select id="formRiscos" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
+                                <option value="Nenhum relevante">Nenhum relevante</option>
+                                <option value="perda óssea">Perda óssea</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 mb-1">Necessidades Futuras (Meses)</label>
+                            <input type="text" id="formNecessidades" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 mb-1">Motivação Principal</label>
+                            <select id="formMotivacao" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
+                                <option value="Estética">Estética</option>
+                                <option value="Autoestima">Autoestima</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 mb-1">Principal Queixa</label>
+                            <select id="formQueixa" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
+                                <option value="vergonha ao sorrir">Vergonha ao sorrir</option>
+                                <option value="dentes escurecidos">Dentes escurecidos</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 mb-1">Objetivo Declarado</label>
+                            <select id="formObjetivo" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
+                                <option value="voltar a sorrir">Voltar a sorrir</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 mb-1">Ciclo de Vida do Relacionamento</label>
+                            <select id="formCicloRelacionamento" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
+                                <option value="Novo">Novo (0-90 dias)</option>
+                                <option value="Ativo">Ativo (Em andamento)</option>
+                                <option value="Recorrente">Recorrente</option>
+                            </select>
+                        </div>
+
+<!-- Bloco de Autoestima Inteligente (M5) -->
+<div class="p-6 bg-slate-800/50 rounded-2xl border border-emerald-500/20 shadow-xl">
+    <label class="block text-emerald-400 font-bold text-lg mb-4 flex items-center gap-2">
+        <span>✨</span> Autoestima Atual (1 a 10)
+    </label>
+    <div class="flex justify-between gap-2" id="score-container">
+        <!-- Botões gerados dinamicamente -->
+        <script>
+            for(let i=1; i<=10; i++) {
+                document.write(`
+                    <button type="button" 
+                        onclick="setScore('autoestima', ${i})" 
+                        id="btn-auto-${i}" 
+                        class="w-10 h-10 rounded-full border border-emerald-700/50 text-sm font-semibold hover:bg-emerald-500 hover:text-white transition-all duration-300">
+                        ${i}
+                    </button>
+                `);
+            }
+        </script>
+    </div>
+    <input type="hidden" id="pacienteAutoestima" value="5">
+    <p class="text-slate-400 text-xs mt-4 italic">* Este dado alimenta o motor de conversão comercial.</p>
+</div>
+
+                <!-- FICHA DE VISUALIZAÇÃO ATIVA E PRONTUÁRIO HISTÓRICO -->
+                <div id="containerFichaPaciente" class="hidden bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-6">
+                    <div class="border-b border-slate-800 pb-3 flex justify-between items-center">
+                        <div>
+                            <h3 id="lblNomePacienteFicha" class="text-base font-bold text-slate-100">--</h3>
+                            <p class="text-xs text-purple-400">Momento de Vida: <span id="lblFichaMomento" class="font-medium">--</span></p>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <button id="btnEditarFichaAtiva" class="bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs px-4 py-2 rounded-xl transition flex items-center gap-1"><i data-lucide="edit-3" class="w-3.5 h-3.5"></i> Editar Dados do Cliente</button>
+                            <div class="text-right">
+                                <span class="text-[10px] uppercase text-slate-500 font-mono">Opportunity Score</span>
+                                <div class="text-2xl font-black text-emerald-400" id="lblFichaOpportunity">0/100</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- GRID INFOS -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                        <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 space-y-1">
+                            <p class="text-sky-400 font-bold uppercase text-[10px]">1. Dados Pessoais</p>
+                            <div>Localidade: <span id="vLocal" class="text-slate-300"></span></div>
+                            <div>Profissão / Renda: <span id="vProf" class="text-slate-300"></span></div>
+                            <div>Plano: <span id="vPlano" class="text-slate-300"></span></div>
+                        </div>
+                        <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 space-y-1">
+                            <p class="text-purple-400 font-bold uppercase text-[10px]">2. Comportamental</p>
+                            <div>Comparecimento: <span id="vComp" class="text-slate-300"></span></div>
+                            <div>Engajamento / Decisão: <span id="vEng" class="text-slate-300"></span></div>
+                        </div>
+                    </div>
+
+                    <!-- SEÇÃO: PRONTUÁRIO EVOLUTIVO HISTÓRICO -->
+                    <div class="border-t border-slate-800 pt-4 space-y-4">
+                        <div class="flex justify-between items-center">
+                            <h4 class="text-xs font-bold uppercase text-amber-400 flex items-center gap-1"><i data-lucide="history" class="w-4 h-4"></i> Linha do Tempo de Prontuário / Evolutiva</h4>
+                            <span class="text-[10px] text-slate-500 italic">Documentos gerados no M7 entram aqui travados para exclusão</span>
+                        </div>
+
+                        <!-- Form para add prontuário local -->
+                        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 grid grid-cols-1 md:grid-cols-5 gap-2 text-xs">
+                            <input type="date" id="pntData" class="bg-slate-900 border border-slate-700 p-1.5 rounded text-slate-200">
+                            <select id="pntModalidade" class="bg-slate-900 border border-slate-700 p-1.5 rounded text-slate-200">
+                                <option value="Presencial">Presencial</option>
+                                <option value="Online">Online</option>
+                            </select>
+                            <input type="text" id="pntTratado" placeholder="O que foi tratado nesta consulta?" class="md:col-span-2 bg-slate-900 border border-slate-700 p-1.5 rounded text-slate-200">
+                            <input type="text" id="pntReceita" placeholder="Receituário / Prescrição médica" class="bg-slate-900 border border-slate-700 p-1.5 rounded text-slate-200">
+
+                            <div class="md:col-span-5 flex justify-end">
+                                <button onclick="adicionarLinhaProntuarioManual()" class="bg-amber-600 hover:bg-amber-500 text-white font-bold text-[11px] px-3 py-1.5 rounded-lg transition">Inserir Consulta na Linha do Tempo</button>
+                            </div>
+                        </div>
+
+                        <!-- Tabela Evolutiva -->
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs text-slate-300">
+                                <thead class="bg-slate-950 text-slate-400 text-[10px] uppercase">
+                                    <tr>
+                                        <th class="p-2">Data</th>
+                                        <th class="p-2">Tipo</th>
+                                        <th class="p-2">Tratamento Realizado</th>
+                                        <th class="p-2">Receituário Emitido</th>
+                                        <th class="p-2 text-right">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbodyHistoricoProntuario" class="divide-y divide-slate-800/40">
+                                    <!-- Dinâmico -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MÓDULO 6: AGENDA INTERNA DA CLÍNICA (FILTROS + EDICAO/REMOCAO + DENTISTA) -->
+            <div id="tab-agenda" class="tab-content hidden space-y-6">
                 <div class="flex justify-between items-center">
-                    <h4 class="text-xs font-bold uppercase text-amber-400 flex items-center gap-1"><i data-lucide="history" class="w-4 h-4"></i> Linha do Tempo de Prontuário / Evolutiva</h4>
-                    <span class="text-[10px] text-slate-500 italic">Documentos gerados no M7 entram aqui travados para exclusão</span>
-                </div>
-                <!-- Form para add prontuário local -->
-                <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 grid grid-cols-1 md:grid-cols-5 gap-2 text-xs">
-                    <input type="date" id="pntData" class="bg-slate-900 border border-slate-700 p-1.5 rounded text-slate-200">
-                    <select id="pntModalidade" class="bg-slate-900 border border-slate-700 p-1.5 rounded text-slate-200">
-                        <option value="Presencial">Presencial</option>
-                        <option value="Online">Online</option>
-                    </select>
-                    <input type="text" id="pntTratado" placeholder="O que foi tratado nesta consulta?" class="md:col-span-2 bg-slate-900 border border-slate-700 p-1.5 rounded text-slate-200">
-                    <input type="text" id="pntReceita" placeholder="Receituário / Prescrição médica" class="bg-slate-900 border border-slate-700 p-1.5 rounded text-slate-200">
-                    <div class="md:col-span-5 flex justify-end">
-                        <button onclick="adicionarLinhaProntuarioManual()" class="bg-amber-600 hover:bg-amber-500 text-white font-bold text-[11px] px-3 py-1.5 rounded-lg transition">Inserir Consulta na Linha do Tempo</button>
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-100">Módulo 6 — Quadro de Agendamentos & Recursos</h2>
+                        <p class="text-xs text-slate-400">Gerenciamento interno síncrono integrado às agendas digitais externas.</p>
                     </div>
-                </div>
-                <!-- Tabela Evolutiva -->
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-xs text-slate-300">
-                        <thead class="bg-slate-950 text-slate-400 text-[10px] uppercase">
-                            <tr>
-                                <th class="p-2">Data</th>
-                                <th class="p-2">Tipo</th>
-                                <th class="p-2">Tratamento Realizado</th>
-                                <th class="p-2">Receituário Emitido</th>
-                                <th class="p-2 text-right">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tbodyHistoricoProntuario" class="divide-y divide-slate-800/40">
-                            <!-- Dinâmico -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- MÓDULO 6: AGENDA INTERNA DA CLÍNICA (FILTROS + EDICAO/REMOCAO + DENTISTA) -->
-    <div id="tab-agenda" class="tab-content hidden space-y-6">
-        <div class="flex justify-between items-center">
-            <div>
-                <h2 class="text-xl font-bold text-slate-100">Módulo 6 — Quadro de Agendamentos & Recursos</h2>
-                <p class="text-xs text-slate-400">Gerenciamento interno síncrono integrado às agendas digitais externas.</p>
-            </div>
-            <div class="flex gap-2">
-                <a id="lnkGoogleSheets" href="#" target="_blank" class="bg-slate-900 border border-slate-700 text-slate-300 text-xs px-3 py-1.5 rounded-lg flex items-center gap-1 hover:bg-slate-800"><i data-lucide="external-link" class="w-3.5 h-3.5 text-emerald-400"></i> Google Agenda</a>
-                <a id="lnkCalendly" href="#" target="_blank" class="bg-slate-900 border border-slate-700 text-slate-300 text-xs px-3 py-1.5 rounded-lg flex items-center gap-1 hover:bg-slate-800"><i data-lucide="external-link" class="w-3.5 h-3.5 text-sky-400"></i> Calendly</a>
-            </div>
-        </div>
-        <!-- Filtros de visualização de calendário -->
-        <div class="flex bg-slate-900 p-2 rounded-xl border border-slate-800 w-fit gap-1 text-xs">
-            <button onclick="filtrarPeriodoAgenda('dia')" id="btnFilterdia" class="px-4 py-1.5 rounded-lg bg-sky-600 text-white font-medium transition">Visão Dia</button>
-            <button onclick="filtrarPeriodoAgenda('semana')" id="btnFiltersemana" class="px-4 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition">Visão Semana</button>
-            <button onclick="filtrarPeriodoAgenda('mes')" id="btnFiltermes" class="px-4 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition">Visão Mês</button>
-        </div>
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <!-- Form Agendamento -->
-            <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 space-y-3 h-fit">
-                <h3 id="lblTituloAgendaForm" class="text-xs font-bold text-slate-300 uppercase">Reservar Horário Operacional</h3>
-                <input type="hidden" id="agendaIndexEditando" value="-1">
-                <div class="space-y-2 text-xs">
-                    <input type="text" id="agPaciente" placeholder="Nome do Paciente" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-200 rounded">
-                    <input type="datetime-local" id="agData" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-200 rounded">
-                    <select id="agDentista" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-200 rounded">
-                        <option value="Dra. Rebeca Moura">Dra. Rebeca Moura</option>
-                        <option value="Dr. Carlos Eduardo">Dr. Carlos Eduardo</option>
-                    </select>
-                    <input type="text" id="agCadeira" placeholder="Cadeira / Sala (Ex: Cadeira 02)" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-200 rounded">
-                    <input type="text" id="agProcedimento" placeholder="Procedimento Clínico" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-200 rounded">
                     <div class="flex gap-2">
-                        <button id="btnLimparAgendaForm" onclick="limparAgendaForm()" class="hidden w-1/3 bg-slate-800 text-slate-400 p-2 rounded font-bold transition">Sair</button>
-                        <button id="btnSalvarAgenda" onclick="adicionarOuEditarAgendaLocal()" class="flex-1 bg-sky-600 hover:bg-sky-500 font-bold p-2 rounded text-white transition">Salvar na Agenda</button>
+                        <a id="lnkGoogleSheets" href="#" target="_blank" class="bg-slate-900 border border-slate-700 text-slate-300 text-xs px-3 py-1.5 rounded-lg flex items-center gap-1 hover:bg-slate-800"><i data-lucide="external-link" class="w-3.5 h-3.5 text-emerald-400"></i> Google Agenda</a>
+                        <a id="lnkCalendly" href="#" target="_blank" class="bg-slate-900 border border-slate-700 text-slate-300 text-xs px-3 py-1.5 rounded-lg flex items-center gap-1 hover:bg-slate-800"><i data-lucide="external-link" class="w-3.5 h-3.5 text-sky-400"></i> Calendly</a>
+                    </div>
+                </div>
+
+                <!-- Filtros de visualização de calendário -->
+                <div class="flex bg-slate-900 p-2 rounded-xl border border-slate-800 w-fit gap-1 text-xs">
+                    <button onclick="filtrarPeriodoAgenda('dia')" id="btnFilterdia" class="px-4 py-1.5 rounded-lg bg-sky-600 text-white font-medium transition">Visão Dia</button>
+                    <button onclick="filtrarPeriodoAgenda('semana')" id="btnFiltersemana" class="px-4 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition">Visão Semana</button>
+                    <button onclick="filtrarPeriodoAgenda('mes')" id="btnFiltermes" class="px-4 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition">Visão Mês</button>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    <!-- Form Agendamento -->
+                    <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 space-y-3 h-fit">
+                        <h3 id="lblTituloAgendaForm" class="text-xs font-bold text-slate-300 uppercase">Reservar Horário Operacional</h3>
+                        <input type="hidden" id="agendaIndexEditando" value="-1">
+                        <div class="space-y-2 text-xs">
+                            <input type="text" id="agPaciente" placeholder="Nome do Paciente" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-200 rounded">
+                            <input type="datetime-local" id="agData" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-200 rounded">
+                            <select id="agDentista" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-200 rounded">
+                                <option value="Dra. Rebeca Moura">Dra. Rebeca Moura</option>
+                                <option value="Dr. Carlos Eduardo">Dr. Carlos Eduardo</option>
+                            </select>
+                            <input type="text" id="agCadeira" placeholder="Cadeira / Sala (Ex: Cadeira 02)" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-200 rounded">
+                            <input type="text" id="agProcedimento" placeholder="Procedimento Clínico" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-200 rounded">
+
+                            <div class="flex gap-2">
+                                <button id="btnLimparAgendaForm" onclick="limparAgendaForm()" class="hidden w-1/3 bg-slate-800 text-slate-400 p-2 rounded font-bold transition">Sair</button>
+                                <button id="btnSalvarAgenda" onclick="adicionarOuEditarAgendaLocal()" class="flex-1 bg-sky-600 hover:bg-sky-500 font-bold p-2 rounded text-white transition">Salvar na Agenda</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Listagem Geral -->
+                    <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 lg:col-span-2">
+                        <h3 class="text-xs font-bold text-slate-300 uppercase mb-3">Compromissos do Quadro Técnico Ativo</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs text-slate-400">
+                                <thead class="bg-slate-950 text-[10px] uppercase">
+                                    <tr>
+                                        <th class="p-2">Paciente</th>
+                                        <th class="p-2">Data/Hora</th>
+                                        <th class="p-2">Dentista</th>
+                                        <th class="p-2">Recurso/Cadeira</th>
+                                        <th class="p-2">Procedimento</th>
+                                        <th class="p-2 text-right">Controles</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbodyAgendaLocal" class="divide-y divide-slate-800/40">
+                                    <!-- Dinâmico -->
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
-            <!-- Listagem Geral -->
-            <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 lg:col-span-2">
-                <h3 class="text-xs font-bold text-slate-300 uppercase mb-3">Compromissos do Quadro Técnico Ativo</h3>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-xs text-slate-400">
-                        <thead class="bg-slate-950 text-[10px] uppercase">
-                            <tr>
-                                <th class="p-2">Paciente</th>
-                                <th class="p-2">Data/Hora</th>
-                                <th class="p-2">Dentista</th>
-                                <th class="p-2">Recurso/Cadeira</th>
-                                <th class="p-2">Procedimento</th>
-                                <th class="p-2 text-right">Controles</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tbodyAgendaLocal" class="divide-y divide-slate-800/40">
-                            <!-- Dinâmico -->
-                        </tbody>
-                    </table>
+
+            <!-- MÓDULO 7: ESTAÇÃO DE DOCUMENTOS (COM CREDIBILIDADE DE ASSINATURA) -->
+            <div id="tab-documentos" class="tab-content hidden space-y-6">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-100">Módulo 7 — Estação de Emissão de Documentos Legais</h2>
+                    <p class="text-xs text-slate-400">Emissão automatizada integrada à linha do tempo médica do cliente.</p>
                 </div>
+
+                <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                        <div>
+                            <label class="block text-slate-400 mb-1">Selecione o Cliente Alvo</label>
+                            <select id="selectDocPaciente" onchange="atualizarTemplateDocumento()" class="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2 text-slate-200"></select>
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 mb-1">Selecione o Dentista Emissor</label>
+                            <select id="selectDocDentista" onchange="atualizarTemplateDocumento()" class="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2 text-slate-200"></select>
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 mb-1">Tipo de Documento</label>
+                            <select id="selectTipoDoc" onchange="atualizarTemplateDocumento()" class="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2 text-slate-200">
+                                <option value="orcamento">Orçamento de Tratamento Estético</option>
+                                <option value="receita">Prescrição / Receituário Clínico</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- PREVIEW DA RECEITA/ORÇAMENTO -->
+                    <div class="bg-white text-slate-900 p-8 rounded-xl font-sans text-sm space-y-4 shadow-2xl max-w-4xl mx-auto" id="areaPreviewDocumento">
+                        <!-- Renderizado via Javascript -->
+                    </div>
+
+                    <div class="flex justify-end gap-2">
+                        <button onclick="emitirEDarComoProntoDocumento()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition flex items-center gap-1.5">
+                            <i data-lucide="printer" class="w-4 h-4"></i> Emitir Documento & Lançar no Prontuário M5
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+<!-- MÓDULO 8: CUSTOS & INSUMOS -->
+<div id="tab-custos" class="tab-content hidden space-y-6">
+    <div>
+        <h2 class="text-xl font-bold text-slate-100">Módulo 8 — Custos, Insumos e Precificação</h2>
+        <p class="text-xs text-slate-400">Base viva de custos: alimenta automaticamente o Dashboard e o Assistente de Decisão. Funciona para clínicas de odontologia, estética e saúde em geral.</p>
+    </div>
+
+    <!-- Sub-abas internas do M8 -->
+    <div class="flex flex-wrap bg-slate-900 p-2 rounded-xl border border-slate-800 w-fit gap-1 text-xs">
+        <button onclick="mudarSubAbaCustos('insumos')" id="subtabBtn-insumos" class="subtab-btn px-4 py-1.5 rounded-lg bg-emerald-600 text-white font-medium transition">Insumos</button>
+        <button onclick="mudarSubAbaCustos('servicos')" id="subtabBtn-servicos" class="subtab-btn px-4 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition">Serviços</button>
+        <button onclick="mudarSubAbaCustos('mapa')" id="subtabBtn-mapa" class="subtab-btn px-4 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition">Consumo por Serviço</button>
+        <button onclick="mudarSubAbaCustos('fixos')" id="subtabBtn-fixos" class="subtab-btn px-4 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition">Custos Fixos</button>
+        <button onclick="mudarSubAbaCustos('config')" id="subtabBtn-config" class="subtab-btn px-4 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition">Config. Convênio/Particular</button>
+        <button onclick="mudarSubAbaCustos('resultado')" id="subtabBtn-resultado" class="subtab-btn px-4 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition">Custo Final por Procedimento</button>
+        <button onclick="mudarSubAbaCustos('importar')" id="subtabBtn-importar" class="subtab-btn px-4 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition">Importar Planilha (CSV)</button>
+    </div>
+
+    <!-- SUBABA: INSUMOS -->
+    <div id="subtab-insumos" class="subtab-content space-y-4">
+        <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+            <h3 class="text-xs font-bold uppercase text-emerald-400 mb-3">Novo Insumo</h3>
+            <div class="grid grid-cols-1 md:grid-cols-6 gap-2 text-xs">
+                <input type="text" id="insNome" placeholder="Nome do insumo (ex: Luva, Ácido Hialurônico)" class="md:col-span-2 bg-slate-950 border border-slate-800 p-2 rounded text-slate-200">
+                <input type="text" id="insApresentacao" placeholder="Apresentação (Caixa, Frasco...)" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200">
+                <input type="number" id="insQuantidade" placeholder="Qtd. na embalagem" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200">
+                <input type="text" id="insUnidade" placeholder="Unidade (ml, g, unid.)" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200">
+                <input type="number" id="insPreco" placeholder="Preço da embalagem (R$)" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200">
+            </div>
+            <div class="flex justify-end mt-2">
+                <button onclick="salvarInsumo()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition">Adicionar Insumo</button>
+            </div>
+        </div>
+        <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 overflow-x-auto custom-scrollbar">
+            <table class="w-full text-left text-xs text-slate-300">
+                <thead class="bg-slate-950 text-slate-400 uppercase text-[10px]">
+                    <tr><th class="p-2">Insumo</th><th class="p-2">Apresentação</th><th class="p-2">Qtd.</th><th class="p-2">Preço Embalagem</th><th class="p-2">Custo Unitário (auto)</th><th class="p-2 text-right">Ações</th></tr>
+                </thead>
+                <tbody id="tbodyInsumos"><tr><td colspan="6" class="p-3 text-center text-slate-600">Nenhum insumo cadastrado.</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- SUBABA: SERVIÇOS -->
+    <div id="subtab-servicos" class="subtab-content hidden space-y-4">
+        <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+            <h3 class="text-xs font-bold uppercase text-emerald-400 mb-3">Novo Serviço/Procedimento</h3>
+            <div class="grid grid-cols-1 md:grid-cols-6 gap-2 text-xs">
+                <input type="text" id="servNome" placeholder="Nome do serviço" class="md:col-span-2 bg-slate-950 border border-slate-800 p-2 rounded text-slate-200">
+                <input type="text" id="servCategoria" placeholder="Categoria (ex: Facial, Clínico)" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200">
+                <input type="number" id="servTempo" placeholder="Tempo médio (min)" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200">
+                <input type="number" id="servPrecoConvenio" placeholder="Preço Convênio (R$)" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200">
+                <input type="number" id="servPrecoParticular" placeholder="Preço Particular (R$)" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200">
+            </div>
+            <div class="flex justify-end mt-2">
+                <button onclick="salvarServico()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition">Adicionar Serviço</button>
+            </div>
+        </div>
+        <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 overflow-x-auto custom-scrollbar">
+            <table class="w-full text-left text-xs text-slate-300">
+                <thead class="bg-slate-950 text-slate-400 uppercase text-[10px]">
+                    <tr><th class="p-2">Serviço</th><th class="p-2">Categoria</th><th class="p-2">Tempo (min)</th><th class="p-2">Preço Convênio</th><th class="p-2">Preço Particular</th><th class="p-2 text-right">Ações</th></tr>
+                </thead>
+                <tbody id="tbodyServicos"><tr><td colspan="6" class="p-3 text-center text-slate-600">Nenhum serviço cadastrado.</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- SUBABA: MAPA CONSUMO -->
+    <div id="subtab-mapa" class="subtab-content hidden space-y-4">
+        <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+            <h3 class="text-xs font-bold uppercase text-emerald-400 mb-3">Vincular Insumo a um Serviço</h3>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-2 text-xs">
+                <select id="mapaServico" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200"></select>
+                <select id="mapaInsumo" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200"></select>
+                <input type="number" id="mapaQuantidade" placeholder="Qtd. consumida" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200">
+                <button onclick="salvarMapaInsumoServico()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition">Vincular</button>
+            </div>
+        </div>
+        <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 overflow-x-auto custom-scrollbar">
+            <table class="w-full text-left text-xs text-slate-300">
+                <thead class="bg-slate-950 text-slate-400 uppercase text-[10px]">
+                    <tr><th class="p-2">Serviço</th><th class="p-2">Insumo</th><th class="p-2">Qtd. Consumida</th><th class="p-2">Custo Gerado</th><th class="p-2 text-right">Ações</th></tr>
+                </thead>
+                <tbody id="tbodyMapaInsumos"><tr><td colspan="5" class="p-3 text-center text-slate-600">Nenhum vínculo cadastrado.</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- SUBABA: CUSTOS FIXOS -->
+    <div id="subtab-fixos" class="subtab-content hidden space-y-4">
+        <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+            <h3 class="text-xs font-bold uppercase text-emerald-400 mb-3">Custo Fixo Mensal</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
+                <input type="text" id="fixoNome" placeholder="Ex: Aluguel, Internet, Contador" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200">
+                <input type="number" id="fixoValor" placeholder="Valor mensal (R$)" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200">
+                <button onclick="salvarCustoFixo()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition">Adicionar</button>
+            </div>
+        </div>
+        <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 overflow-x-auto custom-scrollbar">
+            <table class="w-full text-left text-xs text-slate-300">
+                <thead class="bg-slate-950 text-slate-400 uppercase text-[10px]"><tr><th class="p-2">Item</th><th class="p-2">Valor Mensal</th><th class="p-2 text-right">Ações</th></tr></thead>
+                <tbody id="tbodyCustosFixos"><tr><td colspan="3" class="p-3 text-center text-slate-600">Nenhum custo fixo cadastrado.</td></tr></tbody>
+            </table>
+            <p class="text-xs text-slate-400 mt-3 pt-3 border-t border-slate-800">Total de custos fixos: <span id="lblTotalCustosFixos" class="font-bold text-amber-400">R$ 0,00</span></p>
+        </div>
+    </div>
+
+    <!-- SUBABA: CONFIG CONVÊNIO/PARTICULAR -->
+    <div id="subtab-config" class="subtab-content hidden space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 space-y-2">
+                <h3 class="text-xs font-bold uppercase text-sky-400 mb-2">Parâmetros — Convênio</h3>
+                <label class="block text-[11px] text-slate-400">Pró-labore desejado (R$)</label>
+                <input type="number" id="cfgConvProLabore" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
+                <label class="block text-[11px] text-slate-400">Horas/dia</label>
+                <input type="number" id="cfgConvHorasDia" value="8" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
+                <label class="block text-[11px] text-slate-400">Dias/mês</label>
+                <input type="number" id="cfgConvDiasMes" value="22" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
+                <label class="block text-[11px] text-slate-400">Margem mínima desejada (%)</label>
+                <input type="number" id="cfgConvMargem" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
+                <label class="block text-[11px] text-slate-400">Imposto (%)</label>
+                <input type="number" id="cfgConvImposto" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
+                <label class="block text-[11px] text-slate-400">Taxa maquininha (%)</label>
+                <input type="number" id="cfgConvTaxa" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
+                <button onclick="salvarConfigPrecificacao('convenio')" class="w-full bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition mt-2 cursor-pointer">Salvar Convênio</button>
+            </div>
+            <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 space-y-2">
+                <h3 class="text-xs font-bold uppercase text-purple-400 mb-2">Parâmetros — Particular</h3>
+                <label class="block text-[11px] text-slate-400">Pró-labore desejado (R$)</label>
+                <input type="number" id="cfgPartProLabore" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
+                <label class="block text-[11px] text-slate-400">Horas/dia</label>
+                <input type="number" id="cfgPartHorasDia" value="8" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
+                <label class="block text-[11px] text-slate-400">Dias/mês</label>
+                <input type="number" id="cfgPartDiasMes" value="22" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
+                <label class="block text-[11px] text-slate-400">Margem desejada (%)</label>
+                <input type="number" id="cfgPartMargem" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
+                <label class="block text-[11px] text-slate-400">Imposto (%)</label>
+                <input type="number" id="cfgPartImposto" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
+                <label class="block text-[11px] text-slate-400">Taxa maquininha (%)</label>
+                <input type="number" id="cfgPartTaxa" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
+                <button onclick="salvarConfigPrecificacao('particular')" class="w-full bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition mt-2 cursor-pointer">Salvar Particular</button>
             </div>
         </div>
     </div>
 
-    <!-- MÓDULO 7: ESTAÇÃO DE DOCUMENTOS (COM CREDIBILIDADE DE ASSINATURA) -->
-    <div id="tab-documentos" class="tab-content hidden space-y-6">
-        <div>
-            <h2 class="text-xl font-bold text-slate-100">Módulo 7 — Estação de Emissão de Documentos Legais</h2>
-            <p class="text-xs text-slate-400">Emissão automatizada integrada à linha do tempo médica do cliente.</p>
-        </div>
-        <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-4">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-                <div>
-                    <label class="block text-slate-400 mb-1">Selecione o Cliente Alvo</label>
-                    <select id="selectDocPaciente" onchange="atualizarTemplateDocumento()" class="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2 text-slate-200"></select>
-                </div>
-                <div>
-                    <label class="block text-slate-400 mb-1">Selecione o Dentista Emissor</label>
-                    <select id="selectDocDentista" onchange="atualizarTemplateDocumento()" class="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2 text-slate-200"></select>
-                </div>
-                <div>
-                    <label class="block text-slate-400 mb-1">Tipo de Documento</label>
-                    <select id="selectTipoDoc" onchange="atualizarTemplateDocumento()" class="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2 text-slate-200">
-                        <option value="orcamento">Orçamento de Tratamento Estético</option>
-                        <option value="receita">Prescrição / Receituário Clínico</option>
-                    </select>
-                </div>
-            </div>
-            <!-- PREVIEW DA RECEITA/ORÇAMENTO -->
-            <div class="bg-white text-slate-900 p-8 rounded-xl font-sans text-sm space-y-4 shadow-2xl max-w-4xl mx-auto" id="areaPreviewDocumento">
-                <!-- Renderizado via Javascript -->
-            </div>
-            <div class="flex justify-end gap-2">
-                <button onclick="emitirEDarComoProntoDocumento()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition flex items-center gap-1.5">
-                    <i data-lucide="printer" class="w-4 h-4"></i> Emitir Documento & Lançar no Prontuário M5
-                </button>
-            </div>
+    <!-- SUBABA: RESULTADO FINAL -->
+    <div id="subtab-resultado" class="subtab-content hidden space-y-4">
+        <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 overflow-x-auto custom-scrollbar">
+            <h3 class="text-xs font-bold uppercase text-emerald-400 mb-3">Custo x Preço x Margem — calculado automaticamente</h3>
+            <table class="w-full text-left text-xs text-slate-300">
+                <thead class="bg-slate-950 text-slate-400 uppercase text-[10px]">
+                    <tr><th class="p-2">Serviço</th><th class="p-2">Modalidade</th><th class="p-2">Custo Total</th><th class="p-2">Preço Venda</th><th class="p-2">Margem R$</th><th class="p-2">Margem %</th><th class="p-2">Status</th></tr>
+                </thead>
+                <tbody id="tbodyResultadoCustos"><tr><td colspan="7" class="p-3 text-center text-slate-600">Cadastre serviços e configurações para ver o resultado.</td></tr></tbody>
+            </table>
         </div>
     </div>
 
-    <!-- MÓDULO 8: CUSTOS & INSUMOS -->
-    <div id="tab-custos" class="tab-content hidden space-y-6">
-        <div>
-            <h2 class="text-xl font-bold text-slate-100">Módulo 8 — Custos, Insumos e Precificação</h2>
-            <p class="text-xs text-slate-400">Base viva de custos: alimenta automaticamente o Dashboard e o Assistente de Decisão. Funciona para clínicas de odontologia, estética e saúde em geral.</p>
-        </div>
-        <!-- Sub-abas internas do M8 -->
-        <div class="flex flex-wrap bg-slate-900 p-2 rounded-xl border border-slate-800 w-fit gap-1 text-xs">
-            <button onclick="mudarSubAbaCustos('insumos')" id="subtabBtn-insumos" class="subtab-btn px-4 py-1.5 rounded-lg bg-emerald-600 text-white font-medium transition">Insumos</button>
-            <button onclick="mudarSubAbaCustos('servicos')" id="subtabBtn-servicos" class="subtab-btn px-4 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition">Serviços</button>
-            <button onclick="mudarSubAbaCustos('mapa')" id="subtabBtn-mapa" class="subtab-btn px-4 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition">Consumo por Serviço</button>
-            <button onclick="mudarSubAbaCustos('fixos')" id="subtabBtn-fixos" class="subtab-btn px-4 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition">Custos Fixos</button>
-            <button onclick="mudarSubAbaCustos('config')" id="subtabBtn-config" class="subtab-btn px-4 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition">Config. Convênio/Particular</button>
-            <button onclick="mudarSubAbaCustos('resultado')" id="subtabBtn-resultado" class="subtab-btn px-4 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition">Custo Final por Procedimento</button>
-            <button onclick="mudarSubAbaCustos('importar')" id="subtabBtn-importar" class="subtab-btn px-4 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition">Importar Planilha (CSV)</button>
+    <!-- SUBABA: IMPORTAR CSV -->
+    <div id="subtab-importar" class="subtab-content hidden space-y-4">
+        <div class="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-4 text-[11px] text-slate-300 leading-relaxed max-w-3xl">
+            <p class="font-bold text-emerald-400 uppercase text-[10px] mb-2">Migração sem retrabalho — siga esta ordem</p>
+            <p>Se você já tem a planilha de custos pronta no Google Sheets, dá para trazer os dados <strong>sem redigitar nada</strong>: exporte cada aba como CSV ("Arquivo → Fazer Download → Valores separados por vírgula") e importe abaixo, <strong>nesta ordem</strong>:</p>
+            <ol class="list-decimal list-inside mt-2 space-y-0.5">
+                <li><strong>1. Insumos</strong> (aba CUSTOS_INSUMOS_UNID)</li>
+                <li><strong>2. Serviços/Procedimentos</strong> (aba SERVIÇOS_PROCEDIMENTOS)</li>
+                <li><strong>3. Vínculo Insumo × Serviço</strong> (aba MAP_INSUMOS_SERVICOS) — precisa dos passos 1 e 2 feitos antes</li>
+                <li><strong>4. Custos Fixos</strong> (aba CUSTOS_FIXOS_VARIAVEIS)</li>
+                <li><strong>5. Config. Convênio e Particular</strong> (abas CONFIG_CONVENIO / CONFIG_PARTICULAR)</li>
+            </ol>
+            <p class="mt-2">Pode reimportar o mesmo arquivo depois de atualizar a planilha — o sistema atualiza os registros existentes em vez de duplicar. Só o preço de venda (Convênio/Particular) por serviço, se não vier pronto na planilha de custos, precisa ser digitado uma única vez na aba "Serviços".</p>
         </div>
 
-        <!-- SUBABA: INSUMOS -->
-        <div id="subtab-insumos" class="subtab-content space-y-4">
-            <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
-                <h3 class="text-xs font-bold uppercase text-emerald-400 mb-3">Novo Insumo</h3>
-                <div class="grid grid-cols-1 md:grid-cols-6 gap-2 text-xs">
-                    <input type="text" id="insNome" placeholder="Nome do insumo (ex: Luva, Ácido Hialurônico)" class="md:col-span-2 bg-slate-950 border border-slate-800 p-2 rounded text-slate-200">
-                    <input type="text" id="insApresentacao" placeholder="Apresentação (Caixa, Frasco...)" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200">
-                    <input type="number" id="insQuantidade" placeholder="Qtd. na embalagem" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200">
-                    <input type="text" id="insUnidade" placeholder="Unidade (ml, g, unid.)" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200">
-                    <input type="number" id="insPreco" placeholder="Preço da embalagem (R$)" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200">
-                </div>
-                <div class="flex justify-end mt-2">
-                    <button onclick="salvarInsumo()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition">Adicionar Insumo</button>
-                </div>
-            </div>
-            <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 overflow-x-auto custom-scrollbar">
-                <table class="w-full text-left text-xs text-slate-300">
-                    <thead class="bg-slate-950 text-slate-400 uppercase text-[10px]">
-                        <tr><th class="p-2">Insumo</th><th class="p-2">Apresentação</th><th class="p-2">Qtd.</th><th class="p-2">Preço Embalagem</th><th class="p-2">Custo Unitário (auto)</th><th class="p-2 text-right">Ações</th></tr>
-                    </thead>
-                    <tbody id="tbodyInsumos"><tr><td colspan="6" class="p-3 text-center text-slate-600">Nenhum insumo cadastrado.</td></tr></tbody>
-                </table>
-            </div>
+        <!-- 1. INSUMOS -->
+        <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-3 max-w-2xl">
+            <h3 class="text-xs font-bold uppercase text-emerald-400">1. Importar Insumos (CUSTOS_INSUMOS_UNID)</h3>
+            <p class="text-[11px] text-slate-400">Colunas reconhecidas automaticamente: Nome_Insumo, Apresentação, Quantidade, Unidade_Medida, Preço_Apresentação, Observacao.</p>
+            <input type="file" id="inputCsvInsumos" accept=".csv" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
+            <button onclick="importarInsumosCsv()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition cursor-pointer">Importar Insumos</button>
+            <p id="lblImportStatus" class="text-[11px] text-slate-500"></p>
         </div>
 
-        <!-- SUBABA: SERVIÇOS -->
-        <div id="subtab-servicos" class="subtab-content hidden space-y-4">
-            <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
-                <h3 class="text-xs font-bold uppercase text-emerald-400 mb-3">Novo Serviço/Procedimento</h3>
-                <div class="grid grid-cols-1 md:grid-cols-6 gap-2 text-xs">
-                    <input type="text" id="servNome" placeholder="Nome do serviço" class="md:col-span-2 bg-slate-950 border border-slate-800 p-2 rounded text-slate-200">
-                    <input type="text" id="servCategoria" placeholder="Categoria (ex: Facial, Clínico)" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200">
-                    <input type="number" id="servTempo" placeholder="Tempo médio (min)" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200">
-                    <input type="number" id="servPrecoConvenio" placeholder="Preço Convênio (R$)" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200">
-                    <input type="number" id="servPrecoParticular" placeholder="Preço Particular (R$)" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200">
-                </div>
-                <div class="flex justify-end mt-2">
-                    <button onclick="salvarServico()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition">Adicionar Serviço</button>
-                </div>
-            </div>
-            <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 overflow-x-auto custom-scrollbar">
-                <table class="w-full text-left text-xs text-slate-300">
-                    <thead class="bg-slate-950 text-slate-400 uppercase text-[10px]">
-                        <tr><th class="p-2">Serviço</th><th class="p-2">Categoria</th><th class="p-2">Tempo (min)</th><th class="p-2">Preço Convênio</th><th class="p-2">Preço Particular</th><th class="p-2 text-right">Ações</th></tr>
-                    </thead>
-                    <tbody id="tbodyServicos"><tr><td colspan="6" class="p-3 text-center text-slate-600">Nenhum serviço cadastrado.</td></tr></tbody>
-                </table>
-            </div>
+        <!-- 2. SERVIÇOS -->
+        <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-3 max-w-2xl">
+            <h3 class="text-xs font-bold uppercase text-sky-400">2. Importar Serviços/Procedimentos (SERVIÇOS_PROCEDIMENTOS)</h3>
+            <p class="text-[11px] text-slate-400">Colunas reconhecidas: ID_Servico, Nome_Servico, Categoria, Tempo_Medio_min, Custo_Servico_Externo, Custo_Radiografia, Outros_Custos_Diretos. Se sua planilha não tiver Preço de Convênio/Particular, preencha esses dois preços depois na aba "Serviços".</p>
+            <input type="file" id="inputCsvServicos" accept=".csv" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
+            <button onclick="importarServicosCsv()" class="bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition cursor-pointer">Importar Serviços</button>
+            <p id="lblImportStatusServicos" class="text-[11px] text-slate-500"></p>
         </div>
 
-        <!-- SUBABA: MAPA CONSUMO -->
-        <div id="subtab-mapa" class="subtab-content hidden space-y-4">
-            <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
-                <h3 class="text-xs font-bold uppercase text-emerald-400 mb-3">Vincular Insumo a um Serviço</h3>
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-2 text-xs">
-                    <select id="mapaServico" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200"></select>
-                    <select id="mapaInsumo" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200"></select>
-                    <input type="number" id="mapaQuantidade" placeholder="Qtd. consumida" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200">
-                    <button onclick="salvarMapaInsumoServico()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition">Vincular</button>
-                </div>
-            </div>
-            <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 overflow-x-auto custom-scrollbar">
-                <table class="w-full text-left text-xs text-slate-300">
-                    <thead class="bg-slate-950 text-slate-400 uppercase text-[10px]">
-                        <tr><th class="p-2">Serviço</th><th class="p-2">Insumo</th><th class="p-2">Qtd. Consumida</th><th class="p-2">Custo Gerado</th><th class="p-2 text-right">Ações</th></tr>
-                    </thead>
-                    <tbody id="tbodyMapaInsumos"><tr><td colspan="5" class="p-3 text-center text-slate-600">Nenhum vínculo cadastrado.</td></tr></tbody>
-                </table>
-            </div>
+        <!-- 3. MAPA INSUMO x SERVIÇO -->
+        <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-3 max-w-2xl">
+            <h3 class="text-xs font-bold uppercase text-purple-400">3. Importar Vínculo Insumo × Serviço (MAP_INSUMOS_SERVICOS)</h3>
+            <p class="text-[11px] text-slate-400">Requer que os passos 1 e 2 já tenham sido feitos. Colunas reconhecidas: ID_Servico, Nome_Servico, ID_Insumo, Nome_Insumo, Qtd_Consumida.</p>
+            <input type="file" id="inputCsvMapa" accept=".csv" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
+            <button onclick="importarMapaInsumosServicosCsv()" class="bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition cursor-pointer">Importar Vínculos</button>
+            <p id="lblImportStatusMapa" class="text-[11px] text-slate-500"></p>
         </div>
 
-        <!-- SUBABA: CUSTOS FIXOS -->
-        <div id="subtab-fixos" class="subtab-content hidden space-y-4">
-            <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
-                <h3 class="text-xs font-bold uppercase text-emerald-400 mb-3">Custo Fixo Mensal</h3>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
-                    <input type="text" id="fixoNome" placeholder="Ex: Aluguel, Internet, Contador" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200">
-                    <input type="number" id="fixoValor" placeholder="Valor mensal (R$)" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200">
-                    <button onclick="salvarCustoFixo()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition">Adicionar</button>
-                </div>
-            </div>
-            <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 overflow-x-auto custom-scrollbar">
-                <table class="w-full text-left text-xs text-slate-300">
-                    <thead class="bg-slate-950 text-slate-400 uppercase text-[10px]"><tr><th class="p-2">Item</th><th class="p-2">Valor Mensal</th><th class="p-2 text-right">Ações</th></tr></thead>
-                    <tbody id="tbodyCustosFixos"><tr><td colspan="3" class="p-3 text-center text-slate-600">Nenhum custo fixo cadastrado.</td></tr></tbody>
-                </table>
-                <p class="text-xs text-slate-400 mt-3 pt-3 border-t border-slate-800">Total de custos fixos: <span id="lblTotalCustosFixos" class="font-bold text-amber-400">R$ 0,00</span></p>
-            </div>
+        <!-- 4. CUSTOS FIXOS -->
+        <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-3 max-w-2xl">
+            <h3 class="text-xs font-bold uppercase text-amber-400">4. Importar Custos Fixos (CUSTOS_FIXOS_VARIAVEIS)</h3>
+            <p class="text-[11px] text-slate-400">Colunas reconhecidas: Tipo, Categoria, Valor Mensal (R$). A linha de total geral é ignorada automaticamente.</p>
+            <input type="file" id="inputCsvFixos" accept=".csv" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
+            <button onclick="importarCustosFixosCsv()" class="bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition cursor-pointer">Importar Custos Fixos</button>
+            <p id="lblImportStatusFixos" class="text-[11px] text-slate-500"></p>
         </div>
 
-        <!-- SUBABA: CONFIG CONVÊNIO/PARTICULAR -->
-        <div id="subtab-config" class="subtab-content hidden space-y-4">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 space-y-2">
-                    <h3 class="text-xs font-bold uppercase text-sky-400 mb-2">Parâmetros — Convênio</h3>
-                    <label class="block text-[11px] text-slate-400">Pró-labore desejado (R$)</label>
-                    <input type="number" id="cfgConvProLabore" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
-                    <label class="block text-[11px] text-slate-400">Horas/dia</label>
-                    <input type="number" id="cfgConvHorasDia" value="8" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
-                    <label class="block text-[11px] text-slate-400">Dias/mês</label>
-                    <input type="number" id="cfgConvDiasMes" value="22" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
-                    <label class="block text-[11px] text-slate-400">Margem mínima desejada (%)</label>
-                    <input type="number" id="cfgConvMargem" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
-                    <label class="block text-[11px] text-slate-400">Imposto (%)</label>
-                    <input type="number" id="cfgConvImposto" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
-                    <label class="block text-[11px] text-slate-400">Taxa maquininha (%)</label>
-                    <input type="number" id="cfgConvTaxa" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
-                    <button onclick="salvarConfigPrecificacao('convenio')" class="w-full bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition mt-2 cursor-pointer">Salvar Convênio</button>
-                </div>
-                <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 space-y-2">
-                    <h3 class="text-xs font-bold uppercase text-purple-400 mb-2">Parâmetros — Particular</h3>
-                    <label class="block text-[11px] text-slate-400">Pró-labore desejado (R$)</label>
-                    <input type="number" id="cfgPartProLabore" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
-                    <label class="block text-[11px] text-slate-400">Horas/dia</label>
-                    <input type="number" id="cfgPartHorasDia" value="8" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
-                    <label class="block text-[11px] text-slate-400">Dias/mês</label>
-                    <input type="number" id="cfgPartDiasMes" value="22" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
-                    <label class="block text-[11px] text-slate-400">Margem desejada (%)</label>
-                    <input type="number" id="cfgPartMargem" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
-                    <label class="block text-[11px] text-slate-400">Imposto (%)</label>
-                    <input type="number" id="cfgPartImposto" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
-                    <label class="block text-[11px] text-slate-400">Taxa maquininha (%)</label>
-                    <input type="number" id="cfgPartTaxa" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
-                    <button onclick="salvarConfigPrecificacao('particular')" class="w-full bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition mt-2 cursor-pointer">Salvar Particular</button>
-                </div>
+        <!-- 5. CONFIG CONVÊNIO / PARTICULAR -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl">
+            <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-3">
+                <h3 class="text-xs font-bold uppercase text-sky-400">5a. Importar Config. Convênio (CONFIG_CONVENIO)</h3>
+                <p class="text-[11px] text-slate-400">Lê pró-labore, horas/dia, dias/mês, margem e impostos direto da aba de parâmetros.</p>
+                <input type="file" id="inputCsvConfigConvenio" accept=".csv" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
+                <button onclick="importarConfigCsv('convenio')" class="w-full bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition cursor-pointer">Importar Config. Convênio</button>
+                <p id="lblImportStatusConfigConvenio" class="text-[11px] text-slate-500"></p>
             </div>
-        </div>
-
-        <!-- SUBABA: RESULTADO FINAL -->
-        <div id="subtab-resultado" class="subtab-content hidden space-y-4">
-            <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 overflow-x-auto custom-scrollbar">
-                <h3 class="text-xs font-bold uppercase text-emerald-400 mb-3">Custo x Preço x Margem — calculado automaticamente</h3>
-                <table class="w-full text-left text-xs text-slate-300">
-                    <thead class="bg-slate-950 text-slate-400 uppercase text-[10px]">
-                        <tr><th class="p-2">Serviço</th><th class="p-2">Modalidade</th><th class="p-2">Custo Total</th><th class="p-2">Preço Venda</th><th class="p-2">Margem R$</th><th class="p-2">Margem %</th><th class="p-2">Status</th></tr>
-                    </thead>
-                    <tbody id="tbodyResultadoCustos"><tr><td colspan="7" class="p-3 text-center text-slate-600">Cadastre serviços e configurações para ver o resultado.</td></tr></tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- SUBABA: IMPORTAR CSV -->
-        <div id="subtab-importar" class="subtab-content hidden space-y-4">
-            <div class="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-4 text-[11px] text-slate-300 leading-relaxed max-w-3xl">
-                <p class="font-bold text-emerald-400 uppercase text-[10px] mb-2">Migração sem retrabalho — siga esta ordem</p>
-                <p>Se você já tem a planilha de custos pronta no Google Sheets, dá para trazer os dados <strong>sem redigitar nada</strong>: exporte cada aba como CSV ("Arquivo → Fazer Download → Valores separados por vírgula") e importe abaixo, <strong>nesta ordem</strong>:</p>
-                <ol class="list-decimal list-inside mt-2 space-y-0.5">
-                    <li><strong>1. Insumos</strong> (aba CUSTOS_INSUMOS_UNID)</li>
-                    <li><strong>2. Serviços/Procedimentos</strong> (aba SERVIÇOS_PROCEDIMENTOS)</li>
-                    <li><strong>3. Vínculo Insumo × Serviço</strong> (aba MAP_INSUMOS_SERVICOS) — precisa dos passos 1 e 2 feitos antes</li>
-                    <li><strong>4. Custos Fixos</strong> (aba CUSTOS_FIXOS_VARIAVEIS)</li>
-                    <li><strong>5. Config. Convênio e Particular</strong> (abas CONFIG_CONVENIO / CONFIG_PARTICULAR)</li>
-                </ol>
+            <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-3">
+                <h3 class="text-xs font-bold uppercase text-purple-400">5b. Importar Config. Particular (CONFIG_PARTICULAR)</h3>
+                <p class="text-[11px] text-slate-400">Mesma lógica, para os parâmetros de precificação do atendimento particular.</p>
+                <input type="file" id="inputCsvConfigParticular" accept=".csv" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
+                <button onclick="importarConfigCsv('particular')" class="w-full bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition cursor-pointer">Importar Config. Particular</button>
+                <p id="lblImportStatusConfigParticular" class="text-[11px] text-slate-500"></p>
             </div>
         </div>
     </div>
-</main>
+</div>
 
 <script>
 // ESTADO GLOBAL DO MÓDULO 8
