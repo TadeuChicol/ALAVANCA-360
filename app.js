@@ -398,30 +398,55 @@ async function carregarPacientes() {
 }
 
 async function carregarAgendamentos() {
-    state.agendamentos = await apiList('agendamentos');
+    try {
+        // 1. Busca os dados da tabela no Supabase
+        const dados = await apiList('agendamentos');
+        
+        // 2. Atualiza o estado global com os agendamentos recebidos (ou array vazio)
+        state.agendamentos = Array.isArray(dados) ? dados : [];
+        
+        console.log('[Alavanca 360] Agendamentos carregados via API. Registros:', state.agendamentos.length);
+
+        // 3. O PONTO CHAVE QUE FALTAVA: Renderiza imediatamente o HTML na tela
+        renderizarAgendaLocal();
+
+    } catch (error) {
+        console.error('[Alavanca 360] Erro ao carregar agendamentos:', error);
+        state.agendamentos = [];
+        renderizarAgendaLocal();
+    }
 }
 
 async function carregarProntuario() {
-    state.prontuario = await apiList('prontuario_evolutivo');
+    try {
+        state.prontuario = await apiList('prontuario_evolutivo');
+    } catch (error) {
+        console.error('[Alavanca 360] Erro ao carregar prontuario:', error);
+    }
 }
 
 async function carregarDadosFinanceiros() {
-    const [insumos, servicos, mapa, fixos, config, atendimentos, custoView] = await Promise.all([
-        apiList('insumos'),
-        apiList('servicos'),
-        apiList('mapa_insumos_servicos'),
-        apiList('custos_fixos'),
-        apiList('config_precificacao'),
-        apiList('atendimentos'),
-        apiList('vw_custo_servico')
-    ]);
-    state.insumos = insumos;
-    state.servicos = servicos;
-    state.mapaInsumosServicos = mapa;
-    state.custosFixos = fixos;
-    state.configPrecificacao = config;
-    state.atendimentos = atendimentos;
-    state.custoServicoView = custoView;
+    try {
+        const [insumos, servicos, mapa, fixos, config, atendimentos, custoView] = await Promise.all([
+            apiList('insumos'),
+            apiList('servicos'),
+            apiList('mapa_insumos_servicos'),
+            apiList('custos_fixos'),
+            apiList('config_precificacao'),
+            apiList('atendimentos'),
+            apiList('vw_custo_servico')
+        ]);
+        
+        state.insumos = insumos || [];
+        state.servicos = servicos || [];
+        state.mapaInsumosServicos = mapa || [];
+        state.custosFixos = fixos || [];
+        state.configPrecificacao = config || [];
+        state.atendimentos = atendimentos || [];
+        state.custoServicoView = custoView || [];
+    } catch (error) {
+        console.error('[Alavanca 360] Erro ao carregar dados financeiros:', error);
+    }
 }
 
 // ============================================================
