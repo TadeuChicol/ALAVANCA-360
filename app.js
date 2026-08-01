@@ -2636,13 +2636,15 @@ async function salvarHubClinicaBasico() {
         state.clinicaAtual.url_calendly = urlCalendly;
         state.clinicaAtual.logo_clinica_url = logoUrl;
 
-        // CORREÇÃO: Atualiza o logo no header chamando a função real de renderização
+        // CORREÇÃO: Atualiza TODOS os elementos de logo da interface
         if (typeof atualizarLogosVisuais === 'function') {
             atualizarLogosVisuais();
-        } else {
-            const imgLogo = document.getElementById('imgLogoClinicaNav');
-            if (imgLogo) imgLogo.src = logoUrl;
         }
+        // Fallback robusto: atualiza qualquer tag <img> de logo que exista
+        ['imgLogoClinicaNav', 'imgLogoClinicaHeader', 'imgLogoClinica'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.src = logoUrl;
+        });
 
         alert("Dados corporativos e logotipo atualizados com sucesso!");
     } catch (e) {
