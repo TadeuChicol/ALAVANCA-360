@@ -2996,7 +2996,7 @@ async function carregarContextoUsuario(user) {
         .eq('user_id', user.id) 
         .maybeSingle();
 
-    state.isAdmin = !!adminData;
+    state.isAdmin = !!adminData && !!state.clinicaAtual === false;
 
     const { data: clinicas, error } = await supabaseClient
         .from('clinicas')
