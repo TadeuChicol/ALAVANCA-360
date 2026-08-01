@@ -288,11 +288,11 @@ function traduzErroSupabase(msg) {
 async function carregarContextoUsuario(user) {
     state.usuario = user;
 
-    // Busca o Administrador usando a coluna 'email_admin' mapeada no banco
-    const { data: adminData, error: adminErr } = await supabaseClient
+    // Busca se é administrador master da Consultoria
+    const { data: adminData } = await supabaseClient
         .from('consultoria_admins')
         .select('*')
-        .eq('user_id', user.id) 
+        .eq('user_id', user.id)
         .maybeSingle();
 
     state.isAdmin = !!adminData;
@@ -311,6 +311,11 @@ async function carregarContextoUsuario(user) {
         state.clinicaAtual = clinicas;
     } else {
         state.clinicaAtual = null;
+    }
+
+    // 🛡️ Se o usuário tem clínica vinculada, NÃO é admin (multi-tenant isolado)
+    if (state.clinicaAtual) {
+        state.isAdmin = false;
     }
 
     return state.isAdmin || !!state.clinicaAtual;
@@ -2993,10 +2998,10 @@ async function carregarContextoUsuario(user) {
     const { data: adminData } = await supabaseClient
         .from('consultoria_admins')
         .select('*')
-        .eq('user_id', user.id) 
+        .eq('user_id', user.id)
         .maybeSingle();
 
-    state.isAdmin = !!adminData && !!state.clinicaAtual === false;
+    state.isAdmin = !!adminData;
 
     const { data: clinicas, error } = await supabaseClient
         .from('clinicas')
@@ -3011,6 +3016,11 @@ async function carregarContextoUsuario(user) {
         state.clinicaAtual = clinicas;
     } else {
         state.clinicaAtual = null;
+    }
+
+    // 🛡️ Se o usuário tem clínica vinculada, NÃO é admin (multi-tenant isolado)
+    if (state.clinicaAtual) {
+        state.isAdmin = false;
     }
 
     return state.isAdmin || !!state.clinicaAtual;
