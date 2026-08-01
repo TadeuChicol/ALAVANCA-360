@@ -2636,11 +2636,11 @@ async function salvarHubClinicaBasico() {
         state.clinicaAtual.url_calendly = urlCalendly;
         state.clinicaAtual.logo_clinica_url = logoUrl;
 
-        // CORREÇÃO: Executa a renderização se a função existir ou atualiza diretamente o elemento HTML da logo no cabeçalho
-        if (typeof aplicarLogoClinicaInterface === 'function') {
-            aplicarLogoClinicaInterface();
+        // CORREÇÃO: Atualiza o logo no header chamando a função real de renderização
+        if (typeof atualizarLogosVisuais === 'function') {
+            atualizarLogosVisuais();
         } else {
-            const imgLogo = document.getElementById('imgLogoClinicaHeader');
+            const imgLogo = document.getElementById('imgLogoClinicaNav');
             if (imgLogo) imgLogo.src = logoUrl;
         }
 
