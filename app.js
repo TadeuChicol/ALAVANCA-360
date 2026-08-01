@@ -2636,15 +2636,20 @@ async function salvarHubClinicaBasico() {
         state.clinicaAtual.url_calendly = urlCalendly;
         state.clinicaAtual.logo_clinica_url = logoUrl;
 
-        // CORREÇÃO: Atualiza TODOS os elementos de logo da interface
-        if (typeof atualizarLogosVisuais === 'function') {
-            atualizarLogosVisuais();
+        // RENDERIZAÇÃO DIRETA E OBRIGATÓRIA — usa o logoUrl recém-salvo
+        const imgLogoNav = document.getElementById('imgLogoClinicaNav');
+        const iconePadrao = document.getElementById('iconDefaultClinica');
+        if (logoUrl) {
+            if (imgLogoNav) {
+                imgLogoNav.src = logoUrl;
+                imgLogoNav.classList.remove('hidden');
+            }
+            if (iconePadrao) iconePadrao.classList.add('hidden');
+        } else {
+            if (imgLogoNav) imgLogoNav.classList.add('hidden');
+            if (iconePadrao) iconePadrao.classList.remove('hidden');
         }
-        // Fallback robusto: atualiza qualquer tag <img> de logo que exista
-        ['imgLogoClinicaNav', 'imgLogoClinicaHeader', 'imgLogoClinica'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.src = logoUrl;
-        });
+        if (typeof atualizarLogosVisuais === 'function') atualizarLogosVisuais();
 
         alert("Dados corporativos e logotipo atualizados com sucesso!");
     } catch (e) {
