@@ -70,7 +70,7 @@
                 <img id="imgLogoClinicaNav" class="hidden w-full h-full object-contain" src="" alt="Logo Clínica">
             </div>
             <div class="flex items-center gap-3">
-                <img id="imgLogoMetodoNav" class="logo-metodo-alavanca hidden h-8 object-contain border-l border-slate-800 pl-3" src="" alt="Logo Método">
+                <img id="imgLogoMetodoNav" class="logo-metodo-alavanca h-8 object-contain border-l border-slate-800 pl-3" src="" alt="Logo Método">
                 <div>
                     <h1 id="txtNomeClinica" class="text-lg font-bold text-slate-100">Clínica Odontológica</h1>
                     <p class="text-xs text-slate-400">Login: <span id="txtIdSupabase" class="font-mono text-emerald-400">--</span></p>
@@ -1414,15 +1414,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 <label class="block text-slate-400 mb-1">Link Integrador Calendly</label>
                 <input type="text" id="cfgUrlCalendly" value="https://calendly.com" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-300 rounded">
             </div>
-            <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div>
-                    <label class="block text-slate-400 mb-1">Fazer Upload do Logo (PNG/JPEG do computador)</label>
-                    <input type="file" id="cfgLogoLocalFile" accept="image/png, image/jpeg" onchange="processarLogoLocal(this)" class="w-full bg-slate-950 border border-slate-800 p-1.5 text-slate-300 rounded text-xs file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-emerald-600 file:text-white hover:file:bg-emerald-500 cursor-pointer">
-                </div>
-                <div>
-                    <label class="block text-slate-400 mb-1">Ou URL do Logo Remoto</label>
-                    <input type="text" id="cfgLogoClinicaHub" placeholder="https://..." onchange="atualizarLogosSistema()" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-300 rounded text-xs">
-                </div>
+            <!-- CAMPO ÚNICO DE UPLOAD DIRETO DA CLÍNICA -->
+            <div class="md:col-span-2">
+                <label class="block text-slate-400 mb-1 font-medium">Logotipo da Clínica (PNG, JPG ou JPEG - Máx: 2MB)</label>
+                <input type="file" id="cfgLogoLocalFile" accept="image/png, image/jpeg, image/jpg" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-300 rounded text-xs file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-emerald-600 file:text-white hover:file:bg-emerald-500 cursor-pointer">
+                <p class="text-[10px] text-slate-500 mt-1">Sua imagem será armazenada com segurança no Supabase Storage e associada a esta clínica.</p>
             </div>
         </div>
         <div class="flex flex-wrap gap-3 justify-end">
@@ -1463,34 +1459,39 @@ document.addEventListener('DOMContentLoaded', () => {
     <!-- CONTEÚDO RESTRITO EXIBIDO APÓS AUTENTICAÇÃO MASTER -->
     <div id="hubConteudoOculto" class="hidden space-y-6 w-full">
 
-        <!-- 1. MARCA GLOBAL: MÉTODO + CONSULTORIA -->
+        <!-- 1. MARCA GLOBAL: CONSULTORIA & SUPORTE -->
         <div class="bg-slate-900 p-6 rounded-xl border border-slate-800 space-y-4 w-full">
             <h3 class="text-sm font-bold text-sky-400 flex items-center gap-2">
-                <i data-lucide="palette" class="w-4 h-4"></i> Identidade Visual Global (aplicada a TODAS as clínicas)
+                <i data-lucide="palette" class="w-4 h-4"></i> Identidade Visual & Suporte Global (aplicado a TODAS as clínicas)
             </h3>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-                <div>
-                    <label class="block text-slate-400 mb-1">URL Logo do Método ALAVANCA 360®</label>
-                    <input type="text" id="cfgLogoMetodo" placeholder="images/logo-alavanca-360.png" onchange="atualizarLogosSistema()" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-300 rounded focus:border-sky-500 outline-none">
-                </div>
-                <div>
-                    <label class="block text-slate-400 mb-1">URL Logo da Consultoria</label>
-                    <input type="text" id="cfgLogoConsultoria" placeholder="https://..." onchange="atualizarLogosSistema()" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-300 rounded focus:border-sky-500 outline-none">
-                </div>
+    
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                 <div>
                     <label class="block text-slate-400 mb-1">Nome da Consultoria (rodapé/login)</label>
-                    <input type="text" id="cfgNomeConsultoriaGlobal" placeholder="Alavanca 360 Consultoria" onchange="atualizarLogosSistema()" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-300 rounded focus:border-sky-500 outline-none">
+                    <input type="text" id="cfgNomeConsultoriaGlobal" placeholder="Alavanca 360 Consultoria" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-300 rounded focus:border-sky-500 outline-none">
                 </div>
                 <div>
-                    <label class="block text-slate-400 mb-1">WhatsApp da Consultoria (com DDD)</label>
-                    <input type="text" id="cfgWhatsApp" placeholder="5511999999999" onchange="salvarConfigGlobal()" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-300 rounded focus:border-sky-500 outline-none">
+                    <label class="block text-slate-400 mb-1">URL Logo da Consultoria (Opcional)</label>
+                    <input type="text" id="cfgLogoConsultoria" placeholder="https://..." class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-300 rounded focus:border-sky-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-slate-400 mb-1">WhatsApp de Suporte (com DDD)</label>
+                    <input type="text" id="cfgWhatsApp" placeholder="5511999999999" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-300 rounded focus:border-sky-500 outline-none">
                 </div>
                 <div>
                     <label class="block text-slate-400 mb-1">E-mail de Suporte</label>
-                    <input type="email" id="cfgEmailConsultoria" placeholder="suporte@alavanca360.com.br" onchange="salvarConfigGlobal()" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-300 rounded focus:border-sky-500 outline-none">
+                    <input type="email" id="cfgEmailConsultoria" placeholder="suporte@alavanca360.com.br" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-300 rounded focus:border-sky-500 outline-none">
                 </div>
             </div>
-            <p class="text-[10px] text-slate-500 pt-1">Alterações aqui se propagam imediatamente pela tela de login, rodapé e emissão de documentos (M7) de todas as clínicas ativas.</p>
+
+            <div class="flex items-center justify-between pt-2">
+                <p class="text-[10px] text-slate-500">
+                    Alterações aqui se propagam para a tela de login, rodapé e relatórios do sistema.
+                </p>
+                <button onclick="salvarConfigGlobal()" class="bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition cursor-pointer flex items-center gap-1.5">
+                    <i data-lucide="save" class="w-3.5 h-3.5"></i> Salvar Configurações Globais
+                </button>
+           </div>
         </div>
 
         <!-- 2. CADASTRO DE NOVA CLÍNICA (TENANT) -->
