@@ -454,33 +454,23 @@ async function carregarDadosFinanceiros() {
     }
 }
 
-// ============================================================
-// 4. NAVEGAÇÃO ENTRE MÓDULOS (VERSÃO CORRIGIDA & PROTEGIDA)
-// ============================================================
-
+// 4. NAVEGAÇÃO ENTRE MÓDULOS (VERSÃO CORRIGIDA PARA HUB MASTER)
 function switchTab(tabId) {
     console.log(`[Alavanca 360] Alternando para aba: ${tabId}`);
-        // 🛡️ GUARDA DE SEGURANÇA: HUB Master somente para administradores master
-    if (tabId === 'tab-hub-master') {
-        if (!state.isAdmin) {
-            console.warn('[Alavanca 360] Acesso negado ao HUB Master: perfil sem permissão de administrador.');
-            return;
-        }
+
+    // 🛡️ GUARDA DE SEGURANÇA: HUB Master somente para administradores master
+    if (tabId === 'tab-hub-master' && !state.isAdmin) {
+        console.warn('[Alavanca 360] Acesso negado ao HUB Master: perfil sem permissão.');
+        return;
     }
 
     // 1. Oculta todos os conteúdos de abas
     document.querySelectorAll('.tab-content').forEach(el => {
         el.classList.add('hidden');
-        el.style.display = 'none'; // Garante ocultamento rígido sem conflito de CSS
+        el.style.display = 'none';
     });
 
-    // 2. Garante que o Gatekeeper do Consultor não bloqueie a visualização de abas normais
-    const gatekeeper = document.getElementById('hubGatekeeper');
-    if (gatekeeper && tabId !== 'tab-hub-master') {
-        gatekeeper.classList.add('hidden');
-    }
-
-    // 3. Mapeamento de fallback para garantir compatibilidade de nomes de ID
+    // 2. Mapeamento de fallback
     const mapIDs = {
         'm6': 'tab-agenda',
         'm7': 'tab-documentos',
@@ -495,10 +485,27 @@ function switchTab(tabId) {
 
     if (target) {
         target.classList.remove('hidden');
-        target.style.display = 'block'; // Força exibição visível do contêiner
+        target.style.display = 'block';
     } else {
-        console.warn(`[Aviso] Div com id "${tabId}" (buscado como "${targetId}") não encontrada no HTML.`);
+        console.warn(`[Aviso] Div com id "${tabId}" não encontrada no HTML.`);
         return;
+    }
+
+    // 3. TRATAMENTO EXCLUSIVO DO HUB MASTER
+    const gatekeeper = document.getElementById('hubGatekeeper');
+    const conteudoOculto = document.getElementById('hubConteudoOculto');
+
+    if (targetId === 'tab-hub-master') {
+        if (state.isAdmin) {
+            // Se for Admin Master: Esconde o aviso de bloqueio e mostra o painel real
+            if (gatekeeper) gatekeeper.classList.add('hidden');
+            if (conteudoOculto) conteudoOculto.classList.remove('hidden');
+            if (typeof prepararHubMaster === 'function') prepararHubMaster();
+        } else {
+            // Se NÃO for Admin Master: Mostra o Gatekeeper e esconde o painel
+            if (gatekeeper) gatekeeper.classList.remove('hidden');
+            if (conteudoOculto) conteudoOculto.classList.add('hidden');
+        }
     }
 
     // 4. Atualiza destaque visual dos botões na barra lateral
@@ -511,7 +518,7 @@ function switchTab(tabId) {
         activeBtn.classList.add('text-emerald-400', 'bg-emerald-500/5', 'border', 'border-emerald-500/10');
     }
 
-    // 5. Executa a inicialização do módulo com proteção Try/Catch
+    // 5. Execução dos inicializadores de módulos
     try {
         switch (targetId) {
             case 'tab-ceo':
@@ -546,17 +553,27 @@ function switchTab(tabId) {
             case 'tab-hub-clinica':
                 if (typeof aplicarConfigNaInterface === 'function') aplicarConfigNaInterface();
                 break;
-            case 'tab-hub-master':
-                if (gatekeeper) gatekeeper.classList.remove('hidden');
-                if (typeof prepararHubMaster === 'function') prepararHubMaster();
-                break;
         }
     } catch (err) {
         console.error(`[Erro na renderização da aba ${targetId}]:`, err);
     }
 
-    // Renderiza ícones Lucide
     if (window.lucide) lucide.createIcons();
+}
+
+// 🛡️ FUNÇÃO INTELIGENTE PARA FECHAR O HUB MASTER
+function fecharHubMaster() {
+    if (state.clinicaAtual) {
+        // Se houver uma clínica selecionada/ativa, vai para o M1 Visão Executiva
+        switchTab('tab-ceo');
+    } else {
+        // Se for um Super Admin sem clínica vinculada, oculta todas as abas limpando a tela
+        document.querySelectorAll('.tab-content').forEach(el => {
+            el.classList.add('hidden');
+            el.style.display = 'none';
+        });
+        console.log('[Alavanca 360] HUB Master fechado (Nenhuma clínica selecionada).');
+    }
 }
 
 // ============================================================
@@ -2594,7 +2611,7 @@ async function salvarHubClinicaBasico() {
 
     try {
         // MOTOR DE UPLOAD ASSÍNCRONO PARA O SUPABASE STORAGE
-        const fileInput = document.getElementById('cfgLogoFile');
+        const fileInput = document.getElementById('cfgLogoLocalFile');
         if (fileInput && fileInput.files && fileInput.files.length > 0) {
             const file = fileInput.files[0];
             const fileExt = file.name.split('.').pop();
