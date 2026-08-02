@@ -2575,6 +2575,20 @@ async function uploadLogoClinicaStorage(fileInputId, idClinica) {
     }
 }
 
+function processarLogoLocal(input) {
+    if (!input || !input.files || input.files.length === 0) return;
+    const file = input.files[0];
+    const reader = new FileReader();
+    reader.onload = function (e) {
+        const preview = document.getElementById('imgPreviewLogoClinica');
+        if (preview) {
+            preview.src = e.target.result;
+            preview.classList.remove('hidden');
+        }
+    };
+    reader.readAsDataURL(file);
+}
+
 async function salvarHubClinicaBasico() {
     if (!state.clinicaAtual) {
         alert("Nenhuma clínica carregada.");
@@ -2594,7 +2608,7 @@ async function salvarHubClinicaBasico() {
 
     try {
         // MOTOR DE UPLOAD ASSÍNCRONO PARA O SUPABASE STORAGE
-        const fileInput = document.getElementById('cfgLogoFile');
+        const fileInput = document.getElementById('cfgLogoLocalFile');
         if (fileInput && fileInput.files && fileInput.files.length > 0) {
             const file = fileInput.files[0];
             const fileExt = file.name.split('.').pop();
@@ -2656,26 +2670,9 @@ async function salvarHubClinicaBasico() {
         console.error("Erro ao salvar dados básicos do HUB:", e);
         alert("Erro ao salvar: " + (e.message || e));
     }
-    // Processa o logo selecionado no HUB Clínica (preview + guarda o arquivo para salvar)
-    function processarLogoLocal(input) {
-    if (!input || !input.files || input.files.length === 0) return;
-    const file = input.files[0];
-    const reader = new FileReader();
-    reader.onload = function (e) {
-        const url = e.target.result;
-        const preview = document.getElementById('imgPreviewLogoClinica');
-        if (preview) {
-            preview.src = url;
-            preview.classList.remove('hidden');
-        }
-        // Guarda o arquivo para o salvarHubClinicaBasico usar no upload
-        window.__logoArquivoSelecionado = file;
-    };
-    reader.readAsDataURL(file);
-}
-}
+    
 
-async function sincronizarDadosPlanilhaGoogle() {
+    async function sincronizarDadosPlanilhaGoogle() {
     if (!state.clinicaAtual || !state.clinicaAtual.url_google_agenda) {
         alert("URL da planilha não configurada para esta clínica.");
         return;
