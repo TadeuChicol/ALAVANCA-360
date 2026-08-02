@@ -2656,6 +2656,23 @@ async function salvarHubClinicaBasico() {
         console.error("Erro ao salvar dados básicos do HUB:", e);
         alert("Erro ao salvar: " + (e.message || e));
     }
+    // Processa o logo selecionado no HUB Clínica (preview + guarda o arquivo para salvar)
+    function processarLogoLocal(input) {
+    if (!input || !input.files || input.files.length === 0) return;
+    const file = input.files[0];
+    const reader = new FileReader();
+    reader.onload = function (e) {
+        const url = e.target.result;
+        const preview = document.getElementById('imgPreviewLogoClinica');
+        if (preview) {
+            preview.src = url;
+            preview.classList.remove('hidden');
+        }
+        // Guarda o arquivo para o salvarHubClinicaBasico usar no upload
+        window.__logoArquivoSelecionado = file;
+    };
+    reader.readAsDataURL(file);
+}
 }
 
 async function sincronizarDadosPlanilhaGoogle() {
