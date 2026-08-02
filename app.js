@@ -2592,9 +2592,12 @@ async function uploadLogoClinicaStorage(fileInputId, idClinica) {
     }
 }
 
+// ============================================================
+// 1. HUB CLÍNICA - SALVAR DADOS BÁSICOS E UPLOAD ATÔMICO
+// ============================================================
 async function salvarHubClinicaBasico() {
     if (!state.clinicaAtual) {
-        alert("Nenhuma clínica carregada.");
+        alert("Nenhuma clínica ativa no momento.");
         return;
     }
 
@@ -2602,7 +2605,7 @@ async function salvarHubClinicaBasico() {
     const endereco = document.getElementById('cfgEndereco').value.trim();
     const urlSheets = document.getElementById('cfgUrlSheets').value.trim();
     const urlCalendly = document.getElementById('cfgUrlCalendly').value.trim();
-    let logoUrl = document.getElementById('cfgLogoClinicaHub').value.trim();
+    const fileInput = document.getElementById('cfgLogoLocalFile');
 
     if (!nome) {
         alert("O nome da clínica é obrigatório.");
@@ -2610,14 +2613,14 @@ async function salvarHubClinicaBasico() {
     }
 
     try {
-        // MOTOR DE UPLOAD ASSÍNCRONO PARA O SUPABASE STORAGE
-        const fileInput = document.getElementById('cfgLogoLocalFile');
+        let logoUrl = state.clinicaAtual.logo_clinica_url || '';
+
+        // UPLOAD DIRETO PARA O SUPABASE STORAGE
         if (fileInput && fileInput.files && fileInput.files.length > 0) {
             const file = fileInput.files[0];
-            const fileExt = file.name.split('.').pop();
-            const fileName = `${state.clinicaAtual.id}-${Date.now()}.${fileExt}`;
+            const extensao = file.name.split('.').pop();
+            const fileName = `logo_${state.clinicaAtual.id}_${Date.now()}.${extensao}`;
 
-            // Envia o arquivo para o bucket existente "logos-clinicas"
             const { data: storageData, error: storageError } = await supabaseClient
                 .storage
                 .from('logos-clinicas')
@@ -2625,90 +2628,98 @@ async function salvarHubClinicaBasico() {
 
             if (storageError) throw storageError;
 
-            // Resgata a estrutura correta de dados da URL pública
-            const response = supabaseClient
+            // Resgata a URL Pública Gerada
+            const { data: urlData } = supabaseClient
                 .storage
                 .from('logos-clinicas')
                 .getPublicUrl(fileName);
 
-            if (response && response.data) {
-                logoUrl = response.data.publicUrl;
+            if (urlData && urlData.publicUrl) {
+                logoUrl = urlData.publicUrl;
             }
-            document.getElementById('cfgLogoClinicaHub').value = logoUrl; 
         }
 
-        // Atualiza a tabela "clinicas" no banco de dados
-        await apiUpdate('clinicas', state.clinicaAtual.id, {
-            nome_clinica: nome,
-            endereco: endereco,
-            url_google_agenda: urlSheets,
-            url_calendly: urlCalendly,
-            logo_clinica_url: logoUrl
-        });
+        // ATUALIZA O BANCO DE DADOS (SUPABASE)
+        const { data: clinicaAtualizada, error: updateError } = await supabaseClient
+            .from('clinicas')
+            .update({
+                nome_clinica: nome,
+                endereco: endereco,
+                url_google_agenda: urlSheets,
+                url_calendly: urlCalendly,
+                logo_clinica_url: logoUrl
+            })
+            .eq('id', state.clinicaAtual.id)
+            .select()
+            .single();
 
-        // Sincroniza o estado global na memória da aplicação
-        state.clinicaAtual.nome_clinica = nome;
-        state.clinicaAtual.endereco = endereco;
-        state.clinicaAtual.url_google_agenda = urlSheets;
-        state.clinicaAtual.url_calendly = urlCalendly;
-        state.clinicaAtual.logo_clinica_url = logoUrl;
+        if (updateError) throw updateError;
 
-        // CORREÇÃO: Atualiza o logo no header chamando a função real de renderização
+        // ATUALIZA A MEMÓRIA DA APLICAÇÃO (STATE)
+        state.clinicaAtual = clinicaAtualizada;
+
+        // ATUALIZA A INTERFACE IMEDIATAMENTE
         if (typeof atualizarLogosVisuais === 'function') {
             atualizarLogosVisuais();
-        } else {
-            const imgLogo = document.getElementById('imgLogoClinicaNav');
-            if (imgLogo) imgLogo.src = logoUrl;
         }
 
-        alert("Dados corporativos e logotipo atualizados com sucesso!");
+        // LIMPA O INPUT DE ARQUIVO
+        if (fileInput) fileInput.value = '';
+
+        alert("Dados corporativos e logotipo salvos com sucesso!");
+
     } catch (e) {
-        console.error("Erro ao salvar dados básicos do HUB:", e);
+        console.error("Erro ao salvar HUB Clínica:", e);
         alert("Erro ao salvar: " + (e.message || e));
     }
 }
 
+// ============================================================
+// 2. HUB CLÍNICA - SINCRONIZADOR DE INSUMOS DO GOOGLE SHEETS
+// ============================================================
 async function sincronizarDadosPlanilhaGoogle() {
     if (!state.clinicaAtual || !state.clinicaAtual.url_google_agenda) {
-        alert("URL da planilha não configurada para esta clínica.");
+        alert("Cadastre a URL da planilha no campo 'Link Integrador Google Agenda' e salve antes de sincronizar.");
         return;
     }
 
     const btn = document.getElementById('btnSincronizarPlanilha');
-    const originalText = btn ? btn.textContent : '🔄 Sincronizar e Atualizar Matriz de Inteligência';
+    const originalText = btn ? btn.textContent : 'Sincronizar Insumos (Planilha)';
     
     if (btn) {
         btn.disabled = true;
-        btn.textContent = 'Sincronizando dados...';
+        btn.textContent = 'Sincronizando...';
     }
 
     try {
-        // Extrai o ID da planilha de forma robusta da URL cadastrada
-        const urlStr = state.clinicaAtual.url_google_agenda;
-        const matches = urlStr.match(/\/d\/([a-zA-Z0-9-_]+)/);
-        if (!matches || !matches[1]) {
-            throw new Error("A URL do Google Sheets configurada parece inválida.");
-        }
-        const spreadsheetId = matches[1];
+        const urlStr = state.clinicaAtual.url_google_agenda.trim();
+        let urlCsv = '';
 
-        // Exportação limpa do ecossistema Google como CSV
-        // Altere o parâmetro "sheet" se o nome exato da aba na planilha for diferente de "Insumos"
-        const urlCsv = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:csv&sheet=Insumos`;
-        
+        // Trata URL publicada (/pub?output=csv) ou link normal de compartilhamento (/d/ID_DA_PLANILHA)
+        if (urlStr.includes('/pub?') || urlStr.includes('output=csv')) {
+            urlCsv = urlStr;
+        } else {
+            const matches = urlStr.match(/\/d\/([a-zA-Z0-9-_]+)/);
+            if (!matches || !matches[1]) {
+                throw new Error("Link da planilha inválido. Verifique se copiou a URL correta do Google Sheets.");
+            }
+            const spreadsheetId = matches[1];
+            urlCsv = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:csv&sheet=Insumos`;
+        }
+
         const response = await fetch(urlCsv);
         if (!response.ok) {
-            throw new Error("Não foi possível ler a planilha. Garanta que o acesso dela esteja configurado como 'Qualquer pessoa com o link'.");
-        }
-        
-        const csvText = await response.text();
-        
-        // Conversão e higienização das linhas do CSV
-        const linhas = csvText.split('\n').map(l => l.split(',').map(c => c.replace(/^"|"$/g, '').trim()));
-        if (linhas.length <= 1) {
-            throw new Error("Nenhum registro detectado na aba informada.");
+            throw new Error("Não foi possível acessar a planilha. Verifique se as permissões de acesso estão como 'Qualquer pessoa com o link'.");
         }
 
-        // Limpeza transacional/segura dos dados defasados daquela clínica específica
+        const csvText = await response.text();
+        const linhas = csvText.split('\n').map(l => l.split(',').map(c => c.replace(/^"|"$/g, '').trim()));
+        
+        if (linhas.length <= 1) {
+            throw new Error("A aba 'Insumos' está vazia ou não foi encontrada na planilha.");
+        }
+
+        // LIMPA APENAS OS INSUMOS DA CLÍNICA CONECTADA
         const { error: deleteError } = await supabaseClient
             .from('insumos')
             .delete()
@@ -2716,48 +2727,82 @@ async function sincronizarDadosPlanilhaGoogle() {
 
         if (deleteError) throw deleteError;
 
-        let insumosInseridos = 0;
+        let totalInserido = 0;
 
-        // Varredura populando a estrutura relacional do Supabase (ignora cabeçalho)
         for (let i = 1; i < linhas.length; i++) {
-            const colunas = linhas[i];
-            if (colunas.length < 2 || !colunas[0]) continue; // Segurança contra linhas fantasmas ou em branco
+            const col = linhas[i];
+            if (col.length < 2 || !col[0]) continue;
 
-            // Tratamento sanitário preventivo para floats/decimais
-            const nomeInsumo = colunas[0];
-            const categoria = colunas[1] || 'Geral';
-            const custoUnitario = parseFloat(colunas[2]?.replace(/[^0-9.-]+/g, "")) || 0;
-            const unidadeMedida = colunas[3] || 'Unidade';
+            const nome = col[0];
+            const categoria = col[1] || 'Geral';
+            const custo = parseFloat(col[2]?.replace(/[^0-9.-]+/g, "")) || 0;
+            const unidade = col[3] || 'Unidade';
 
             const { error: insertError } = await supabaseClient
                 .from('insumos')
                 .insert({
                     clinica_id: state.clinicaAtual.id,
-                    nome: nomeInsumo,
+                    nome: nome,
                     categoria: categoria,
-                    custo_unitario: custoUnitario,
-                    unidade_medida: unidadeMedida
+                    custo_unitario: custo,
+                    unidade_medida: unidade
                 });
 
             if (insertError) throw insertError;
-            insumosInseridos++;
+            totalInserido++;
         }
 
-        alert(`Sucesso! Sincronização concluída.\n${insumosInseridos} insumos foram carregados e atualizados na base de dados.`);
-        
-        // Dispara a reatualização da lista interna se a função global existir no app
+        alert(`Sincronização concluída com sucesso!\n\n${totalInserido} insumos foram atualizados na base de dados da clínica.`);
+
         if (typeof apiList === 'function') {
             apiList('insumos', { clinica_id: state.clinicaAtual.id });
         }
 
     } catch (e) {
-        console.error("Erro no processamento da planilha:", e);
+        console.error("Erro ao sincronizar insumos:", e);
         alert("Erro na sincronização: " + (e.message || e));
     } finally {
         if (btn) {
             btn.disabled = false;
             btn.textContent = originalText;
         }
+    }
+}
+
+// ============================================================
+// 3. RENDERIZADOR DE LOGOS E NOME DA CLÍNICA NO HEADER
+// ============================================================
+function atualizarLogosVisuais() {
+    const clinica = state.clinicaAtual;
+    const cfgGlobal = state.configGlobal;
+
+    const imgLogoClinica = document.getElementById('imgLogoClinicaNav');
+    const iconDefault = document.getElementById('iconDefaultClinica');
+    const imgLogoMetodo = document.getElementById('imgLogoMetodoNav');
+    const lblNomeClinica = document.getElementById('lblNomeClinicaNav');
+
+    // 1. Atualiza Nome da Clínica no Topo (Evita o exibições do UUID)
+    if (lblNomeClinica && clinica) {
+        lblNomeClinica.textContent = clinica.nome_clinica || clinica.email_responsavel || 'Clínica Conectada';
+    }
+
+    // 2. Renderiza Logo da Clínica
+    if (clinica && clinica.logo_clinica_url) {
+        if (imgLogoClinica) {
+            imgLogoClinica.src = clinica.logo_clinica_url;
+            imgLogoClinica.classList.remove('hidden');
+        }
+        if (iconDefault) iconDefault.classList.add('hidden');
+    } else {
+        if (imgLogoClinica) imgLogoClinica.classList.add('hidden');
+        if (iconDefault) iconDefault.classList.remove('hidden');
+    }
+
+    // 3. Renderiza Logo Fixa do Método Alavanca 360
+    const logoMetodoPadrao = 'https://gtcybiuxdpxixdjnshty.supabase.co/storage/v1/object/public/logos-clinicas/logo-alavanca360.png';
+    if (imgLogoMetodo) {
+        imgLogoMetodo.src = (cfgGlobal && cfgGlobal.logo_metodo_url) || logoMetodoPadrao;
+        imgLogoMetodo.classList.remove('hidden');
     }
 }
 
