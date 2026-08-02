@@ -2575,20 +2575,6 @@ async function uploadLogoClinicaStorage(fileInputId, idClinica) {
     }
 }
 
-function processarLogoLocal(input) {
-    if (!input || !input.files || input.files.length === 0) return;
-    const file = input.files[0];
-    const reader = new FileReader();
-    reader.onload = function (e) {
-        const preview = document.getElementById('imgPreviewLogoClinica');
-        if (preview) {
-            preview.src = e.target.result;
-            preview.classList.remove('hidden');
-        }
-    };
-    reader.readAsDataURL(file);
-}
-
 async function salvarHubClinicaBasico() {
     if (!state.clinicaAtual) {
         alert("Nenhuma clínica carregada.");
@@ -2608,7 +2594,7 @@ async function salvarHubClinicaBasico() {
 
     try {
         // MOTOR DE UPLOAD ASSÍNCRONO PARA O SUPABASE STORAGE
-        const fileInput = document.getElementById('cfgLogoLocalFile');
+        const fileInput = document.getElementById('cfgLogoFile');
         if (fileInput && fileInput.files && fileInput.files.length > 0) {
             const file = fileInput.files[0];
             const fileExt = file.name.split('.').pop();
@@ -2650,29 +2636,22 @@ async function salvarHubClinicaBasico() {
         state.clinicaAtual.url_calendly = urlCalendly;
         state.clinicaAtual.logo_clinica_url = logoUrl;
 
-        // RENDERIZAÇÃO DIRETA E OBRIGATÓRIA — usa o logoUrl recém-salvo
-        const imgLogoNav = document.getElementById('imgLogoClinicaNav');
-        const iconePadrao = document.getElementById('iconDefaultClinica');
-        if (logoUrl) {
-            if (imgLogoNav) {
-                imgLogoNav.src = logoUrl;
-                imgLogoNav.classList.remove('hidden');
-            }
-            if (iconePadrao) iconePadrao.classList.add('hidden');
+        // CORREÇÃO: Atualiza o logo no header chamando a função real de renderização
+        if (typeof atualizarLogosVisuais === 'function') {
+            atualizarLogosVisuais();
         } else {
-            if (imgLogoNav) imgLogoNav.classList.add('hidden');
-            if (iconePadrao) iconePadrao.classList.remove('hidden');
+            const imgLogo = document.getElementById('imgLogoClinicaNav');
+            if (imgLogo) imgLogo.src = logoUrl;
         }
-        if (typeof atualizarLogosVisuais === 'function') atualizarLogosVisuais();
 
         alert("Dados corporativos e logotipo atualizados com sucesso!");
     } catch (e) {
         console.error("Erro ao salvar dados básicos do HUB:", e);
         alert("Erro ao salvar: " + (e.message || e));
     }
-    
+}
 
-    async function sincronizarDadosPlanilhaGoogle() {
+async function sincronizarDadosPlanilhaGoogle() {
     if (!state.clinicaAtual || !state.clinicaAtual.url_google_agenda) {
         alert("URL da planilha não configurada para esta clínica.");
         return;
