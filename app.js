@@ -2683,7 +2683,7 @@ async function salvarHubClinicaBasico() {
         const { data: clinicaAtualizada, error: updateError } = await supabaseClient
             .from('clinicas')
             .update({
-                nome_clinica: nome,
+                nome: nome, // <-- Corrigido para 'nome' (coluna real do Supabase)
                 endereco: endereco,
                 url_google_agenda: urlSheets,
                 url_calendly: urlCalendly,
@@ -2891,23 +2891,44 @@ async function atualizarLogosSistema() {
 }
 
 // ============================================================
-// SALVA CONFIGURAÇÕES GLOBAIS DO HUB MASTER
+// SALVA CONFIGURAÇÕES GLOBAIS DO HUB MASTER (SUPABASE DIRECT)
 // ============================================================
 async function salvarConfigGlobal() {
-    const dados = {
-        logo_metodo_url: document.getElementById('cfgLogoMetodo')?.value || '',
-        logo_consultoria_url: document.getElementById('cfgLogoConsultoria')?.value || '',
-        nome_consultoria: document.getElementById('cfgNomeConsultoriaGlobal')?.value || '',
-        whatsapp_consultoria: document.getElementById('cfgWhatsApp')?.value || '',
-        email_consultoria: document.getElementById('cfgEmailConsultoria')?.value || ''
-    };
+    const nome  = document.getElementById('cfgNomeConsultoriaGlobal')?.value.trim() || '';
+    const logo  = document.getElementById('cfgLogoConsultoria')?.value.trim() || '';
+    const wsp   = document.getElementById('cfgWhatsApp')?.value.trim() || '';
+    const email = document.getElementById('cfgEmailConsultoria')?.value.trim() || '';
 
-    const atualizado = await apiUpdate('config_global', 'global', dados);
-    if (atualizado) {
-        state.configGlobal = atualizado;
+    try {
+        const payload = {
+            id: 1,
+            nome_consultoria: nome,
+            logo_consultoria_url: logo,
+            whatsapp: wsp,
+            email_suporte: email,
+            updated_at: new Date().toISOString()
+        };
+
+        // Gravação direta no Supabase
+        const { data, error } = await supabaseClient
+            .from('config_global')
+            .upsert(payload)
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        state.configGlobal = data || payload;
+
+        // Atualiza elementos visuais na tela imediatamente
+        if (typeof atualizarLogosVisuais === 'function') atualizarLogosVisuais();
+        if (typeof aplicarConfigNaInterface === 'function') aplicarConfigNaInterface();
+
+        alert("Configurações Globais do HUB Master salvas com sucesso!");
+    } catch (e) {
+        console.error("Erro ao salvar marca global:", e);
+        alert("Erro ao salvar configurações globais: " + (e.message || e));
     }
-    atualizarLogosVisuais();
-    aplicarConfigNaInterface();
 }
 
 async function renderizarListaClinicas() {
@@ -2933,7 +2954,7 @@ async function renderizarListaClinicas() {
 
     tbody.innerHTML = todas.map(c => `
         <tr class="border-b border-slate-800/60 text-xs">
-            <td class="p-2 text-slate-200 font-semibold">${c.nome_clinica || ''}</td>
+            <td class="p-2 text-slate-200 font-semibold">${c.nome || c.nome_clinica || ''}</td>
             <td class="p-2 text-slate-400">${c.segmento || ''}</td>
             <td class="p-2 font-mono text-emerald-400">${c.email_responsavel || ''}</td>
             <td class="p-2 text-slate-400">${c.plano_contratado || ''}</td>
@@ -2999,7 +3020,8 @@ async function cadastrarNovaClinica() {
 
         await apiCreate('clinicas', {
             owner_user_id: novoUserId,
-            nome_clinica,
+            nome: nome_clinica,           
+            nome_clinica: nome_clinica,    
             segmento,
             responsavel_nome,
             email_responsavel: email_login,
