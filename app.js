@@ -2479,26 +2479,66 @@ function aplicarConfigNaInterface() {
 }
 
 // ============================================================
-// ATUALIZA LINKS DE WHATSAPP E E-MAIL NO RODAPÉ
+// ATUALIZA LINKS DE SUPORTE (SIDEBAR / RODAPÉ LEFE)
 // ============================================================
-(function atualizarLinksRodape() {
+function atualizarLinksRodape() {
     const cfgGlobal = state.configGlobal;
     if (!cfgGlobal) return;
-    
-    if (cfgGlobal.whatsapp_consultoria) {
-        const lnkWhats = document.getElementById('lnkWhatsConsultoria');
-        if (lnkWhats) {
-            lnkWhats.href = 'https://wa.me/' + cfgGlobal.whatsapp_consultoria.replace(/[^0-9]/g, '');
-            lnkWhats.target = '_blank';
-        }
+
+    // Atualiza nome da consultoria
+    const lblConsultoria = document.getElementById('lblSidebarConsultoria');
+    if (lblConsultoria) {
+        lblConsultoria.textContent = cfgGlobal.nome_consultoria || 'Alavanca 360 Consultoria';
     }
-    if (cfgGlobal.email_consultoria) {
-        const lnkEmail = document.getElementById('lnkEmailConsultoria');
-        if (lnkEmail) {
-            lnkEmail.href = 'mailto:' + cfgGlobal.email_consultoria;
-        }
+
+    // Link WhatsApp
+    const wspNum = cfgGlobal.whatsapp || cfgGlobal.whatsapp_consultoria || '5511964363466';
+    const btnWsp = document.getElementById('btnSuporteWhatsapp');
+    if (btnWsp) {
+        btnWsp.href = `https://wa.me/${wspNum.replace(/\D/g, '')}?text=${encodeURIComponent('Olá! Preciso de suporte no sistema Alavanca 360.')}`;
+        btnWsp.target = '_blank';
     }
-})();
+
+    // Link E-mail
+    const emailStr = cfgGlobal.email_suporte || cfgGlobal.email_consultoria || 'contato@tce-tadeuchicolempowerment.cloud';
+    const btnEmail = document.getElementById('btnSuporteEmail');
+    if (btnEmail) {
+        btnEmail.href = `mailto:${emailStr}?subject=${encodeURIComponent('Suporte - Portal Alavanca 360')}`;
+    }
+}
+
+// Garante o carregamento automático das configurações globais ao iniciar
+async function carregarConfiguracoesGlobais() {
+    try {
+        const { data, error } = await supabaseClient
+            .from('config_global')
+            .select('*')
+            .eq('id', 1)
+            .maybeSingle();
+
+        if (error) throw error;
+
+        if (data) {
+            state.configGlobal = data;
+
+            // Preenche os inputs do HUB Master
+            const elNome = document.getElementById('cfgNomeConsultoriaGlobal');
+            const elLogo = document.getElementById('cfgLogoConsultoria');
+            const elWsp  = document.getElementById('cfgWhatsApp');
+            const elMail = document.getElementById('cfgEmailConsultoria');
+
+            if (elNome) elNome.value = data.nome_consultoria || '';
+            if (elLogo) elLogo.value = data.logo_consultoria_url || '';
+            if (elWsp)  elWsp.value  = data.whatsapp || '';
+            if (elMail) elMail.value = data.email_suporte || '';
+
+            atualizarLinksRodape();
+            if (typeof atualizarLogosVisuais === 'function') atualizarLogosVisuais();
+        }
+    } catch (e) {
+        console.warn("Aviso ao carregar config_global:", e.message);
+    }
+}
 
 function atualizarLogosVisuais() {
     const clinica = state.clinicaAtual;
