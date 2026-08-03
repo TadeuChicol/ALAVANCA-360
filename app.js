@@ -2790,9 +2790,23 @@ async function sincronizarDadosPlanilhaGoogle() {
             throw new Error("Não foi possível acessar a planilha. Verifique se as permissões de acesso estão como 'Qualquer pessoa com o link'.");
         }
 
-        const csvText = await response.text();
-        const linhas = csvText.split('\n').map(l => l.split(',').map(c => c.replace(/^"|"$/g, '').trim()));
+       const csvText = await response.text();
         
+        // CORREÇÃO: Lógica de parsing real de CSV para ignorar vírgulas que estejam dentro de valores entre aspas
+        const linhas = csvText.split('\n').map(l => {
+            const cols = [];
+            let inQuotes = false;
+            let val = '';
+            for (let i = 0; i < l.length; i++) {
+                let char = l[i];
+                if (char === '"') { inQuotes = !inQuotes; }
+                else if (char === ',' && !inQuotes) { cols.push(val.trim()); val = ''; }
+                else { val += char; }
+            }
+            cols.push(val.trim());
+            return cols.map(c => c.replace(/^"|"$/g, '').trim());
+        });
+
         if (linhas.length <= 1) {
             throw new Error("A planilha está vazia ou não foi possível ler as colunas de insumos.");
         }
@@ -2812,16 +2826,25 @@ async function sincronizarDadosPlanilhaGoogle() {
             if (col.length < 2 || !col[0]) continue;
 
             const nome = col[0];
-            const categoria = col[1] || 'Geral';
-            const custo = parseFloat(col[2]?.replace(/[^0-9.-]+/g, "")) || 0;
+            const apresentacao = col[1] || 'Geral';
+            
+            // CORREÇÃO: Trata a formatação BRL (R$) que usa vírgula no decimal, convertendo corretamente para ponto
+            let rawCusto = col[2] || '0';
+            if (rawCusto.includes(',') && (!rawCusto.includes('.') || rawCusto.lastIndexOf(',') > rawCusto.lastIndexOf('.'))) {
+                rawCusto = rawCusto.replace(/\./g, '').replace(',', '.');
+            }
+            const custo = parseFloat(rawCusto.replace(/[^0-9.-]+/g, "")) || 0;
             const unidade = col[3] || 'Unidade';
 
+            // CORREÇÃO: Alinhamento preciso com a estrutura que o Módulo 8 (Custos) e a base de dados esperam
             const { error: insertError } = await supabaseClient
                 .from('insumos')
                 .insert({
                     clinica_id: state.clinicaAtual.id,
                     nome: nome,
-                    categoria: categoria,
+                    apresentacao: apresentacao,
+                    quantidade_apresentacao: 1, // Fixado como 1 para a matemática do Módulo 8 funcionar sem divisão por zero
+                    preco_apresentacao: custo,
                     custo_unitario: custo,
                     unidade_medida: unidade
                 });
