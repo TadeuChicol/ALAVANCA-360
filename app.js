@@ -198,10 +198,38 @@ async function carregarConfigGlobal() {
 function aplicarMarcaMetodoNaTelaLogin() {
     const logoMetodo = (state.configGlobal && state.configGlobal.logo_metodo_url) || 'images/logo-alavanca-360.png';
     document.querySelectorAll('.logo-metodo-alavanca').forEach(img => { img.src = logoMetodo; });
-
     const nomeConsultoria = document.getElementById('lblNomeConsultoriaLogin');
     if (nomeConsultoria && state.configGlobal) {
         nomeConsultoria.textContent = state.configGlobal.nome_consultoria || 'Alavanca 360 Consultoria';
+    }
+}
+
+function aplicarConfigNaInterface() {
+    // 1. Aplica Logo do Método Alavanca 360
+    const logoMetodo = (state.configGlobal && state.configGlobal.logo_metodo_url) || 'images/logo-alavanca-360.png';
+    document.querySelectorAll('.logo-metodo-alavanca').forEach(img => { img.src = logoMetodo; });
+
+    // 2. Aplica Logo da Clínica no Canto Superior Esquerdo
+    if (state.clinicaAtual && state.clinicaAtual.logo_clinica_url) {
+        document.querySelectorAll('.logo-clinica-topo').forEach(img => { 
+            img.src = state.clinicaAtual.logo_clinica_url;
+            img.classList.remove('hidden');
+        });
+        document.querySelectorAll('.nome-clinica-topo').forEach(el => {
+            el.textContent = state.clinicaAtual.nome_clinica || state.clinicaAtual.nome || 'Sua Clínica';
+        });
+    }
+
+    // 3. Atualiza os links de WhatsApp e E-mail do Suporte nos botões inferiores
+    if (state.configGlobal) {
+        const btnWhats = document.getElementById('btnSuporteWhatsapp');
+        if (btnWhats && state.configGlobal.whatsapp_consultoria) {
+            btnWhats.href = `https://wa.me/${state.configGlobal.whatsapp_consultoria.replace(/\D/g, '')}`;
+        }
+        const btnEmail = document.getElementById('btnSuporteEmail');
+        if (btnEmail && state.configGlobal.email_consultoria) {
+            btnEmail.href = `mailto:${state.configGlobal.email_consultoria}`;
+        }
     }
 }
 
@@ -565,19 +593,56 @@ function switchTab(tabId) {
 
 function preencherFormularioHubClinica() {
     if (!state.clinicaAtual) return;
-
     const c = state.clinicaAtual;
     
-    // Mapeamento exato dos IDs do formulário no HUB Clínica
     const elNome     = document.getElementById('hubClinicaNome') || document.getElementById('nomeClinica');
     const elEnd      = document.getElementById('hubClinicaEndereco') || document.getElementById('enderecoClinica');
     const elAgenda   = document.getElementById('hubClinicaGoogleAgenda') || document.getElementById('urlGoogleAgenda');
     const elCalendly = document.getElementById('hubClinicaCalendly') || document.getElementById('urlCalendly');
+    const elEmail    = document.getElementById('hubClinicaEmail') || document.getElementById('emailClinica');
+    const elLogo     = document.getElementById('hubClinicaLogoUrl') || document.getElementById('logoClinicaUrl');
 
     if (elNome)     elNome.value     = c.nome || c.nome_clinica || '';
     if (elEnd)      elEnd.value      = c.endereco || '';
-    if (elAgenda)   elAgenda.value   = c.url_google_agenda || 'https://calendar.google.com';
-    if (elCalendly) elCalendly.value = c.url_calendly || 'https://calendly.com';
+    if (elAgenda)   elAgenda.value   = c.url_google_agenda || '';
+    if (elCalendly) elCalendly.value = c.url_calendly || '';
+    if (elEmail)    elEmail.value    = c.email || c.email_suporte || '';
+    if (elLogo)     elLogo.value     = c.logo_clinica_url || '';
+}
+
+async function salvarHubClinica() {
+    if (!state.clinicaAtual) {
+        alert('Nenhuma clínica selecionada para salvar.');
+        return;
+    }
+
+    const nome = (document.getElementById('hubClinicaNome') || document.getElementById('nomeClinica'))?.value.trim();
+    const endereco = (document.getElementById('hubClinicaEndereco') || document.getElementById('enderecoClinica'))?.value.trim();
+    const url_google_agenda = (document.getElementById('hubClinicaGoogleAgenda') || document.getElementById('urlGoogleAgenda'))?.value.trim();
+    const url_calendly = (document.getElementById('hubClinicaCalendly') || document.getElementById('urlCalendly'))?.value.trim();
+    const email = (document.getElementById('hubClinicaEmail') || document.getElementById('emailClinica'))?.value.trim();
+    const logo_clinica_url = (document.getElementById('hubClinicaLogoUrl') || document.getElementById('logoClinicaUrl'))?.value.trim();
+
+    const dadosAtualizados = {
+        nome_clinica: nome,
+        endereco: endereco,
+        url_google_agenda: url_google_agenda,
+        url_calendly: url_calendly,
+        email: email,
+        logo_clinica_url: logo_clinica_url
+    };
+
+    try {
+        const resultado = await apiUpdate('clinicas', state.clinicaAtual.id, dadosAtualizados);
+        if (resultado) {
+            state.clinicaAtual = { ...state.clinicaAtual, ...resultado };
+            aplicarConfigNaInterface();
+            alert('Configurações da clínica salvas e integradas com sucesso!');
+        }
+    } catch (err) {
+        console.error('Erro ao salvar no HUB Clínica:', err);
+        alert('Erro ao salvar as configurações.');
+    }
 }
 
 // 🛡️ FUNÇÃO INTELIGENTE PARA FECHAR O HUB MASTER
@@ -1032,75 +1097,68 @@ function pertenceAoFiltro(dataHoraStr, filtro) {
 }
 
 function renderizarAgendaLocal() {
+    // 1. Renderização da Tabela Interna
     const tbody = document.getElementById('tbodyAgendaLocal');
-
-    if (!tbody) {
-        console.error('[Alavanca 360] ERRO: Elemento #tbodyAgendaLocal não encontrado no DOM.');
-        return;
-    }
-
-    const totalRegistros = state.agendamentos?.length || 0;
-    console.log('[Alavanca 360] renderizarAgendaLocal() executada. Total no State:', totalRegistros);
-
-    // Garante array válido
-    const listaGeral = Array.isArray(state.agendamentos) ? state.agendamentos : [];
-
-    // Aplica o filtro de período sem bloquear dados caso a função ou data falhe
-    const filtrados = listaGeral
-        .filter(a => {
-            if (!a.data_hora) return true; // Mostra o registro mesmo se a data_hora vier vazia
-            if (typeof pertenceAoFiltro === 'function' && state.filtroAgendaAtivo) {
-                try {
-                    return pertenceAoFiltro(a.data_hora, state.filtroAgendaAtivo);
-                } catch (e) {
-                    return true; // Fallback para não sumir com o dado na tela
+    if (tbody) {
+        const totalRegistros = state.agendamentos?.length || 0;
+        const listaGeral = Array.isArray(state.agendamentos) ? state.agendamentos : [];
+        const filtrados = listaGeral
+            .filter(a => {
+                if (!a.data_hora) return true;
+                if (typeof pertenceAoFiltro === 'function' && state.filtroAgendaAtivo) {
+                    try { return pertenceAoFiltro(a.data_hora, state.filtroAgendaAtivo); } catch (e) { return true; }
                 }
-            }
-            return true;
-        })
-        .sort((a, b) => new Date(a.data_hora || 0) - new Date(b.data_hora || 0));
+                return true;
+            })
+            .sort((a, b) => new Date(a.data_hora || 0) - new Date(b.data_hora || 0));
 
-    // Se não houver registros para o filtro ativo
-    if (filtrados.length === 0) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="6" class="p-8 text-center text-slate-400 bg-slate-900/50 rounded-lg">
-                    <div class="flex flex-col items-center justify-center space-y-2">
+        if (filtrados.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="p-8 text-center text-slate-400 bg-slate-900/50 rounded-lg">
                         <p class="text-sm font-semibold text-slate-300">Nenhum agendamento encontrado para este período.</p>
-                        <p class="text-xs text-slate-500">Total de registros no banco: ${totalRegistros}. Alterne o filtro (Dia/Semana/Mês) ou use o formulário ao lado.</p>
-                    </div>
-                </td>
-            </tr>`;
-        return;
+                        <p class="text-xs text-slate-500">Total no banco: ${totalRegistros}.</p>
+                    </td>
+                </tr>`;
+        } else {
+            tbody.innerHTML = filtrados.map(a => {
+                let dataFormatada = '--';
+                if (a.data_hora) {
+                    const d = new Date(a.data_hora);
+                    dataFormatada = isNaN(d.getTime()) ? a.data_hora : d.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+                }
+                return `
+                    <tr class="hover:bg-slate-800/60 text-xs transition border-b border-slate-800/40">
+                        <td class="p-3 text-slate-200 font-semibold">${a.paciente_nome || 'Paciente não informado'}</td>
+                        <td class="p-3 text-sky-400 font-medium">${dataFormatada}</td>
+                        <td class="p-3 text-slate-300">${a.dentista || 'Não atribuído'}</td>
+                        <td class="p-3"><span class="bg-slate-950 px-2 py-0.5 rounded border border-slate-800 text-[11px] text-amber-400 font-mono">${a.cadeira_sala || 'Geral'}</span></td>
+                        <td class="p-3 text-slate-400">${a.procedimento || 'Avaliação'}</td>
+                        <td class="p-3 text-right space-x-2">
+                            <button onclick="prepararEdicaoAgenda('${a.id}')" class="text-sky-400 hover:text-sky-300 font-medium transition">Editar</button>
+                            <span class="text-slate-700">|</span>
+                            <button onclick="removerAgenda('${a.id}')" class="text-rose-400 hover:text-rose-300 font-medium transition">Excluir</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
     }
 
-    // Renderiza as linhas da tabela
-    tbody.innerHTML = filtrados.map(a => {
-        let dataFormatada = '--';
-        if (a.data_hora) {
-            const d = new Date(a.data_hora);
-            dataFormatada = isNaN(d.getTime()) ? a.data_hora : d.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+    // 2. Sincronização com Google Agenda / Calendly (Exibição da Fonte de Verdade)
+    const containerGoogle = document.getElementById('containerGoogleAgendaIframe');
+    const linkExternoGoogle = document.getElementById('btnAbrirGoogleAgendaExterno');
+    
+    if (state.clinicaAtual) {
+        const urlGoogle = state.clinicaAtual.url_google_agenda;
+        if (containerGoogle && urlGoogle) {
+            containerGoogle.innerHTML = `<iframe src="${urlGoogle}" style="border: 0" width="100%" height="600" frameborder="0" scrolling="no"></iframe>`;
         }
-
-        return `
-            <tr class="hover:bg-slate-800/60 text-xs transition border-b border-slate-800/40">
-                <td class="p-3 text-slate-200 font-semibold">${a.paciente_nome || 'Paciente não informado'}</td>
-                <td class="p-3 text-sky-400 font-medium">${dataFormatada}</td>
-                <td class="p-3 text-slate-300">${a.dentista || 'Não atribuído'}</td>
-                <td class="p-3">
-                    <span class="bg-slate-950 px-2 py-0.5 rounded border border-slate-800 text-[11px] text-amber-400 font-mono">
-                        ${a.cadeira_sala || 'Geral'}
-                    </span>
-                </td>
-                <td class="p-3 text-slate-400">${a.procedimento || 'Avaliação'}</td>
-                <td class="p-3 text-right space-x-2">
-                    <button onclick="prepararEdicaoAgenda('${a.id}')" class="text-sky-400 hover:text-sky-300 font-medium transition">Editar</button>
-                    <span class="text-slate-700">|</span>
-                    <button onclick="removerAgenda('${a.id}')" class="text-rose-400 hover:text-rose-300 font-medium transition">Excluir</button>
-                </td>
-            </tr>
-        `;
-    }).join('');
+        if (linkExternoGoogle && urlGoogle) {
+            linkExternoGoogle.href = urlGoogle;
+            linkExternoGoogle.target = "_blank";
+        }
+    }
 }
 
 function prepararEdicaoAgenda(id) {
@@ -3264,4 +3322,19 @@ async function entrarNoSistema() {
     if (typeof init === 'function') {
         await init();
     }
+}
+
+// ============================================================
+// REFRESH E POVOAMENTO COMPLETO DA INTERFACE (Sincronização de Dados)
+// ============================================================
+function renderizarModuloFinanceiroCompleto() {
+    renderizarInsumos();
+    renderizarServicos();
+    renderizarMapaInsumos();
+    renderizarCustosFixos();
+    preencherFormsConfigPrecificacao();
+    rebuildSelectsFinanceiro();
+    renderizarResultadoCustos();
+    renderizarAtendimentos();
+    renderizarDashboardVivo();
 }
