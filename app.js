@@ -2673,11 +2673,11 @@ async function salvarHubClinicaBasico() {
         return;
     }
 
-    const nome = document.getElementById('cfgNomeClinica').value.trim();
-    const endereco = document.getElementById('cfgEndereco').value.trim();
-    const urlSheets = document.getElementById('cfgUrlSheets').value.trim();
-    const urlCalendly = document.getElementById('cfgUrlCalendly').value.trim();
-    const fileInput = document.getElementById('cfgLogoLocalFile');
+    const nome = (document.getElementById('hubClinicaNome') || document.getElementById('cfgNomeClinica'))?.value.trim() || '';
+    const endereco = (document.getElementById('hubClinicaEndereco') || document.getElementById('cfgEndereco'))?.value.trim() || '';
+    const urlSheets = (document.getElementById('hubClinicaGoogleAgenda') || document.getElementById('cfgUrlSheets'))?.value.trim() || '';
+    const urlCalendly = (document.getElementById('hubClinicaCalendly') || document.getElementById('cfgUrlCalendly'))?.value.trim() || '';
+    const fileInput = document.getElementById('cfgLogoLocalFile') || document.getElementById('hubClinicaLogoFile');
 
     if (!nome) {
         alert("O nome da clínica é obrigatório.");
@@ -2715,7 +2715,7 @@ async function salvarHubClinicaBasico() {
         const { data: clinicaAtualizada, error: updateError } = await supabaseClient
             .from('clinicas')
             .update({
-                nome: nome, // <-- Corrigido para 'nome' (coluna real do Supabase)
+                nome: nome,
                 endereco: endereco,
                 url_google_agenda: urlSheets,
                 url_calendly: urlCalendly,
@@ -2727,8 +2727,9 @@ async function salvarHubClinicaBasico() {
 
         if (updateError) throw updateError;
 
-        // ATUALIZA A MEMÓRIA DA APLICAÇÃO (STATE)
+        // ATUALIZA A MEMÓRIA DA APLICAÇÃO (STATE) E O LOCAL STORAGE
         state.clinicaAtual = clinicaAtualizada;
+        localStorage.setItem('alavanca_clinica', JSON.stringify(clinicaAtualizada));
 
         // ATUALIZA A INTERFACE IMEDIATAMENTE
         if (typeof atualizarLogosVisuais === 'function') {
@@ -2767,16 +2768,21 @@ async function sincronizarDadosPlanilhaGoogle() {
         const urlStr = state.clinicaAtual.url_google_agenda.trim();
         let urlCsv = '';
 
+        // Trata e-mail inserido incorretamente no campo de URL
+        if (urlStr.includes('@') && !urlStr.includes('http')) {
+            throw new Error("O campo 'Link Integrador Google Agenda' contém um endereço de e-mail em vez de um link. Por favor, insira a URL da Planilha Google (ex: https://docs.google.com/spreadsheets/d/...).");
+        }
+
         // Trata URL publicada (/pub?output=csv) ou link normal de compartilhamento (/d/ID_DA_PLANILHA)
         if (urlStr.includes('/pub?') || urlStr.includes('output=csv')) {
             urlCsv = urlStr;
         } else {
             const matches = urlStr.match(/\/d\/([a-zA-Z0-9-_]+)/);
             if (!matches || !matches[1]) {
-                throw new Error("Link da planilha inválido. Verifique se copiou a URL correta do Google Sheets.");
+                throw new Error("Link da planilha inválido. Verifique se copiou a URL completa da planilha do Google Sheets.");
             }
             const spreadsheetId = matches[1];
-            urlCsv = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:csv&sheet=Insumos`;
+            urlCsv = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:csv`;
         }
 
         const response = await fetch(urlCsv);
@@ -2788,7 +2794,7 @@ async function sincronizarDadosPlanilhaGoogle() {
         const linhas = csvText.split('\n').map(l => l.split(',').map(c => c.replace(/^"|"$/g, '').trim()));
         
         if (linhas.length <= 1) {
-            throw new Error("A aba 'Insumos' está vazia ou não foi encontrada na planilha.");
+            throw new Error("A planilha está vazia ou não foi possível ler as colunas de insumos.");
         }
 
         // LIMPA APENAS OS INSUMOS DA CLÍNICA CONECTADA
@@ -2917,33 +2923,36 @@ async function prepararHubMaster() {
 function aplicarConfigNaInterface() {
     const cfg = state.configGlobal || {};
 
-    // 1. Atualiza o texto do nome da consultoria no footer
+    // 1. Nome da consultoria no rodapé
     const lblNome = document.getElementById('lblNomeConsultoria');
     if (lblNome && cfg.nome_consultoria) {
         lblNome.textContent = cfg.nome_consultoria;
     }
 
-    // 2. Atualiza o link do botão de Suporte (WhatsApp)
+    // 2. WhatsApp Suporte (Abre janela do WhatsApp Web/App)
     const lnkWhats = document.getElementById('lnkWhatsConsultoria');
     if (lnkWhats && cfg.whatsapp) {
         const num = cfg.whatsapp.replace(/\D/g, '');
-        lnkWhats.href = `https://wa.me/${num}`;
-        lnkWhats.target = "_blank";
+        lnkWhats.onclick = (e) => {
+            e.preventDefault();
+            window.open(`https://wa.me/${num}`, '_blank');
+        };
     }
 
-    // 3. Atualiza o link do botão de E-mail
+    // 3. E-mail Suporte (Abre a tela de Compor E-mail direto no Gmail Web)
     const lnkEmail = document.getElementById('lnkEmailConsultoria');
     if (lnkEmail && cfg.email_suporte) {
-        lnkEmail.href = `mailto:${cfg.email_suporte}`;
+        lnkEmail.onclick = (e) => {
+            e.preventDefault();
+            const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(cfg.email_suporte)}&su=Suporte%20- %20Alavanca%20360`;
+            window.open(gmailUrl, '_blank');
+        };
     }
 
-    // 4. Atualiza a logo da consultoria se inserida por URL
-    const imgLogo = document.getElementById('imgLogoConsultoria');
-    const containerLogo = document.getElementById('logoConsultoriaContainer');
-    if (imgLogo && containerLogo && cfg.logo_consultoria_url) {
-        imgLogo.src = cfg.logo_consultoria_url;
-        containerLogo.classList.remove('hidden');
-        containerLogo.classList.add('flex');
+    // 4. Logo Master (Aplica se houver URL válida inserida ou enviada)
+    const imgLogoMetodo = document.getElementById('imgLogoMetodo');
+    if (imgLogoMetodo && cfg.logo_metodo_url) {
+        imgLogoMetodo.src = cfg.logo_metodo_url;
     }
 }
 
