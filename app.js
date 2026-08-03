@@ -553,6 +553,7 @@ function switchTab(tabId) {
                 break;
             case 'tab-hub-clinica':
                 if (typeof aplicarConfigNaInterface === 'function') aplicarConfigNaInterface();
+                if (typeof preencherFormularioHubClinica === 'function') preencherFormularioHubClinica();
                 break;
         }
     } catch (err) {
@@ -560,6 +561,23 @@ function switchTab(tabId) {
     }
 
     if (window.lucide) lucide.createIcons();
+}
+
+function preencherFormularioHubClinica() {
+    if (!state.clinicaAtual) return;
+
+    const c = state.clinicaAtual;
+    
+    // Mapeamento exato dos IDs do formulário no HUB Clínica
+    const elNome     = document.getElementById('hubClinicaNome') || document.getElementById('nomeClinica');
+    const elEnd      = document.getElementById('hubClinicaEndereco') || document.getElementById('enderecoClinica');
+    const elAgenda   = document.getElementById('hubClinicaGoogleAgenda') || document.getElementById('urlGoogleAgenda');
+    const elCalendly = document.getElementById('hubClinicaCalendly') || document.getElementById('urlCalendly');
+
+    if (elNome)     elNome.value     = c.nome || c.nome_clinica || '';
+    if (elEnd)      elEnd.value      = c.endereco || '';
+    if (elAgenda)   elAgenda.value   = c.url_google_agenda || 'https://calendar.google.com';
+    if (elCalendly) elCalendly.value = c.url_calendly || 'https://calendly.com';
 }
 
 // 🛡️ FUNÇÃO INTELIGENTE PARA FECHAR O HUB MASTER
@@ -2876,17 +2894,57 @@ async function prepararHubMaster() {
     // 1º: carrega os dados do Supabase PRIMEIRO
     await carregarConfigGlobal();
 
-    // 2º: popula os campos com dados FRESCOS
+    // 2º: popula os campos com dados FRESCOS no formulário Master
     const cfgLogoMetodo = document.getElementById('cfgLogoMetodo');
     const cfgLogoConsultoria = document.getElementById('cfgLogoConsultoria');
     const cfgNomeConsultoriaGlobal = document.getElementById('cfgNomeConsultoriaGlobal');
+    const cfgWhatsApp = document.getElementById('cfgWhatsApp');
+    const cfgEmailConsultoria = document.getElementById('cfgEmailConsultoria');
 
     if (cfgLogoMetodo) cfgLogoMetodo.value = (state.configGlobal?.logo_metodo_url) || '';
     if (cfgLogoConsultoria) cfgLogoConsultoria.value = (state.configGlobal?.logo_consultoria_url) || '';
     if (cfgNomeConsultoriaGlobal) cfgNomeConsultoriaGlobal.value = (state.configGlobal?.nome_consultoria) || '';
+    if (cfgWhatsApp) cfgWhatsApp.value = (state.configGlobal?.whatsapp) || '';
+    if (cfgEmailConsultoria) cfgEmailConsultoria.value = (state.configGlobal?.email_suporte) || '';
 
-    // 3º: renderiza a lista de clínicas
+    // 3º: atualiza links do Suporte no Rodapé e a Logo na interface
+    if (typeof aplicarConfigNaInterface === 'function') aplicarConfigNaInterface();
+
+    // 4º: renderiza a lista de clínicas
     await renderizarListaClinicas();
+}
+
+function aplicarConfigNaInterface() {
+    const cfg = state.configGlobal || {};
+
+    // 1. Atualiza o texto do nome da consultoria no footer
+    const lblNome = document.getElementById('lblNomeConsultoria');
+    if (lblNome && cfg.nome_consultoria) {
+        lblNome.textContent = cfg.nome_consultoria;
+    }
+
+    // 2. Atualiza o link do botão de Suporte (WhatsApp)
+    const lnkWhats = document.getElementById('lnkWhatsConsultoria');
+    if (lnkWhats && cfg.whatsapp) {
+        const num = cfg.whatsapp.replace(/\D/g, '');
+        lnkWhats.href = `https://wa.me/${num}`;
+        lnkWhats.target = "_blank";
+    }
+
+    // 3. Atualiza o link do botão de E-mail
+    const lnkEmail = document.getElementById('lnkEmailConsultoria');
+    if (lnkEmail && cfg.email_suporte) {
+        lnkEmail.href = `mailto:${cfg.email_suporte}`;
+    }
+
+    // 4. Atualiza a logo da consultoria se inserida por URL
+    const imgLogo = document.getElementById('imgLogoConsultoria');
+    const containerLogo = document.getElementById('logoConsultoriaContainer');
+    if (imgLogo && containerLogo && cfg.logo_consultoria_url) {
+        imgLogo.src = cfg.logo_consultoria_url;
+        containerLogo.classList.remove('hidden');
+        containerLogo.classList.add('flex');
+    }
 }
 
 async function atualizarLogosSistema() {
