@@ -350,6 +350,7 @@ async function init() {
             carregarDadosFinanceiros()
         ]);
 
+        await carregarConfiguracoesGlobais();
         aplicarConfigNaInterface();
         rebuildSelects();
         if (typeof calcularMetricasGerais === 'function') calcularMetricasGerais();
@@ -2441,41 +2442,54 @@ function renderizarModuloFinanceiroCompleto() {
 // 13. HUB CLÍNICA (CONFIGURAÇÕES OPERACIONAIS DA CLÍNICA LOGADA)
 // ============================================================
 
+// ============================================================
+// APLICA CONFIGURAÇÕES GLOBAIS NOS CAMPOS E NO FOOTER DA SIDEBAR
+// ============================================================
 function aplicarConfigNaInterface() {
-    const clinica = state.clinicaAtual;
-    if (!clinica) return;
+    const cfg = state.configGlobal || {};
 
-    const txtNomeClinica = document.getElementById('txtNomeClinica');
-    const txtIdSupabase = document.getElementById('txtIdSupabase');
-    const lnkGoogleSheets = document.getElementById('lnkGoogleSheets');
-    const lnkCalendly = document.getElementById('lnkCalendly');
-    const lblNomeConsultoria = document.getElementById('lblNomeConsultoria');
-    const lnkWhatsConsultoria = document.getElementById('lnkWhatsConsultoria');
-    const lnkEmailConsultoria = document.getElementById('lnkEmailConsultoria');
+    // 1. Preenche os campos de input dentro do HUB Master
+    const inpNome  = document.getElementById('cfgNomeConsultoriaGlobal');
+    const inpLogo  = document.getElementById('cfgLogoConsultoria');
+    const inpWsp   = document.getElementById('cfgWhatsApp');
+    const inpEmail = document.getElementById('cfgEmailConsultoria');
 
-    if (txtNomeClinica) txtNomeClinica.textContent = clinica.nome || 'Clínica';
-    if (txtIdSupabase) txtIdSupabase.textContent = (state.usuario && state.usuario.email) || clinica.id;
-    if (lnkGoogleSheets) lnkGoogleSheets.href = clinica.url_google_agenda || '#';
-    if (lnkCalendly) lnkCalendly.href = clinica.url_calendly || '#';
+    if (inpNome)  inpNome.value  = cfg.nome_consultoria || '';
+    if (inpLogo)  inpLogo.value  = cfg.logo_consultoria_url || '';
+    if (inpWsp)   inpWsp.value   = cfg.whatsapp || '';
+    if (inpEmail) inpEmail.value = cfg.email_suporte || '';
 
-    const cfgGlobal = state.configGlobal;
-    if (lblNomeConsultoria) lblNomeConsultoria.textContent = (cfgGlobal && cfgGlobal.nome_consultoria) || 'Alavanca 360 Consultoria';
-    if (lnkWhatsConsultoria && cfgGlobal && cfgGlobal.whatsapp_consultoria) lnkWhatsConsultoria.href = `https://wa.me/${cfgGlobal.whatsapp_consultoria.replace(/\D/g, '')}`;
-    if (lnkEmailConsultoria && cfgGlobal && cfgGlobal.email_consultoria) lnkEmailConsultoria.href = `mailto:${cfgGlobal.email_consultoria}`;
+    // 2. Atualiza o nome da Consultoria no Footer da Sidebar (Imagem 3)
+    const lblNome = document.getElementById('lblNomeConsultoria');
+    if (lblNome && cfg.nome_consultoria) {
+        lblNome.textContent = cfg.nome_consultoria;
+    }
 
-    // Campos do formulário HUB Clínica
-    const cfgNomeClinica = document.getElementById('cfgNomeClinica');
-    const cfgEndereco = document.getElementById('cfgEndereco');
-    const cfgUrlSheets = document.getElementById('cfgUrlSheets');
-    const cfgUrlCalendly = document.getElementById('cfgUrlCalendly');
-    const cfgLogoClinicaHub = document.getElementById('cfgLogoClinicaHub');
-    if (cfgNomeClinica) cfgNomeClinica.value = clinica.nome || '';
-    if (cfgEndereco) cfgEndereco.value = clinica.endereco || '';
-    if (cfgUrlSheets) cfgUrlSheets.value = clinica.url_google_agenda || '';
-    if (cfgUrlCalendly) cfgUrlCalendly.value = clinica.url_calendly || '';
-    if (cfgLogoClinicaHub) cfgLogoClinicaHub.value = clinica.logo_clinica_url || '';
+    // 3. Atualiza os links de WhatsApp e E-mail no Footer (Imagem 3)
+    const lnkWhats = document.getElementById('lnkWhatsConsultoria');
+    if (lnkWhats && cfg.whatsapp) {
+        const apenasNumeros = cfg.whatsapp.replace(/\D/g, '');
+        lnkWhats.href = `https://wa.me/${apenasNumeros}`;
+    }
 
-    atualizarLogosVisuais();
+    const lnkEmail = document.getElementById('lnkEmailConsultoria');
+    if (lnkEmail && cfg.email_suporte) {
+        lnkEmail.href = `mailto:${cfg.email_suporte}`;
+    }
+
+    // 4. Exibe a logo da consultoria no footer se houver URL informada
+    const containerLogo = document.getElementById('logoConsultoriaContainer');
+    const imgLogo = document.getElementById('imgLogoConsultoria');
+    if (containerLogo && imgLogo) {
+        if (cfg.logo_consultoria_url) {
+            imgLogo.src = cfg.logo_consultoria_url;
+            containerLogo.classList.remove('hidden');
+            containerLogo.classList.add('flex');
+        } else {
+            containerLogo.classList.add('hidden');
+            containerLogo.classList.remove('flex');
+        }
+    }
 }
 
 // ============================================================
@@ -2891,7 +2905,7 @@ async function atualizarLogosSistema() {
 }
 
 // ============================================================
-// SALVA CONFIGURAÇÕES GLOBAIS DO HUB MASTER (SUPABASE DIRECT)
+// SALVA HUB MASTER E FORÇA ATUALIZAÇÃO IMEDIATA DA TELA
 // ============================================================
 async function salvarConfigGlobal() {
     const nome  = document.getElementById('cfgNomeConsultoriaGlobal')?.value.trim() || '';
@@ -2909,7 +2923,6 @@ async function salvarConfigGlobal() {
             updated_at: new Date().toISOString()
         };
 
-        // Gravação direta no Supabase
         const { data, error } = await supabaseClient
             .from('config_global')
             .upsert(payload)
@@ -2918,13 +2931,13 @@ async function salvarConfigGlobal() {
 
         if (error) throw error;
 
+        // Atualiza a memória global
         state.configGlobal = data || payload;
 
-        // Atualiza elementos visuais na tela imediatamente
-        if (typeof atualizarLogosVisuais === 'function') atualizarLogosVisuais();
-        if (typeof aplicarConfigNaInterface === 'function') aplicarConfigNaInterface();
+        // Força a atualização dos links e campos na tela
+        aplicarConfigNaInterface();
 
-        alert("Configurações Globais do HUB Master salvas com sucesso!");
+        alert("Configurações Globais e Suporte salvos com sucesso!");
     } catch (e) {
         console.error("Erro ao salvar marca global:", e);
         alert("Erro ao salvar configurações globais: " + (e.message || e));
