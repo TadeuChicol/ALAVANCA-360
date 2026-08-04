@@ -601,13 +601,15 @@ function preencherFormularioHubClinica() {
     const elCalendly = document.getElementById('hubClinicaCalendly') || document.getElementById('urlCalendly');
     const elEmail    = document.getElementById('hubClinicaEmail') || document.getElementById('emailClinica');
     const elLogo     = document.getElementById('hubClinicaLogoUrl') || document.getElementById('logoClinicaUrl');
+    const elNap      = document.getElementById('hubClinicaPlanilhaNap') || document.getElementById('urlPlanilhaNap');
 
-    if (elNome)     elNome.value     = c.nome || c.nome_clinica || '';
+    if (elNome)     elNome.value     = c.nome_clinica || c.nome || '';
     if (elEnd)      elEnd.value      = c.endereco || '';
     if (elAgenda)   elAgenda.value   = c.url_google_agenda || '';
     if (elCalendly) elCalendly.value = c.url_calendly || '';
     if (elEmail)    elEmail.value    = c.email || c.email_suporte || '';
     if (elLogo)     elLogo.value     = c.logo_clinica_url || '';
+    if (elNap)      elNap.value      = c.url_planilha_nap || '';
 }
 
 async function salvarHubClinica() {
@@ -615,13 +617,13 @@ async function salvarHubClinica() {
         alert('Nenhuma clínica selecionada para salvar.');
         return;
     }
-
     const nome = (document.getElementById('hubClinicaNome') || document.getElementById('nomeClinica'))?.value.trim();
     const endereco = (document.getElementById('hubClinicaEndereco') || document.getElementById('enderecoClinica'))?.value.trim();
     const url_google_agenda = (document.getElementById('hubClinicaGoogleAgenda') || document.getElementById('urlGoogleAgenda'))?.value.trim();
     const url_calendly = (document.getElementById('hubClinicaCalendly') || document.getElementById('urlCalendly'))?.value.trim();
     const email = (document.getElementById('hubClinicaEmail') || document.getElementById('emailClinica'))?.value.trim();
     const logo_clinica_url = (document.getElementById('hubClinicaLogoUrl') || document.getElementById('logoClinicaUrl'))?.value.trim();
+    const url_planilha_nap = (document.getElementById('hubClinicaPlanilhaNap') || document.getElementById('urlPlanilhaNap'))?.value.trim();
 
     const dadosAtualizados = {
         nome_clinica: nome,
@@ -629,7 +631,8 @@ async function salvarHubClinica() {
         url_google_agenda: url_google_agenda,
         url_calendly: url_calendly,
         email: email,
-        logo_clinica_url: logo_clinica_url
+        logo_clinica_url: logo_clinica_url,
+        url_planilha_nap: url_planilha_nap
     };
 
     try {
@@ -637,11 +640,11 @@ async function salvarHubClinica() {
         if (resultado) {
             state.clinicaAtual = { ...state.clinicaAtual, ...resultado };
             aplicarConfigNaInterface();
-            alert('Configurações da clínica salvas e integradas com sucesso!');
+            alert('✅ Configurações e integrações da clínica salvas com sucesso!');
         }
     } catch (err) {
         console.error('Erro ao salvar no HUB Clínica:', err);
-        alert('Erro ao salvar as configurações.');
+        alert('Erro ao salvar as configurações no servidor.');
     }
 }
 
@@ -2346,50 +2349,81 @@ function renderizarGraficoTipoPagamento(atendimentos) {
     });
 }
 
+// ============================================================
+// CONTINUAÇÃO E FECHAMENTO DO DASHBOARD VIVO E MÓDULO FINANCEIRO
+// ============================================================
+
 function renderizarGraficoRankingMargem() {
     const canvas = document.getElementById('chartRankingMargem');
     if (!canvas || typeof Chart === 'undefined') return;
 
-    const ranking = state.servicos.map(s => {
-        const rConv = calcularCustoServicoLocal(s, 'convenio');
+    // Prepara dados dos serviços ordenados por margem de lucro (%)
+    const dados = state.servicos.map(s => {
         const rPart = calcularCustoServicoLocal(s, 'particular');
-        const margemMedia = (rConv.margemReais + rPart.margemReais) / 2;
-        return { nome: s.nome, margem: margemMedia };
-    }).sort((a, b) => b.margem - a.margem).slice(0, 8);
+        return { nome: s.nome, margemPct: rPart.margemPct };
+    }).sort((a, b) => b.margemPct - a.margemPct).slice(0, 8); // Top 8 serviços
+
+    const labels = dados.map(d => d.nome);
+    const valores = dados.map(d => d.margemPct);
 
     if (state.charts.rankingMargem) state.charts.rankingMargem.destroy();
+
     state.charts.rankingMargem = new Chart(canvas, {
         type: 'bar',
         data: {
-            labels: ranking.map(r => r.nome),
-            datasets: [{ label: 'Margem média (R$)', data: ranking.map(r => r.margem), backgroundColor: ranking.map(r => r.margem >= 0 ? '#34d399' : '#fb7185') }]
+            labels: labels,
+            datasets: [{
+                label: 'Margem % (Particular)',
+                data: valores,
+                backgroundColor: '#10b981'
+            }]
         },
         options: {
-            indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: { x: { ticks: { color: '#94a3b8' } }, y: { ticks: { color: '#cbd5e1' } } }
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true, ticks: { color: '#94a3b8' } },
+                x: { ticks: { color: '#94a3b8' } }
+            },
+            plugins: { legend: { labels: { color: '#cbd5e1' } } }
         }
     });
 }
 
 function renderizarAlertasMargem() {
-    const box = document.getElementById('dvAlertasMargem');
-    if (!box) return;
+    const container = document.getElementById('dvContainerAlertas');
+    if (!container) return;
 
     const alertas = [];
     state.servicos.forEach(s => {
-        ['convenio', 'particular'].forEach(modalidade => {
-            const r = calcularCustoServicoLocal(s, modalidade);
-            if (r.precoVenda > 0 && r.margemPct < r.margemMinimaConfigurada) {
-                alertas.push(`"${s.nome}" (${modalidade === 'convenio' ? 'Convênio' : 'Particular'}) está com margem de ${r.margemPct.toFixed(1)}%, abaixo do mínimo configurado de ${r.margemMinimaConfigurada}%.`);
+        ['convenio', 'particular'].forEach(mod => {
+            const r = calcularCustoServicoLocal(s, mod);
+            if (r.margemPct < r.margemMinimaConfigurada) {
+                alertas.push(`
+                    <div class="p-3 bg-rose-950/40 border border-rose-800/60 rounded-lg text-xs text-rose-300 flex justify-between items-center">
+                        <span><strong>${s.nome}</strong> (${mod.toUpperCase()}): Margem de ${r.margemPct.toFixed(1)}% abaixo do mínimo (${r.margemMinimaConfigurada}%).</span>
+                        <span class="font-bold text-rose-400">Prejuízo / Risco</span>
+                    </div>
+                `);
             }
         });
     });
 
-    box.innerHTML = alertas.length === 0
-        ? 'Nenhum alerta no momento.'
-        : alertas.map(a => `<div class="flex items-start gap-2"><i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-rose-400 mt-0.5 shrink-0"></i><span>${a}</span></div>`).join('');
-    if (window.lucide) lucide.createIcons();
+    container.innerHTML = alertas.length > 0 
+        ? alertas.join('') 
+        : `<p class="text-xs text-emerald-400">✅ Todos os serviços estão operando dentro das margens mínimas de segurança.</p>`;
+}
+
+function renderizarModuloFinanceiroCompleto() {
+    if (typeof renderizarInsumos === 'function') renderizarInsumos();
+    if (typeof renderizarServicos === 'function') renderizarServicos();
+    if (typeof renderizarMapaInsumos === 'function') renderizarMapaInsumos();
+    if (typeof renderizarCustosFixos === 'function') renderizarCustosFixos();
+    if (typeof preencherFormsConfigPrecificacao === 'function') preencherFormsConfigPrecificacao();
+    if (typeof rebuildSelectsFinanceiro === 'function') rebuildSelectsFinanceiro();
+    if (typeof renderizarResultadoCustos === 'function') renderizarResultadoCustos();
+    if (typeof renderizarAtendimentos === 'function') renderizarAtendimentos();
+    if (typeof renderizarDashboardVivo === 'function') renderizarDashboardVivo();
 }
 
 // ============================================================
@@ -2982,14 +3016,14 @@ async function prepararHubMaster() {
     await carregarConfigGlobal();
 
     // 2º: popula os campos com dados FRESCOS no formulário Master
-    const cfgLogoMetodo = document.getElementById('cfgLogoMetodo');
+    const cfgLogoMetodo = document.getElementById('cfgLogoMetodo') || document.getElementById('hubMasterLogoMetodoUrl');
     const cfgLogoConsultoria = document.getElementById('cfgLogoConsultoria');
     const cfgNomeConsultoriaGlobal = document.getElementById('cfgNomeConsultoriaGlobal');
     const cfgWhatsApp = document.getElementById('cfgWhatsApp');
     const cfgEmailConsultoria = document.getElementById('cfgEmailConsultoria');
 
     if (cfgLogoMetodo) cfgLogoMetodo.value = (state.configGlobal?.logo_metodo_url) || '';
-    if (cfgLogoConsultoria) cfgLogoConsultoria.value = (state.configGlobal?.logo_consultoria_url) || '';
+    if (cfgLogoConsultoria) cfgLogoConsultoria.value = (state.configGlobal?.logo_consultoria_url) || (state.configGlobal?.logo_metodo_url) || '';
     if (cfgNomeConsultoriaGlobal) cfgNomeConsultoriaGlobal.value = (state.configGlobal?.nome_consultoria) || '';
     if (cfgWhatsApp) cfgWhatsApp.value = (state.configGlobal?.whatsapp) || '';
     if (cfgEmailConsultoria) cfgEmailConsultoria.value = (state.configGlobal?.email_suporte) || '';
@@ -3057,7 +3091,7 @@ async function atualizarLogosSistema() {
 // ============================================================
 async function salvarConfigGlobal() {
     const nome  = document.getElementById('cfgNomeConsultoriaGlobal')?.value.trim() || '';
-    const logo  = document.getElementById('cfgLogoConsultoria')?.value.trim() || '';
+    const logo  = document.getElementById('cfgLogoConsultoria')?.value.trim() || document.getElementById('cfgLogoMetodo')?.value.trim() || '';
     const wsp   = document.getElementById('cfgWhatsApp')?.value.trim() || '';
     const email = document.getElementById('cfgEmailConsultoria')?.value.trim() || '';
 
@@ -3066,6 +3100,7 @@ async function salvarConfigGlobal() {
             id: 1,
             nome_consultoria: nome,
             logo_consultoria_url: logo,
+            logo_metodo_url: logo, // Persiste a logo da consultoria/método em PNG/JPEG
             whatsapp: wsp,
             email_suporte: email,
             updated_at: new Date().toISOString()
@@ -3085,7 +3120,7 @@ async function salvarConfigGlobal() {
         // Força a atualização dos links e campos na tela
         aplicarConfigNaInterface();
 
-        alert("Configurações Globais e Suporte salvos com sucesso!");
+        alert("✅ Configurações Globais e Suporte salvos com sucesso!");
     } catch (e) {
         console.error("Erro ao salvar marca global:", e);
         alert("Erro ao salvar configurações globais: " + (e.message || e));
