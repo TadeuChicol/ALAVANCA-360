@@ -171,14 +171,13 @@ async function initLoginScreen() {
     await carregarConfigGlobal();
     aplicarMarcaMetodoNaTelaLogin();
 
-    const { data: { session } } = await supabaseClient.auth.getSession();
+const { data: { session } } = await supabaseClient.auth.getSession();
     if (session && session.user) {
         const ok = await carregarContextoUsuario(session.user);
         if (ok) { await entrarNoSistema(); return; }
     }
-
     mostrarTelaLogin();
-
+} // <--- CHAVE DE FECHAMENTO ADICIONADA AQUI. ELA SALVA O SISTEMA!
 
 async function carregarConfigGlobal() {
     let cfg = await apiGet('config_global', 'global');
