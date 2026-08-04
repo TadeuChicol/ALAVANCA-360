@@ -1419,36 +1419,41 @@ document.addEventListener('DOMContentLoaded', () => {
     <div class="flex items-center justify-between border-b border-slate-800 pb-4">
         <div>
             <h2 class="text-xl font-bold text-slate-100 flex items-center gap-2">
-                <i data-lucide="building" class="w-6 h-6 text-emerald-400"></i>
+                <i data-lucide="building" class="w-6 h-6 text-sky-400"></i>
                 HUB Clínica — Configurações da Unidade
             </h2>
             <p class="text-xs text-slate-400 mt-1">Sua fonte de verdade. Dados gravados e autenticados via Supabase.</p>
         </div>
-        <button onclick="salvarHubClinica()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs rounded-lg transition flex items-center gap-2 shadow-lg shadow-emerald-900/20">
+        <button onclick="salvarHubClinica()" class="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white font-semibold text-xs rounded-lg transition flex items-center gap-2 shadow-lg shadow-sky-900/20 cursor-pointer">
             <i data-lucide="save" class="w-4 h-4"></i>
             Salvar e Sincronizar
         </button>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <!-- Nome e Endereço -->
+        <!-- Nome, Endereço e Logomarca -->
         <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-4">
-            <h3 class="text-sm font-bold text-emerald-400 uppercase tracking-wider">Identificação do Estabelecimento</h3>
+            <h3 class="text-sm font-bold text-sky-400 uppercase tracking-wider">Identificação do Estabelecimento</h3>
             <div>
                 <label class="block text-xs font-medium text-slate-400 mb-1">Nome Fantasia / Razão da Clínica</label>
-                <input type="text" id="hubClinicaNome" placeholder="Ex: Clínica Odontológica Dr. Silva" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-200 focus:border-emerald-500 focus:outline-none">
+                <input type="text" id="hubClinicaNome" placeholder="Ex: Clínica Odontológica Dr. Silva" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-200 focus:border-sky-500 focus:outline-none">
             </div>
             <div>
                 <label class="block text-xs font-medium text-slate-400 mb-1">Endereço Completo (Impresso nos Documentos)</label>
-                <input type="text" id="hubClinicaEndereco" placeholder="Av. Paulista, 1000 - Cj 42 - São Paulo/SP" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-200 focus:border-emerald-500 focus:outline-none">
+                <input type="text" id="hubClinicaEndereco" placeholder="Av. Paulista, 1000 - Cj 42 - São Paulo/SP" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-200 focus:border-sky-500 focus:outline-none">
             </div>
             <div>
                 <label class="block text-xs font-medium text-slate-400 mb-1">E-mail Principal de Suporte / Contato</label>
-                <input type="email" id="hubClinicaEmail" placeholder="contato@clinica.com.br" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-200 focus:border-emerald-500 focus:outline-none">
+                <input type="email" id="hubClinicaEmail" placeholder="contato@clinica.com.br" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-200 focus:border-sky-500 focus:outline-none">
             </div>
             <div>
-                <label class="block text-xs font-medium text-slate-400 mb-1">URL da Logomarca (PNG/SVG Transparente)</label>
-                <input type="url" id="hubClinicaLogoUrl" placeholder="https://exemplo.com/logo-clinica.png" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-200 focus:border-emerald-500 focus:outline-none">
+                <label class="block text-xs font-medium text-slate-400 mb-1">Logomarca da Clínica (PNG / JPEG)</label>
+                <input type="file" accept="image/png, image/jpeg" onchange="converterLogoParaBase64(event, 'hubClinicaLogoUrl', 'imgPreviewLogo', 'previewLogoContainer', 'nomeArquivoLogo')" class="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-sky-500/10 file:text-sky-400 hover:file:bg-sky-500/20 cursor-pointer">
+                <input type="hidden" id="hubClinicaLogoUrl">
+                <div id="previewLogoContainer" class="hidden mt-2 flex items-center gap-2">
+                    <img id="imgPreviewLogo" src="" alt="Preview Logo" class="h-10 object-contain rounded bg-slate-950 p-1 border border-slate-800">
+                    <span id="nomeArquivoLogo" class="text-[10px] text-slate-400"></span>
+                </div>
             </div>
         </div>
 
@@ -1458,25 +1463,21 @@ document.addEventListener('DOMContentLoaded', () => {
             <div>
                 <label class="block text-xs font-medium text-slate-400 mb-1">URL de Incorporação Google Agenda (iFrame Embed)</label>
                 <input type="url" id="hubClinicaGoogleAgenda" placeholder="https://calendar.google.com/calendar/embed?src=..." class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-200 focus:border-sky-500 focus:outline-none">
-                <p class="text-[10px] text-slate-500 mt-1">Cole o link público gerado no painel do Google Calendar para espelhamento em tempo real.</p>
             </div>
             <div>
-                <div>
                 <label class="block text-xs font-medium text-slate-400 mb-1">Link Direto Calendly / Agendador Online</label>
                 <input type="url" id="hubClinicaCalendly" placeholder="https://calendly.com/suaclinica" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-200 focus:border-sky-500 focus:outline-none">
             </div>
-            <!-- NOVO CAMPO: PLANILHA NAP -->
             <div>
                 <label class="block text-xs font-medium text-slate-400 mb-1">Link da Planilha NAP (Google Sheets)</label>
-                <input type="url" id="hubClinicaPlanilhaNap" placeholder="https://docs.google.com/spreadsheets/d/..." class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-200 focus:border-emerald-500 focus:outline-none">
-                <p class="text-[10px] text-slate-500 mt-1">Insira o link de compartilhamento da planilha da NAP para auditorias e conferência.</p>
+                <input type="url" id="hubClinicaPlanilhaNap" placeholder="https://docs.google.com/spreadsheets/d/..." class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-200 focus:border-sky-500 focus:outline-none">
             </div>
         </div>
     </div>
 </div>
 
 <!-- CONFIGURAÇÃO HUB B - MASTER CONSULTOR -->
-<div id="tab-hub-master" class="tab-content hidden p-6">
+<div id="tab-hub-master" class="tab-content hidden p-6 space-y-6">
     <!-- Nível 1: Aviso de Acesso Restrito (Gatekeeper) -->
     <div id="hubGatekeeper" class="bg-amber-950/20 border border-amber-800/50 p-8 rounded-2xl text-center max-w-lg mx-auto my-12 space-y-4">
         <i data-lucide="shield-alert" class="w-12 h-12 text-amber-500 mx-auto"></i>
@@ -1494,40 +1495,33 @@ document.addEventListener('DOMContentLoaded', () => {
                 </h2>
                 <p class="text-xs text-slate-400">Controle central de clínicas franqueadas/atendidas e parâmetros do Método.</p>
             </div>
-            <button onclick="fecharHubMaster()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg transition border border-slate-700 flex items-center gap-1.5">
+            <button onclick="fecharHubMaster()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg transition border border-slate-700 flex items-center gap-1.5 cursor-pointer">
                 <i data-lucide="x" class="w-4 h-4"></i> Fechar HUB Master
             </button>
         </div>
 
         <!-- 1. MARCA GLOBAL: CONSULTORIA & SUPORTE -->
         <div class="bg-slate-900 p-6 rounded-xl border border-slate-800 space-y-4 w-full">
-            <h3 class="text-sm font-bold text-sky-400 flex items-center gap-2">
-                <i data-lucide="palette" class="w-4 h-4"></i> Identidade Visual & Suporte Global (aplicado a TODAS as clínicas)
+            <h3 class="text-sm font-bold text-amber-400 flex items-center gap-2">
+                <i data-lucide="shield-check" class="w-4 h-4"></i> Identidade Visual & Suporte Global (Consultoria Master)
             </h3>
-
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                 <div>
                     <label class="block text-slate-400 mb-1">Nome da Consultoria / Marca Master</label>
-                    <input type="text" id="cfgNomeConsultoriaGlobal" placeholder="Alavanca 360 Consultoria" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-300 rounded focus:border-sky-500 outline-none">
+                    <input type="text" id="hubMasterNomeConsultoria" value="Alavanca 360 Consultoria" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-300 rounded focus:border-amber-500 outline-none">
                 </div>
                 <div>
-                    <label class="block text-slate-400 mb-1">URL da Logo da Consultoria / Método (PNG ou JPEG)</label>
-                    <input type="url" id="cfgLogoConsultoria" placeholder="https://exemplo.com/logo-consultoria.png" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-300 rounded focus:border-sky-500 outline-none">
+                    <label class="block text-slate-400 mb-1">E-mail de Suporte do Sistema</label>
+                    <input type="email" id="hubMasterEmailSuporte" value="contato@tce-tadeuchicolempowerment.cloud" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-300 rounded focus:border-amber-500 outline-none">
                 </div>
                 <div>
                     <label class="block text-slate-400 mb-1">WhatsApp de Suporte (com DDD)</label>
-                    <input type="text" id="cfgWhatsApp" placeholder="5511964363466" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-300 rounded focus:border-sky-500 outline-none">
-                </div>
-                <div>
-                    <label class="block text-slate-400 mb-1">E-mail de Suporte</label>
-                    <input type="email" id="cfgEmailConsultoria" placeholder="contato@alavanca360.com.br" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-300 rounded focus:border-sky-500 outline-none">
+                    <input type="text" id="hubMasterWhatsapp" placeholder="5511999999999" value="5511999999999" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-300 rounded focus:border-amber-500 outline-none">
                 </div>
             </div>
-
-            <div class="flex items-center justify-between pt-2">
-                <p class="text-[10px] text-slate-500">Alterações aqui se propagam para o suporte e rodapé do sistema.</p>
-                <button type="button" onclick="salvarConfigGlobal()" class="bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition flex items-center gap-1.5 shadow-lg shadow-sky-900/20">
-                    <i data-lucide="save" class="w-3.5 h-3.5"></i> Salvar Configurações Globais
+            <div class="flex justify-end pt-2">
+                <button onclick="salvarHubMaster()" class="bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold text-xs px-5 py-2.5 rounded-xl transition flex items-center gap-1.5 cursor-pointer">
+                    <i data-lucide="save" class="w-4 h-4"></i> Salvar Parâmetros Master
                 </button>
             </div>
         </div>
@@ -1573,7 +1567,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             </div>
             <div class="flex justify-end pt-2">
-                <button id="btnCadastrarClinica" onclick="cadastrarNovaClinica()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition flex items-center gap-2 shadow-lg shadow-emerald-900/20">
+                <button id="btnCadastrarClinica" onclick="cadastrarNovaClinica()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition flex items-center gap-2 shadow-lg shadow-emerald-900/20 cursor-pointer">
                     <i data-lucide="plus-circle" class="w-4 h-4"></i> Cadastrar Clínica
                 </button>
             </div>
@@ -1605,15 +1599,20 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         </div>
 
-    </div> <!-- FIM DE #hubConteudoOculto -->
+    </div> <!-- FIM DE #hubConteudoOculto (Agora engloba todos os blocos do painel admin) -->
 </div> <!-- FIM DA ABA HUB MASTER -->
 
-</main> <!-- Fechamento da tag MAIN (área de conteúdo principal) -->
-</div> <!-- Fechamento da div .flex.flex-1.overflow-hidden (Sidebar + Main) -->
-</div> <!-- Fechamento da div #appPrincipal -->
+</main> <!-- /main -->
+</div> <!-- /flex layout -->
+</div> <!-- /appPrincipal -->
 
-<!-- SCRIPTS DO SISTEMA -->
-<script src="supabase-config.js"></script>
-<script src="app.js"></script>
+<!-- Scripts auxiliares / Lucide Icons Renderer -->
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        if (window.lucide) {
+            lucide.createIcons();
+        }
+    });
+</script>
 </body>
 </html>
