@@ -178,7 +178,7 @@ async function initLoginScreen() {
     }
 
     mostrarTelaLogin();
-}
+
 
 async function carregarConfigGlobal() {
     let cfg = await apiGet('config_global', 'global');
@@ -187,11 +187,15 @@ async function carregarConfigGlobal() {
             id: 'global',
             logo_metodo_url: 'images/logo-alavanca-360.png',
             nome_consultoria: 'Alavanca 360 Consultoria',
-            whatsapp_consultoria: '',
-            email_consultoria: '',
+            whatsapp_consultoria: '5511999999999',
+            email_consultoria: 'contato@tce-tadeuchicolempowerment.cloud',
             logo_consultoria_url: ''
         };
     }
+    // Garante fallback se estiver vazio no banco
+    if (!cfg.email_consultoria) cfg.email_consultoria = 'contato@tce-tadeuchicolempowerment.cloud';
+    // Garante valor fallback se estiver nulo/vazio no banco
+    if (!cfg.nome_consultoria) cfg.nome_consultoria = 'Alavanca 360 Consultoria';
     state.configGlobal = cfg;
 }
 
@@ -228,7 +232,11 @@ function aplicarConfigNaInterface() {
         }
         const btnEmail = document.getElementById('btnSuporteEmail');
         if (btnEmail && state.configGlobal.email_consultoria) {
-            btnEmail.href = `mailto:${state.configGlobal.email_consultoria}`;
+            const emailClinica = state.clinicaAtual?.email || state.clinicaAtual?.email_suporte || '';
+            const nomeClinica = state.clinicaAtual?.nome_clinica || state.clinicaAtual?.nome || 'Clinica';
+            const assunto = encodeURIComponent(`[Suporte Alavanca 360] Atendimento - ${nomeClinica}`);
+            const corpo = encodeURIComponent(`Olá Suporte,\n\nSou da clínica ${nomeClinica} (E-mail de Cadastro: ${emailClinica}).\n\nPreciso de suporte com: `);
+            btnEmail.href = `mailto:${state.configGlobal.email_consultoria}?subject=${assunto}&body=${corpo}`;
         }
     }
 }
@@ -341,12 +349,11 @@ async function carregarContextoUsuario(user) {
         state.clinicaAtual = null;
     }
 
-    // 🛡️ Se o usuário tem clínica vinculada, NÃO é admin (multi-tenant isolado)
-    if (state.clinicaAtual) {
-        state.isAdmin = false;
-    }
-
-    return state.isAdmin || !!state.clinicaAtual;
+// 🛡️ Mantém a permissão de admin master se ele constar na tabela consultoria_admins
+if (adminData) {
+    state.isAdmin = true;
+}
+return state.isAdmin || !!state.clinicaAtual;
 }
 
 async function sairDoSistema() {
@@ -591,6 +598,32 @@ function switchTab(tabId) {
     if (window.lucide) lucide.createIcons();
 }
 
+// 📸 Função para conversão local da logomarca (PNG/JPEG)
+function converterLogoParaBase64(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (!['image/png', 'image/jpeg'].includes(file.type)) {
+        alert('Por favor, selecione apenas arquivos nos formatos PNG ou JPEG.');
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const base64Url = e.target.result;
+        const elLogoInput = document.getElementById('hubClinicaLogoUrl');
+        const elPreviewImg = document.getElementById('imgPreviewLogo');
+        const elPreviewContainer = document.getElementById('previewLogoContainer');
+        const elNomeArquivo = document.getElementById('nomeArquivoLogo');
+
+        if (elLogoInput) elLogoInput.value = base64Url;
+        if (elPreviewImg) elPreviewImg.src = base64Url;
+        if (elPreviewContainer) elPreviewContainer.classList.remove('hidden');
+        if (elNomeArquivo) elNomeArquivo.textContent = file.name;
+    };
+    reader.readAsDataURL(file);
+}
+
 function preencherFormularioHubClinica() {
     if (!state.clinicaAtual) return;
     const c = state.clinicaAtual;
@@ -610,6 +643,14 @@ function preencherFormularioHubClinica() {
     if (elEmail)    elEmail.value    = c.email || c.email_suporte || '';
     if (elLogo)     elLogo.value     = c.logo_clinica_url || '';
     if (elNap)      elNap.value      = c.url_planilha_nap || '';
+
+    // Se já houver logomarca cadastrada no banco, mostra no preview
+    if (c.logo_clinica_url) {
+        const elPreviewImg = document.getElementById('imgPreviewLogo');
+        const elPreviewContainer = document.getElementById('previewLogoContainer');
+        if (elPreviewImg) elPreviewImg.src = c.logo_clinica_url;
+        if (elPreviewContainer) elPreviewContainer.classList.remove('hidden');
+    }
 }
 
 async function salvarHubClinica() {
@@ -617,6 +658,16 @@ async function salvarHubClinica() {
         alert('Nenhuma clínica selecionada para salvar.');
         return;
     }
+
+    // Feedback visual de carregamento no botão
+    const btnSalvar = event?.currentTarget || document.querySelector('button[onclick="salvarHubClinica()"]');
+    const textoOriginal = btnSalvar ? btnSalvar.innerHTML : '';
+    if (btnSalvar) {
+        btnSalvar.disabled = true;
+        btnSalvar.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Salvando...`;
+        if (window.lucide) lucide.createIcons();
+    }
+
     const nome = (document.getElementById('hubClinicaNome') || document.getElementById('nomeClinica'))?.value.trim();
     const endereco = (document.getElementById('hubClinicaEndereco') || document.getElementById('enderecoClinica'))?.value.trim();
     const url_google_agenda = (document.getElementById('hubClinicaGoogleAgenda') || document.getElementById('urlGoogleAgenda'))?.value.trim();
@@ -639,12 +690,18 @@ async function salvarHubClinica() {
         const resultado = await apiUpdate('clinicas', state.clinicaAtual.id, dadosAtualizados);
         if (resultado) {
             state.clinicaAtual = { ...state.clinicaAtual, ...resultado };
-            aplicarConfigNaInterface();
+            if (typeof aplicarConfigNaInterface === 'function') aplicarConfigNaInterface();
             alert('✅ Configurações e integrações da clínica salvas com sucesso!');
         }
     } catch (err) {
         console.error('Erro ao salvar no HUB Clínica:', err);
-        alert('Erro ao salvar as configurações no servidor.');
+        alert('Erro ao salvar as configurações no servidor: ' + (err.message || err));
+    } finally {
+        if (btnSalvar) {
+            btnSalvar.disabled = false;
+            btnSalvar.innerHTML = textoOriginal;
+            if (window.lucide) lucide.createIcons();
+        }
     }
 }
 
@@ -2272,16 +2329,17 @@ function renderizarAtendimentos() {
     tbody.innerHTML = ordenados.map(a => {
         const total = (Number(a.valor_convenio) || 0) + (Number(a.valor_particular) || 0);
         const tipoLabel = { convenio: 'Convênio', particular: 'Particular', misto: 'Misto' }[a.tipo_pagamento] || a.tipo_pagamento;
-        const tipoCor = { convenio: 'bg-sky-950 text-sky-300', particular: 'bg-purple-950 text-purple-300', misto: 'bg-amber-950 text-amber-300' }[a.tipo_pagamento] || '';
+        const tipoCor = { convenio: 'bg-sky-950 text-sky-300', particular: 'bg-purple-950 text-purple-300', misto: 'bg-amber-950 text-amber-300' }[a.tipo_pagamento] || 'bg-slate-800 text-slate-300';
         return `
-        <tr class="border-b border-slate-800/60">
-            <td class="p-2 text-slate-400">${a.data_atendimento ? new Date(a.data_atendimento).toLocaleDateString('pt-BR') : ''}</td>
-            <td class="p-2 text-slate-200">${a.paciente_nome || ''}</td>
-            <td class="p-2 text-slate-300">${a.servico_nome || ''}</td>
-            <td class="p-2"><span class="px-2 py-0.5 rounded text-[10px] ${tipoCor}">${tipoLabel}</span></td>
-            <td class="p-2 text-emerald-400">${formatarMoeda(total)}</td>
-            <td class="p-2 text-right"><button onclick="removerAtendimento('${a.id}')" class="text-rose-400 hover:underline">Excluir</button></td>
-        </tr>`;
+            <tr class="border-b border-slate-800/60 text-xs">
+                <td class="p-2 text-slate-200">${a.data_atendimento || ''}</td>
+                <td class="p-2 font-medium text-slate-100">${a.paciente_nome || ''}</td>
+                <td class="p-2 text-slate-300">${a.servico_nome || ''}</td>
+                <td class="p-2"><span class="px-2 py-0.5 rounded text-[10px] ${tipoCor}">${tipoLabel}</span></td>
+                <td class="p-2 text-emerald-400 font-mono font-bold">${formatarMoeda(total)}</td>
+                <td class="p-2 text-right"><button onclick="removerAtendimento('${a.id}')" class="text-rose-400 hover:underline">Excluir</button></td>
+            </tr>
+        `;
     }).join('');
 }
 
@@ -2290,23 +2348,23 @@ function renderizarAtendimentos() {
 // ============================================================
 
 function renderizarDashboardVivo() {
-  const el = document.getElementById('dvFaturamentoTotal');
-  if (!el) {
-    console.error('[Alavanca 360] ERRO: Elemento #dvFaturamentoTotal não encontrado no DOM. A aba dashboard-vivo não será renderizada.');
-    return;
-  }
+    const el = document.getElementById('dvFaturamentoTotal');
+    if (!el) {
+        console.error('[Alavanca 360] ERRO: Elemento #dvFaturamentoTotal não encontrado no DOM. A aba dashboard-vivo não será renderizada.');
+        return;
+    }
 
-    const atendimentos = state.atendimentos;
+    const atendimentos = state.atendimentos || [];
     const faturamentoTotal = atendimentos.reduce((s, a) => s + (Number(a.valor_convenio) || 0) + (Number(a.valor_particular) || 0), 0);
 
     let margemTotal = 0;
     atendimentos.forEach(a => {
-        const servico = state.servicos.find(s => s.id === a.servico_id);
+        const servico = (state.servicos || []).find(s => s.id === a.servico_id);
         if (!servico) return;
+        
         if (a.tipo_pagamento === 'misto') {
             const rConv = calcularCustoServicoLocal(servico, 'convenio');
             const rPart = calcularCustoServicoLocal(servico, 'particular');
-            // Aproximação proporcional ao valor efetivamente cobrado em cada modalidade
             const totalCusto = (a.valor_convenio > 0 ? rConv.custoTotal : 0) + (a.valor_particular > 0 ? rPart.custoTotal : 0);
             margemTotal += ((Number(a.valor_convenio) || 0) + (Number(a.valor_particular) || 0)) - totalCusto;
         } else {
@@ -2321,14 +2379,16 @@ function renderizarDashboardVivo() {
     const percConvenio = totalAtend > 0 ? (qtdConvenio / totalAtend) * 100 : 0;
     const percParticular = totalAtend > 0 ? (qtdParticular / totalAtend) * 100 : 0;
 
-    document.getElementById('dvFaturamentoTotal').textContent = formatarMoeda(faturamentoTotal);
-    document.getElementById('dvMargemTotal').textContent = formatarMoeda(margemTotal);
-    document.getElementById('dvPercConvenio').textContent = percConvenio.toFixed(0) + '%';
-    document.getElementById('dvPercParticular').textContent = percParticular.toFixed(0) + '%';
+    // Atualização dos Elementos no DOM com checagem de segurança
+    if (document.getElementById('dvFaturamentoTotal')) document.getElementById('dvFaturamentoTotal').textContent = formatarMoeda(faturamentoTotal);
+    if (document.getElementById('dvMargemTotal')) document.getElementById('dvMargemTotal').textContent = formatarMoeda(margemTotal);
+    if (document.getElementById('dvPercConvenio')) document.getElementById('dvPercConvenio').textContent = percConvenio.toFixed(0) + '%';
+    if (document.getElementById('dvPercParticular')) document.getElementById('dvPercParticular').textContent = percParticular.toFixed(0) + '%';
 
-    renderizarGraficoTipoPagamento(atendimentos);
-    renderizarGraficoRankingMargem();
-    renderizarAlertasMargem();
+    // Chamada das funções auxiliares de gráficos e alertas
+    if (typeof renderizarGraficoTipoPagamento === 'function') renderizarGraficoTipoPagamento(atendimentos);
+    if (typeof renderizarGraficoRankingMargem === 'function') renderizarGraficoRankingMargem();
+    if (typeof renderizarAlertasMargem === 'function') renderizarAlertasMargem();
 }
 
 function renderizarGraficoTipoPagamento(atendimentos) {
@@ -2338,7 +2398,10 @@ function renderizarGraficoTipoPagamento(atendimentos) {
     const somaConvenio = atendimentos.reduce((s, a) => s + (a.tipo_pagamento !== 'particular' ? (Number(a.valor_convenio) || 0) : 0), 0);
     const somaParticular = atendimentos.reduce((s, a) => s + (a.tipo_pagamento !== 'convenio' ? (Number(a.valor_particular) || 0) : 0), 0);
 
-    if (state.charts.tipoPagamento) state.charts.tipoPagamento.destroy();
+    if (state.charts && state.charts.tipoPagamento) state.charts.tipoPagamento.destroy();
+    
+    if (!state.charts) state.charts = {};
+
     state.charts.tipoPagamento = new Chart(canvas, {
         type: 'doughnut',
         data: {
@@ -3372,4 +3435,79 @@ function renderizarModuloFinanceiroCompleto() {
     renderizarResultadoCustos();
     renderizarAtendimentos();
     renderizarDashboardVivo();
+}
+
+// ============================================================
+// FUNCIONALIDADES DE DISPARO DE CONTATO E DOCUMENTOS (HUB / M7)
+// ============================================================
+
+// 1. Disparar contato direto do Suporte SaaS no HUB Clínica
+function dispararContatoSuporteSaaS(meio) {
+    const emailConsultoria = state.configGlobal?.email_consultoria || '';
+    const whatsConsultoria = state.configGlobal?.whatsapp_consultoria || '';
+    const nomeClinica = state.clinicaAtual?.nome_clinica || state.clinicaAtual?.nome || 'Minha Clínica';
+    const emailClinica = state.clinicaAtual?.email || 'Nâo cadastrado';
+
+    if (meio === 'whatsapp') {
+        if (!whatsConsultoria) { alert('Número de WhatsApp do Suporte não configurado no HUB Master.'); return; }
+        const numClean = whatsConsultoria.replace(/\D/g, '');
+        const msg = encodeURIComponent(`Olá Suporte Alavanca 360! Sou da clínica "${nomeClinica}" e preciso de auxílio.`);
+        window.open(`https://wa.me/${numClean}?text=${msg}`, '_blank');
+    } else if (meio === 'email') {
+        if (!emailConsultoria) { alert('E-mail do Suporte não configurado no HUB Master.'); return; }
+        const assunto = encodeURIComponent(`[Suporte SaaS] Solicitação de Atendimento - ${nomeClinica}`);
+        const corpo = encodeURIComponent(`Clinica: ${nomeClinica}\nE-mail da Clínica: ${emailClinica}\n\nDescreva sua dúvida/problema aqui:`);
+        window.open(`mailto:${emailConsultoria}?subject=${assunto}&body=${corpo}`, '_blank');
+    }
+}
+
+// 2. Disparar Envio de Orçamentos e Receituários por WhatsApp / E-mail do cliente
+function dispararDocumentoCliente(meio) {
+    const selPac = document.getElementById('selectDocPaciente');
+    const selTipo = document.getElementById('selectTipoDoc');
+    const pacName = selPac ? selPac.value : '';
+    const tipo = selTipo ? selTipo.value : 'documento';
+
+    const paciente = state.pacientes.find(p => p.nome === pacName);
+    const nomeClinica = state.clinicaAtual?.nome_clinica || state.clinicaAtual?.nome || 'Nossa Clínica';
+    const enderecoClinica = state.clinicaAtual?.endereco || '';
+    const docNome = tipo === 'orcamento' ? 'Orçamento/Planejamento' : 'Receituário';
+
+    if (meio === 'whatsapp') {
+        const telefone = paciente?.telefone || paciente?.whatsapp || prompt('Digite o número do WhatsApp do cliente com DDD:');
+        if (!telefone) return;
+        const numClean = telefone.replace(/\D/g, '');
+        const msg = encodeURIComponent(`Olá ${pacName}, segue o seu ${docNome} referente ao atendimento na clínica ${nomeClinica}.\n📍 Endereço: ${enderecoClinica}`);
+        window.open(`https://wa.me/${numClean}?text=${msg}`, '_blank');
+    } else if (meio === 'email') {
+        const emailPac = paciente?.email || prompt('Digite o e-mail do cliente:');
+        if (!emailPac) return;
+        const assunto = encodeURIComponent(`${docNome} - ${nomeClinica}`);
+        const corpo = encodeURIComponent(`Olá ${pacName},\n\nAnexo/Segue a via do seu ${docNome} emitido por ${nomeClinica}.\n\nAtenciosamente,\n${nomeClinica}\n${enderecoClinica}`);
+        window.open(`mailto:${emailPac}?subject=${assunto}&body=${corpo}`, '_blank');
+    }
+}
+
+// 📸 Função Aprimorada para conversão de logomarca PNG/JPEG (HUB Clínica e HUB Master)
+function converterLogoParaBase64(event, targetInputId = 'hubClinicaLogoUrl', targetPreviewImgId = 'imgPreviewLogo', targetContainerId = 'previewLogoContainer', targetNameId = 'nomeArquivoLogo') {
+    const file = event.target.files[0];
+    if (!file) return;
+    if (!['image/png', 'image/jpeg'].includes(file.type)) {
+        alert('Por favor, selecione apenas arquivos nos formatos PNG ou JPEG.');
+        return;
+    }
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const base64Url = e.target.result;
+        const elLogoInput = document.getElementById(targetInputId);
+        const elPreviewImg = document.getElementById(targetPreviewImgId);
+        const elPreviewContainer = document.getElementById(targetContainerId);
+        const elNomeArquivo = document.getElementById(targetNameId);
+        
+        if (elLogoInput) elLogoInput.value = base64Url;
+        if (elPreviewImg) elPreviewImg.src = base64Url;
+        if (elPreviewContainer) elPreviewContainer.classList.remove('hidden');
+        if (elNomeArquivo) elNomeArquivo.textContent = file.name;
+    };
+    reader.readAsDataURL(file);
 }
