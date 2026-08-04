@@ -1461,8 +1461,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 <p class="text-[10px] text-slate-500 mt-1">Cole o link público gerado no painel do Google Calendar para espelhamento em tempo real.</p>
             </div>
             <div>
+                <div>
                 <label class="block text-xs font-medium text-slate-400 mb-1">Link Direto Calendly / Agendador Online</label>
                 <input type="url" id="hubClinicaCalendly" placeholder="https://calendly.com/suaclinica" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-200 focus:border-sky-500 focus:outline-none">
+            </div>
+            <!-- NOVO CAMPO: PLANILHA NAP -->
+            <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1">Link da Planilha NAP (Google Sheets)</label>
+                <input type="url" id="hubClinicaPlanilhaNap" placeholder="https://docs.google.com/spreadsheets/d/..." class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-200 focus:border-emerald-500 focus:outline-none">
+                <p class="text-[10px] text-slate-500 mt-1">Insira o link de compartilhamento da planilha da NAP para auditorias e conferência.</p>
             </div>
         </div>
     </div>
@@ -1500,12 +1507,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                 <div>
-                    <label class="block text-slate-400 mb-1">Nome da Consultoria</label>
+                    <label class="block text-slate-400 mb-1">Nome da Consultoria / Marca Master</label>
                     <input type="text" id="cfgNomeConsultoriaGlobal" placeholder="Alavanca 360 Consultoria" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-300 rounded focus:border-sky-500 outline-none">
                 </div>
                 <div>
-                    <label class="block text-slate-400 mb-1">Logotipo da Consultoria (URL)</label>
-                    <input type="text" id="cfgLogoConsultoria" placeholder="https://..." class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-300 rounded focus:border-sky-500 outline-none">
+                    <label class="block text-slate-400 mb-1">URL da Logo da Consultoria / Método (PNG ou JPEG)</label>
+                    <input type="url" id="cfgLogoConsultoria" placeholder="https://exemplo.com/logo-consultoria.png" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-300 rounded focus:border-sky-500 outline-none">
                 </div>
                 <div>
                     <label class="block text-slate-400 mb-1">WhatsApp de Suporte (com DDD)</label>
