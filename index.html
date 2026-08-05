@@ -1313,9 +1313,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         <input type="number" id="atdValorParticular" placeholder="Valor Particular (R$)" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 hidden">
                         <input type="date" id="atdData" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200">
                     </div>
+                    <!-- Container de Alerta Dinâmico de Margem Baixa -->
+                    <div id="alertaMargemAtendimento" class="hidden my-3 p-3 bg-amber-950/40 border border-amber-800/80 rounded-xl text-amber-300 text-xs"></div>
+
                     <div class="flex justify-end mt-2">
                         <button onclick="salvarAtendimentoComVerificacao()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition flex items-center gap-1.5 shadow-lg shadow-emerald-900/20">
-                        <i data-lucide="check-circle" class="w-4 h-4"></i> Validar Margem e Salvar Atendimento
+                            <i data-lucide="check-circle" class="w-4 h-4"></i> Validar Margem e Salvar Atendimento
                         </button>
                     </div>
 
@@ -1510,6 +1513,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     <label class="block text-slate-400 mb-1">Nome da Consultoria / Marca Master</label>
                     <input type="text" id="hubMasterNomeConsultoria" value="Alavanca 360 Consultoria" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-300 rounded focus:border-amber-500 outline-none">
                 </div>
+
+                <!-- UPLOAD DE LOGO MASTER (PNG/JPEG) -->
+                <div>
+                    <label class="block text-slate-400 mb-1">Logo Master (PNG ou JPEG)</label>
+                    <input type="file" accept="image/png, image/jpeg" onchange="converterLogoMasterParaBase64(event)" class="w-full bg-slate-950 border border-slate-800 p-1.5 text-slate-300 rounded focus:border-amber-500 outline-none file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:bg-amber-600 file:text-slate-950 hover:file:bg-amber-500">
+                    <input type="hidden" id="hubMasterLogoUrl">
+                    <img id="hubMasterLogoPreview" src="" alt="Preview Logo Master" class="mt-2 h-10 object-contain hidden border border-slate-800 rounded p-1 bg-slate-950">
+                </div>
+
                 <div>
                     <label class="block text-slate-400 mb-1">E-mail de Suporte do Sistema</label>
                     <input type="email" id="hubMasterEmailSuporte" value="contato@tce-tadeuchicolempowerment.cloud" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-300 rounded focus:border-amber-500 outline-none">
