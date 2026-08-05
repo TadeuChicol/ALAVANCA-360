@@ -168,16 +168,27 @@ async function initLoginScreen() {
         return;
     }
 
+    // 1. Carrega marca/configurações globais
     await carregarConfigGlobal();
-    aplicarMarcaMetodoNaTelaLogin();
-
-const { data: { session } } = await supabaseClient.auth.getSession();
-    if (session && session.user) {
-        const ok = await carregarContextoUsuario(session.user);
-        if (ok) { await entrarNoSistema(); return; }
+    if (typeof aplicarMarcaMetodoNaTelaLogin === 'function') {
+        aplicarMarcaMetodoNaTelaLogin();
     }
+
+    // 2. Verifica se o usuário já possui sessão ativa
+    if (typeof supabaseClient !== 'undefined' && supabaseClient.auth) {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (session && session.user) {
+            const ok = await carregarContextoUsuario(session.user);
+            if (ok) { 
+                await entrarNoSistema(); 
+                return; 
+            }
+        }
+    }
+
+    // 3. Exibe a tela de login caso não esteja autenticado
     mostrarTelaLogin();
-} // <--- CHAVE DE FECHAMENTO ADICIONADA AQUI. ELA SALVA O SISTEMA!
+}
 
 async function carregarConfigGlobal() {
     let cfg = await apiGet('config_global', 'global');
@@ -211,6 +222,7 @@ function aplicarConfigNaInterface() {
     // 1. Aplica Logo do Método Alavanca 360
     const logoMetodo = (state.configGlobal && state.configGlobal.logo_metodo_url) || 'images/logo-alavanca-360.png';
     document.querySelectorAll('.logo-metodo-alavanca').forEach(img => { img.src = logoMetodo; });
+}
 
     // 2. Aplica Logo da Clínica no Canto Superior Esquerdo
     if (state.clinicaAtual && state.clinicaAtual.logo_clinica_url) {
