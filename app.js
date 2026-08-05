@@ -222,7 +222,6 @@ function aplicarConfigNaInterface() {
     // 1. Aplica Logo do Método Alavanca 360
     const logoMetodo = (state.configGlobal && state.configGlobal.logo_metodo_url) || 'images/logo-alavanca-360.png';
     document.querySelectorAll('.logo-metodo-alavanca').forEach(img => { img.src = logoMetodo; });
-}
 
     // 2. Aplica Logo da Clínica no Canto Superior Esquerdo
     if (state.clinicaAtual && state.clinicaAtual.logo_clinica_url) {
@@ -253,15 +252,19 @@ function aplicarConfigNaInterface() {
 }
 
 function mostrarTelaLogin(mensagemErro) {
-    document.getElementById('telaLogin').classList.remove('hidden');
-    document.getElementById('appPrincipal').classList.add('hidden');
+    document.getElementById('telaLogin')?.classList.remove('hidden');
+    document.getElementById('appPrincipal')?.classList.add('hidden');
 
     const erroBox = document.getElementById('loginErro');
-    if (mensagemErro) {
-        erroBox.textContent = mensagemErro; // <--- Corrigido aqui (de messageErro para mensagemErro)
-        erroBox.classList.remove('hidden');
-    } else {
-        erroBox.classList.add('hidden');
+    if (erroBox) {
+        if (mensagemErro) {
+            erroBox.textContent = mensagemErro;
+            erroBox.classList.remove('hidden');
+        } else {
+            erroBox.classList.add('hidden');
+        }
+    } else if (mensagemErro) {
+        alert(mensagemErro);
     }
 
     if (window.lucide) lucide.createIcons();
@@ -310,20 +313,6 @@ async function autenticarClinica() {
     }
 }
 
-function mostrarTelaLogin(mensagem) {
-    const elErro = document.getElementById('loginErro');
-    if (elErro) {
-        if (mensagem) {
-            elErro.textContent = mensagem;
-            elErro.classList.remove('hidden');
-        } else {
-            elErro.classList.add('hidden');
-        }
-    } else if (mensagem) {
-        alert(mensagem);
-    }
-}
-
 function traduzErroSupabase(msg) {
     if (/invalid login credentials/i.test(msg)) return 'E-mail ou senha inválidos.';
     if (/email not confirmed/i.test(msg)) return 'E-mail ainda não confirmado. Verifique a caixa de entrada (ou peça para a Consultoria desativar a confirmação de e-mail no Supabase).';
@@ -360,11 +349,11 @@ async function carregarContextoUsuario(user) {
         state.clinicaAtual = null;
     }
 
-// 🛡️ Mantém a permissão de admin master se ele constar na tabela consultoria_admins
-if (adminData) {
-    state.isAdmin = true;
-}
-return state.isAdmin || !!state.clinicaAtual;
+    // 🛡️ Mantém a permissão de admin master se ele constar na tabela consultoria_admins
+    if (adminData) {
+        state.isAdmin = true;
+    }
+    return state.isAdmin || !!state.clinicaAtual;
 }
 
 async function sairDoSistema() {
@@ -373,9 +362,11 @@ async function sairDoSistema() {
 }
 
 async function entrarNoSistema() {
-    document.getElementById('telaLogin').classList.add('hidden');
-    document.getElementById('appPrincipal').classList.remove('hidden');
-    await init();
+    document.getElementById('telaLogin')?.classList.add('hidden');
+    document.getElementById('appPrincipal')?.classList.remove('hidden');
+    if (typeof init === 'function') {
+        await init();
+    }
 }
 
 // ============================================================
