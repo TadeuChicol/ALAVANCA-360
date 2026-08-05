@@ -227,35 +227,57 @@ function aplicarMarcaMetodoNaTelaLogin() {
 }
 
 function aplicarConfigNaInterface() {
-    // 1. Aplica Logo do Método Alavanca 360
+    // 1. Aplica Logo do Método/Sistema em toda a interface
     const logoMetodo = (state.configGlobal && state.configGlobal.logo_metodo_url) || 'images/logo-alavanca-360.png';
     document.querySelectorAll('.logo-metodo-alavanca').forEach(img => { img.src = logoMetodo; });
 
-    // 2. Aplica Logo da Clínica no Canto Superior Esquerdo
+    // 2. Controle de Logos e Nome da Clínica no Topo e na Sidebar
+    const containerMarcaClinica = document.getElementById('containerMarcaClinicaTopo');
+    
     if (state.clinicaAtual && state.clinicaAtual.logo_clinica_url) {
+        if (containerMarcaClinica) containerMarcaClinica.classList.remove('hidden');
         document.querySelectorAll('.logo-clinica-topo').forEach(img => { 
             img.src = state.clinicaAtual.logo_clinica_url;
             img.classList.remove('hidden');
         });
-        document.querySelectorAll('.nome-clinica-topo').forEach(el => {
-            el.textContent = state.clinicaAtual.nome_clinica || state.clinicaAtual.nome || 'Sua Clínica';
-        });
+    } else {
+        if (containerMarcaClinica) containerMarcaClinica.classList.add('hidden');
+        document.querySelectorAll('.logo-clinica-topo').forEach(img => img.classList.add('hidden'));
     }
 
-    // 3. Atualiza os links de WhatsApp e E-mail do Suporte nos botões inferiores
-    if (state.configGlobal) {
-        const btnWhats = document.getElementById('btnSuporteWhatsapp');
-        if (btnWhats && state.configGlobal.whatsapp_consultoria) {
-            btnWhats.href = `https://wa.me/${state.configGlobal.whatsapp_consultoria.replace(/\D/g, '')}`;
-        }
-        const btnEmail = document.getElementById('btnSuporteEmail');
-        if (btnEmail && state.configGlobal.email_consultoria) {
-            const emailClinica = state.clinicaAtual?.email || state.clinicaAtual?.email_suporte || '';
-            const nomeClinica = state.clinicaAtual?.nome_clinica || state.clinicaAtual?.nome || 'Clinica';
-            const assunto = encodeURIComponent(`[Suporte Alavanca 360] Atendimento - ${nomeClinica}`);
-            const corpo = encodeURIComponent(`Olá Suporte,\n\nSou da clínica ${nomeClinica} (E-mail de Cadastro: ${emailClinica}).\n\nPreciso de suporte com: `);
-            btnEmail.href = `mailto:${state.configGlobal.email_consultoria}?subject=${assunto}&body=${corpo}`;
-        }
+    // Atualiza nome da clínica na interface
+    document.querySelectorAll('.nome-clinica-topo').forEach(el => {
+        el.textContent = state.clinicaAtual?.nome_clinica || state.clinicaAtual?.nome || 'Sua Clínica';
+    });
+
+    // 3. Preenche formulário do HUB Master se os campos existirem na página
+    const cfg = state.configGlobal || {};
+    const inpNome  = document.getElementById('cfgNomeConsultoriaGlobal');
+    const inpLogo  = document.getElementById('cfgLogoConsultoria');
+    const inpWsp   = document.getElementById('cfgWhatsApp');
+    const inpEmail = document.getElementById('cfgEmailConsultoria');
+
+    if (inpNome)  inpNome.value  = cfg.nome_consultoria || '';
+    if (inpLogo)  inpLogo.value  = cfg.logo_consultoria_url || '';
+    if (inpWsp)   inpWsp.value   = cfg.whatsapp_consultoria || cfg.whatsapp || '';
+    if (inpEmail) inpEmail.value = cfg.email_consultoria || cfg.email_suporte || '';
+
+    // 4. Propagação dos links dinâmicos de WhatsApp e E-mail de Suporte
+    const btnWhats = document.getElementById('btnSuporteWhatsapp');
+    const whatsappNum = cfg.whatsapp_consultoria || cfg.whatsapp;
+    if (btnWhats && whatsappNum) {
+        const numClean = whatsappNum.replace(/\D/g, '');
+        btnWhats.href = `https://wa.me/${numClean}`;
+    }
+    
+    const btnEmail = document.getElementById('btnSuporteEmail');
+    const emailDestino = cfg.email_consultoria || cfg.email_suporte;
+    if (btnEmail && emailDestino) {
+        const emailClinica = state.clinicaAtual?.email || '';
+        const nomeClinica = state.clinicaAtual?.nome_clinica || 'Clinica';
+        const assunto = encodeURIComponent(`[Suporte] Atendimento - ${nomeClinica}`);
+        const corpo = encodeURIComponent(`Olá Suporte,\n\nSou da clínica ${nomeClinica} (E-mail: ${emailClinica}).\n\nPreciso de suporte com: `);
+        btnEmail.href = `mailto:${emailDestino}?subject=${assunto}&body=${corpo}`;
     }
 }
 
@@ -728,21 +750,22 @@ async function salvarHubMaster() {
 }
 
 async function salvarHubClinica(event) {
-    const btnSalvar = event?.currentTarget || document.querySelector('button[onclick="salvarHubClinica(event)"]');
-    const textoOriginal = btnSalvar ? btnSalvar.innerHTML : '';
-
-    const emailInput = document.getElementById('hubClinicaEmail')?.value.trim() || '';
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (emailInput && !emailRegex.test(emailInput)) {
-        alert('Por favor, insira um e-mail válido no Hub Clínica (exemplo: contato@clinica.com).');
+    if (event) event.preventDefault();
+    
+    const btnSalvar = event?.currentTarget || document.getElementById('btnSalvarHubClinica');
+    const textoOriginal = btnSalvar ? btnSalvar.innerHTML : 'Salvar Dados';
+    
+    if (!state.clinicaAtual || !state.clinicaAtual.id) {
+        alert('Erro: Nenhuma clínica ativa selecionada para salvar.');
         return;
     }
 
     if (btnSalvar) {
         btnSalvar.disabled = true;
-        btnSalvar.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Salvando...`;
-        if (window.lucide) lucide.createIcons();
+        btnSalvar.innerHTML = `Salvando...`;
     }
+
+    const emailInput = (document.getElementById('hubClinicaEmail') || document.getElementById('emailClinica'))?.value.trim() || '';
 
     const dadosAtualizados = {
         nome_clinica: (document.getElementById('hubClinicaNome') || document.getElementById('nomeClinica'))?.value.trim() || '',
@@ -757,18 +780,23 @@ async function salvarHubClinica(event) {
     try {
         const resultado = await apiUpdate('clinicas', state.clinicaAtual.id, dadosAtualizados);
         if (resultado) {
+            // Atualiza o cache global da clínica ativa
             state.clinicaAtual = { ...state.clinicaAtual, ...resultado };
-            if (typeof aplicarConfigNaInterface === 'function') aplicarConfigNaInterface();
-            alert('✅ Configurações e integrações da clínica salvas com sucesso!');
+            
+            // Força a propagação do logo e nome nas telas topo do Hub
+            aplicarConfigNaInterface();
+            
+            alert('✅ Dados da Clínica e integrações salvos e propagados com sucesso!');
+        } else {
+            throw new Error("Erro de resposta do servidor ao atualizar.");
         }
     } catch (err) {
         console.error('Erro ao salvar no HUB Clínica:', err);
-        alert('Erro ao salvar as configurações no servidor: ' + (err.message || err));
+        alert('❌ Erro ao salvar as configurações: ' + (err.message || err));
     } finally {
         if (btnSalvar) {
             btnSalvar.disabled = false;
             btnSalvar.innerHTML = textoOriginal;
-            if (window.lucide) lucide.createIcons();
         }
     }
 }
@@ -1381,33 +1409,94 @@ async function emitirEDarComoProntoDocumento() {
 }
 
 function atualizarTemplateDocumento() {
-  const selPac = document.getElementById('selectDocPaciente');
-  const selDent = document.getElementById('selectDocDentista');
-  const selTipo = document.getElementById('selectTipoDoc');
-  const preview = document.getElementById('areaPreviewDocumento');
-  
-  if (!selPac) { console.error('[Alavanca 360] ERRO: #selectDocPaciente não encontrado'); return; }
-  if (!selDent) { console.error('[Alavanca 360] ERRO: #selectDocDentista não encontrado'); return; }
-  if (!selTipo) { console.error('[Alavanca 360] ERRO: #selectTipoDoc não encontrado'); return; }
-  if (!preview) { console.error('[Alavanca 360] ERRO: #areaPreviewDocumento não encontrado'); return; }
-  
-  const pacName = selPac.value || 'Paciente';
-  const dentName = selDent.value || 'Profissional Responsável';
-  const tipo = selTipo.value;
-
+    const selPac = document.getElementById('selectDocPaciente');
+    const selDent = document.getElementById('selectDocDentista');
+    const selTipo = document.getElementById('selectTipoDoc');
+    const preview = document.getElementById('areaPreviewDocumento');
+    
+    if (!selPac || !selDent || !selTipo || !preview) return;
+    
+    const pacName = selPac.value || 'Paciente';
+    const dentName = selDent.value || 'Profissional Responsável';
+    const tipo = selTipo.value;
     const clinica = (state.clinicaAtual && state.clinicaAtual.nome_clinica) || 'Clínica';
     const endereco = (state.clinicaAtual && state.clinicaAtual.endereco) || '';
     const profissional = state.profissionais.find(p => p.nome === dentName);
     const cro = profissional ? profissional.cro : '';
     const logoClinica = state.clinicaAtual && state.clinicaAtual.logo_clinica_url;
-
     const logoHtml = logoClinica
         ? `<img src="${logoClinica}" alt="Logo" class="h-10 object-contain mb-1">`
         : '';
 
-    const cabecalho = `<div class="flex justify-between items-center border-b pb-4 mb-4">
-        <div class="text-left">${logoHtml}<h1 class="font-bold uppercase text-sm">${clinica}</h1><p class="text-[10px] text-gray-500">${endereco}</p></div>
-    </div>`;
+    const cabecalho = `
+        <div class="flex justify-between items-center border-b border-slate-700 pb-4 mb-4">
+            <div class="text-left">
+                ${logoHtml}
+                <h1 class="font-bold uppercase text-sm text-slate-100">${clinica}</h1>
+                <p class="text-[10px] text-slate-400">${endereco}</p>
+            </div>
+            <div class="text-right">
+                <p class="text-xs font-bold text-slate-200">${dentName}</p>
+                <p class="text-[10px] text-slate-400">${cro}</p>
+            </div>
+        </div>
+    `;
+
+    let corpo = '';
+    const dataAtual = new Date().toLocaleDateString('pt-BR');
+
+    if (tipo === 'orcamento') {
+        corpo = `
+            <div class="space-y-4 text-xs text-slate-300">
+                <h2 class="text-center font-bold text-sm uppercase text-sky-400 my-2">Proposta Orçamentária e Plano de Tratamento</h2>
+                <p><strong>Paciente:</strong> ${pacName}</p>
+                <p><strong>Data de Emissão:</strong> ${dataAtual}</p>
+                <div class="border border-slate-800 rounded p-4 bg-slate-950/50 space-y-2">
+                    <p class="text-slate-400 italic">Discriminação dos procedimentos recomendados para a reabilitação funcional e estética.</p>
+                </div>
+            </div>
+        `;
+    } else {
+        corpo = `
+            <div class="space-y-4 text-xs text-slate-300">
+                <h2 class="text-center font-bold text-sm uppercase text-emerald-400 my-2">Receituário / Prescrição Clínica</h2>
+                <p><strong>Paciente:</strong> ${pacName}</p>
+                <p><strong>Data:</strong> ${dataAtual}</p>
+                <div class="border border-slate-800 rounded p-4 bg-slate-950/50 min-h-[120px]">
+                    <p class="text-slate-400 italic">Prescrição de medicamentos e orientações pós-procedimento.</p>
+                </div>
+            </div>
+        `;
+    }
+
+    const rodape = `
+        <div class="mt-12 pt-6 border-t border-slate-800 text-center space-y-8">
+            <div class="w-48 border-b border-slate-500 mx-auto"></div>
+            <p class="text-[10px] text-slate-400">${dentName} — ${cro}</p>
+        </div>
+    `;
+
+    preview.innerHTML = cabecalho + corpo + rodape;
+}
+
+function imprimirDocumentoPDF() {
+    const conteudo = document.getElementById('areaPreviewDocumento')?.innerHTML;
+    if (!conteudo) return;
+    
+    const janelaImpressao = window.open('', '', 'width=800,height=600');
+    janelaImpressao.document.write(`
+        <html>
+            <head>
+                <title>Documento Oficial - Método Alavanca 360</title>
+                <script src="https://cdn.tailwindcss.com"></script>
+            </head>
+            <body class="p-8 bg-white text-black" onload="window.print(); window.close();">
+                ${conteudo}
+            </body>
+        </html>
+    `);
+    janelaImpressao.document.close();
+}
 
     const assinaturaValidador = `
         <div class="mt-8 pt-6 border-t border-gray-200 flex justify-between items-end text-xs text-gray-700">
