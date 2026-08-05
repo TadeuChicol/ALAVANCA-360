@@ -190,6 +190,14 @@ async function initLoginScreen() {
     mostrarTelaLogin();
 }
 
+// Garante que a função esteja disponível globalmente para o HTML ou escuta o clique diretamente
+window.autenticarClinica = autenticarClinica;
+
+document.getElementById('btnEntrarSistema')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    autenticarClinica();
+});
+
 async function carregarConfigGlobal() {
     let cfg = await apiGet('config_global', 'global');
     if (!cfg) {
