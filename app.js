@@ -652,11 +652,104 @@ function preencherFormularioHubClinica() {
     }
 }
 
-async function salvarHubClinica() {
-    if (!state.clinicaAtual) {
-        alert('Nenhuma clínica selecionada para salvar.');
+// Converter logo do Hub Master para Base64
+function converterLogoMasterParaBase64(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  if (!file.type.match('image/png') && !file.type.match('image/jpeg')) {
+    alert('Por favor, selecione apenas arquivos PNG ou JPEG.');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const base64Url = e.target.result;
+    const inputUrl = document.getElementById('hubMasterLogoUrl');
+    if (inputUrl) inputUrl.value = base64Url;
+    
+    const preview = document.getElementById('hubMasterLogoPreview');
+    if (preview) {
+      preview.src = base64Url;
+      preview.style.display = 'block';
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+// Salvar Parâmetros Master
+async function salvarHubMaster() {
+  const nomeConsultoria = document.getElementById('hubMasterNomeConsultoria')?.value || '';
+  const logoUrl = document.getElementById('hubMasterLogoUrl')?.value || '';
+  const emailSuporte = document.getElementById('hubMasterEmailSuporte')?.value || '';
+  const whatsapp = document.getElementById('hubMasterWhatsapp')?.value || '';
+
+  const payload = {
+    id: 'global',
+    nome_consultoria: nomeConsultoria,
+    logo_url: logoUrl,
+    email_suporte: emailSuporte,
+    whatsapp: whatsapp,
+    updated_at: new Date().toISOString()
+  };
+
+  try {
+    const res = await apiUpdate('config_global', 'global', payload);
+    if (res?.error) {
+      await apiCreate('config_global', payload);
+    }
+    alert('Parâmetros do Hub Master salvos com sucesso!');
+  } catch (err) {
+    console.error('Erro ao salvar Hub Master:', err);
+    alert('Erro ao salvar parâmetros do Hub Master.');
+  }
+}
+
+async function salvarHubClinica(event) {
+    const btnSalvar = event?.currentTarget || document.querySelector('button[onclick="salvarHubClinica(event)"]');
+    const textoOriginal = btnSalvar ? btnSalvar.innerHTML : '';
+
+    const emailInput = document.getElementById('hubClinicaEmail')?.value.trim() || '';
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (emailInput && !emailRegex.test(emailInput)) {
+        alert('Por favor, insira um e-mail válido no Hub Clínica (exemplo: contato@clinica.com).');
         return;
     }
+
+    if (btnSalvar) {
+        btnSalvar.disabled = true;
+        btnSalvar.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Salvando...`;
+        if (window.lucide) lucide.createIcons();
+    }
+
+    const dadosAtualizados = {
+        nome_clinica: (document.getElementById('hubClinicaNome') || document.getElementById('nomeClinica'))?.value.trim() || '',
+        endereco: (document.getElementById('hubClinicaEndereco') || document.getElementById('enderecoClinica'))?.value.trim() || '',
+        url_google_agenda: (document.getElementById('hubClinicaGoogleAgenda') || document.getElementById('urlGoogleAgenda'))?.value.trim() || '',
+        url_calendly: (document.getElementById('hubClinicaCalendly') || document.getElementById('urlCalendly'))?.value.trim() || '',
+        email: emailInput,
+        logo_clinica_url: (document.getElementById('hubClinicaLogoUrl') || document.getElementById('logoClinicaUrl'))?.value.trim() || '',
+        url_planilha_nap: (document.getElementById('hubClinicaPlanilhaNap') || document.getElementById('urlPlanilhaNap'))?.value.trim() || ''
+    };
+
+    try {
+        const resultado = await apiUpdate('clinicas', state.clinicaAtual.id, dadosAtualizados);
+        if (resultado) {
+            state.clinicaAtual = { ...state.clinicaAtual, ...resultado };
+            if (typeof aplicarConfigNaInterface === 'function') aplicarConfigNaInterface();
+            alert('✅ Configurações e integrações da clínica salvas com sucesso!');
+        }
+    } catch (err) {
+        console.error('Erro ao salvar no HUB Clínica:', err);
+        alert('Erro ao salvar as configurações no servidor: ' + (err.message || err));
+    } finally {
+        if (btnSalvar) {
+            btnSalvar.disabled = false;
+            btnSalvar.innerHTML = textoOriginal;
+            if (window.lucide) lucide.createIcons();
+        }
+    }
+}
 
     // Feedback visual de carregamento no botão
     const btnSalvar = event?.currentTarget || document.querySelector('button[onclick="salvarHubClinica()"]');
@@ -2203,37 +2296,79 @@ function importarConfigCsv(modalidade) {
 // ============================================================
 
 function validarMargemSeguranca(precoVenda, custoTotal, margemMinima) {
+    if (!precoVenda || precoVenda <= 0) {
+        return { permitido: false, msg: "O valor cobrado deve ser maior que zero." };
+    }
     const margemReal = ((precoVenda - custoTotal) / precoVenda) * 100;
     
     if (margemReal < margemMinima) {
         console.warn("⚠️ ALERTA: Margem de lucro abaixo do limite de segurança!");
         return {
             permitido: false,
-            msg: `Margem de ${margemReal.toFixed(1)}% é menor que o mínimo de ${margemMinima}%`
+            margemReal: margemReal.toFixed(1),
+            msg: `Margem de ${margemReal.toFixed(1)}% é menor que o mínimo exigido de ${margemMinima}%.`
         };
     }
-    return { permitido: true };
+
+    return {
+        permitido: true,
+        margemReal: margemReal.toFixed(1),
+        msg: "Margem de segurança validada com sucesso."
+    };
 }
 
-// Esta função será chamada sempre que o dentista tentar salvar um orçamento ou atendimento
+// Disparado ao clicar no botão "Validar Margem e Salvar Atendimento"
 async function dispararVerificacaoFinanceira() {
-    const preco = parseFloat(document.getElementById('atdValorParticular').value);
-    const servicoId = document.getElementById('atdServico').value;
+    const valConv = parseFloat(document.getElementById('atdValorConvenio')?.value || 0);
+    const valPart = parseFloat(document.getElementById('atdValorParticular')?.value || 0);
+    const precoTotal = valConv + valPart;
+    const servicoId = document.getElementById('atdServico')?.value;
 
-    // Busca o custo real que veio da sua planilha (importado via CSV)
-    const { data: servico } = await supabaseClient
-        .from('vw_custo_servico')
-        .select('*')
-        .eq('id', servicoId)
-        .single();
+    if (!servicoId) {
+        alert('Selecione um serviço para validar.');
+        return false;
+    }
 
-    const verificacao = validarMargemSeguranca(preco, servico.custo_total, servico.margem_minima);
+    // Busca o custo real vindo da view no Supabase
+    let custoTotal = 0;
+    let margemMinima = 20;
+
+    try {
+        const { data: servico } = await supabaseClient
+            .from('vw_custo_servico')
+            .select('custo_total, margem_minima')
+            .eq('id', servicoId)
+            .single();
+
+        if (servico) {
+            custoTotal = servico.custo_total || 0;
+            margemMinima = servico.margem_minima || 20;
+        }
+    } catch (err) {
+        console.warn('Serviço não encontrado na vw_custo_servico, aplicando validação padrão.', err);
+    }
+
+    const verificacao = validarMargemSeguranca(precoTotal, custoTotal, margemMinima);
+    const elAlerta = document.getElementById('alertaMargemAtendimento');
 
     if (!verificacao.permitido) {
-        alert("🛑 BLOQUEIO ALAVANCA 360: " + verificacao.msg + "\nO orçamento precisa ser revisado para garantir a saúde da clínica.");
-        return false; // Impede o salvamento
+        // Exibe o aviso no container HTML dinâmico
+        if (elAlerta) {
+            elAlerta.classList.remove('hidden');
+            elAlerta.innerHTML = `⚠️ <strong>ALERTA DE MARGEM BAIXA:</strong> ${verificacao.msg}`;
+        }
+
+        // Pergunta se deseja forçar o salvamento mesmo abaixo da margem
+        const prosseguir = confirm(`🛑 ALERTA FINANCEIRO ALAVANCA 360:\n${verificacao.msg}.\n\nDeseja prosseguir e registrar este atendimento assim mesmo?`);
+        return prosseguir;
     }
-    return true; // Permite o salvamento
+
+    // Oculta o container de alerta se a margem for aprovada
+    if (elAlerta) {
+        elAlerta.classList.add('hidden');
+    }
+
+    return true;
 }
 
 function ajustarCamposValorAtendimento() {
@@ -2275,34 +2410,19 @@ async function salvarAtendimento() {
         state.atendimentos.push(criado);
         document.getElementById('atdValorConvenio').value = '';
         document.getElementById('atdValorParticular').value = '';
+        
+        // Limpa o alerta da tela após salvar
+        const elAlerta = document.getElementById('alertaMargemAtendimento');
+        if (elAlerta) elAlerta.classList.add('hidden');
+
         renderizarAtendimentos();
-        renderizarDashboardVivo();
+        if (typeof renderizarDashboardVivo === 'function') {
+            renderizarDashboardVivo();
+        }
     } catch (e) {
         console.error(e);
         alert('Erro ao registrar atendimento.');
     }
-}
-
-// Localize a função de salvar no Módulo 9 e adicione este bloco no início:
-async function dispararVerificacaoFinanceira() {
-    const preco = parseFloat(document.getElementById('atdValorParticular').value || 0);
-    const servicoId = document.getElementById('atdServico').value;
-
-    // Busca o custo real vindo da sua planilha blindada
-    const { data: servico } = await supabaseClient
-        .from('vw_custo_servico')
-        .select('custo_total, margem_minima')
-        .eq('id', servicoId)
-        .single();
-
-    if (servico) {
-        const margemReal = ((preco - servico.custo_total) / preco) * 100;
-        if (margemReal < servico.margem_minima) {
-            alert(`🛑 ALERTA FINANCEIRO: A margem de ${margemReal.toFixed(1)}% está abaixo do mínimo de ${servico.margem_minima}%. Revise o valor!`);
-            return false; // Bloqueia a execução
-        }
-    }
-    return true;
 }
 
 async function removerAtendimento(id) {
@@ -2310,20 +2430,22 @@ async function removerAtendimento(id) {
     await apiDelete('atendimentos', id);
     state.atendimentos = state.atendimentos.filter(a => a.id !== id);
     renderizarAtendimentos();
-    renderizarDashboardVivo();
+    if (typeof renderizarDashboardVivo === 'function') {
+        renderizarDashboardVivo();
+    }
 }
 
 function renderizarAtendimentos() {
-  const tbody = document.getElementById('tbodyAtendimentos');
-  if (!tbody) {
-    console.error('[Alavanca 360] ERRO: #tbodyAtendimentos não encontrado no DOM');
-    return;
-  }
-  console.log('[Alavanca 360] renderizarAtendimentos() chamada. state.atendimentos:', state.atendimentos?.length || 0, 'registros');
-  if (state.atendimentos.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" class="p-3 text-center text-slate-600">Nenhum atendimento registrado.</td></tr>`;
+    const tbody = document.getElementById('tbodyAtendimentos');
+    if (!tbody) {
+        console.error('[Alavanca 360] ERRO: #tbodyAtendimentos não encontrado no DOM');
         return;
-  }
+    }
+    console.log('[Alavanca 360] renderizarAtendimentos() chamada. state.atendimentos:', state.atendimentos?.length || 0, 'registros');
+    if (!state.atendimentos || state.atendimentos.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="p-3 text-center text-slate-600">Nenhum atendimento registrado.</td></tr>`;
+        return;
+    }
     const ordenados = [...state.atendimentos].sort((a, b) => (b.data_atendimento || '').localeCompare(a.data_atendimento || ''));
     tbody.innerHTML = ordenados.map(a => {
         const total = (Number(a.valor_convenio) || 0) + (Number(a.valor_particular) || 0);
@@ -2335,7 +2457,7 @@ function renderizarAtendimentos() {
                 <td class="p-2 font-medium text-slate-100">${a.paciente_nome || ''}</td>
                 <td class="p-2 text-slate-300">${a.servico_nome || ''}</td>
                 <td class="p-2"><span class="px-2 py-0.5 rounded text-[10px] ${tipoCor}">${tipoLabel}</span></td>
-                <td class="p-2 text-emerald-400 font-mono font-bold">${formatarMoeda(total)}</td>
+                <td class="p-2 text-emerald-400 font-mono font-bold">${typeof formatarMoeda === 'function' ? formatarMoeda(total) : 'R$ ' + total.toFixed(2)}</td>
                 <td class="p-2 text-right"><button onclick="removerAtendimento('${a.id}')" class="text-rose-400 hover:underline">Excluir</button></td>
             </tr>
         `;
@@ -2844,6 +2966,12 @@ async function salvarHubClinicaBasico() {
         // UPLOAD DIRETO PARA O SUPABASE STORAGE
         if (fileInput && fileInput.files && fileInput.files.length > 0) {
             const file = fileInput.files[0];
+
+            if (!['image/png', 'image/jpeg'].includes(file.type)) {
+                alert('Por favor, selecione apenas arquivos nos formatos PNG ou JPEG.');
+                return;
+            }
+
             const extensao = file.name.split('.').pop();
             const fileName = `logo_${state.clinicaAtual.id}_${Date.now()}.${extensao}`;
 
@@ -2870,6 +2998,7 @@ async function salvarHubClinicaBasico() {
             .from('clinicas')
             .update({
                 nome: nome,
+                nome_clinica: nome,
                 endereco: endereco,
                 url_google_agenda: urlSheets,
                 url_calendly: urlCalendly,
@@ -2922,12 +3051,10 @@ async function sincronizarDadosPlanilhaGoogle() {
         const urlStr = state.clinicaAtual.url_google_agenda.trim();
         let urlCsv = '';
 
-        // Trata e-mail inserido incorretamente no campo de URL
         if (urlStr.includes('@') && !urlStr.includes('http')) {
-            throw new Error("O campo 'Link Integrador Google Agenda' contém um endereço de e-mail em vez de um link. Por favor, insira a URL da Planilha Google (ex: https://docs.google.com/spreadsheets/d/...).");
+            throw new Error("O campo contém um endereço de e-mail em vez de um link. Por favor, insira a URL da Planilha Google.");
         }
 
-        // Trata URL publicada (/pub?output=csv) ou link normal de compartilhamento (/d/ID_DA_PLANILHA)
         if (urlStr.includes('/pub?') || urlStr.includes('output=csv')) {
             urlCsv = urlStr;
         } else {
@@ -2944,9 +3071,8 @@ async function sincronizarDadosPlanilhaGoogle() {
             throw new Error("Não foi possível acessar a planilha. Verifique se as permissões de acesso estão como 'Qualquer pessoa com o link'.");
         }
 
-       const csvText = await response.text();
+        const csvText = await response.text();
         
-        // CORREÇÃO: Lógica de parsing real de CSV para ignorar vírgulas que estejam dentro de valores entre aspas
         const linhas = csvText.split('\n').map(l => {
             const cols = [];
             let inQuotes = false;
@@ -2965,7 +3091,6 @@ async function sincronizarDadosPlanilhaGoogle() {
             throw new Error("A planilha está vazia ou não foi possível ler as colunas de insumos.");
         }
 
-        // LIMPA APENAS OS INSUMOS DA CLÍNICA CONECTADA
         const { error: deleteError } = await supabaseClient
             .from('insumos')
             .delete()
@@ -2982,7 +3107,6 @@ async function sincronizarDadosPlanilhaGoogle() {
             const nome = col[0];
             const apresentacao = col[1] || 'Geral';
             
-            // CORREÇÃO: Trata a formatação BRL (R$) que usa vírgula no decimal, convertendo corretamente para ponto
             let rawCusto = col[2] || '0';
             if (rawCusto.includes(',') && (!rawCusto.includes('.') || rawCusto.lastIndexOf(',') > rawCusto.lastIndexOf('.'))) {
                 rawCusto = rawCusto.replace(/\./g, '').replace(',', '.');
@@ -2990,14 +3114,13 @@ async function sincronizarDadosPlanilhaGoogle() {
             const custo = parseFloat(rawCusto.replace(/[^0-9.-]+/g, "")) || 0;
             const unidade = col[3] || 'Unidade';
 
-            // CORREÇÃO: Alinhamento preciso com a estrutura que o Módulo 8 (Custos) e a base de dados esperam
             const { error: insertError } = await supabaseClient
                 .from('insumos')
                 .insert({
                     clinica_id: state.clinicaAtual.id,
                     nome: nome,
                     apresentacao: apresentacao,
-                    quantidade_apresentacao: 1, // Fixado como 1 para a matemática do Módulo 8 funcionar sem divisão por zero
+                    quantidade_apresentacao: 1,
                     preco_apresentacao: custo,
                     custo_unitario: custo,
                     unidade_medida: unidade
@@ -3036,12 +3159,10 @@ function atualizarLogosVisuais() {
     const imgLogoMetodo = document.getElementById('imgLogoMetodoNav');
     const lblNomeClinica = document.getElementById('lblNomeClinicaNav');
 
-    // 1. Atualiza Nome da Clínica no Topo (Evita o exibições do UUID)
     if (lblNomeClinica && clinica) {
-        lblNomeClinica.textContent = clinica.nome_clinica || clinica.email_responsavel || 'Clínica Conectada';
+        lblNomeClinica.textContent = clinica.nome_clinica || clinica.nome || clinica.email_responsavel || 'Clínica Conectada';
     }
 
-    // 2. Renderiza Logo da Clínica
     if (clinica && clinica.logo_clinica_url) {
         if (imgLogoClinica) {
             imgLogoClinica.src = clinica.logo_clinica_url;
@@ -3053,7 +3174,6 @@ function atualizarLogosVisuais() {
         if (iconDefault) iconDefault.classList.remove('hidden');
     }
 
-    // 3. Renderiza Logo Fixa do Método Alavanca 360
     const logoMetodoPadrao = 'https://gtcybiuxdpxixdjnshty.supabase.co/storage/v1/object/public/logos-clinicas/logo-alavanca360.png';
     if (imgLogoMetodo) {
         imgLogoMetodo.src = (cfgGlobal && cfgGlobal.logo_metodo_url) || logoMetodoPadrao;
@@ -3064,9 +3184,6 @@ function atualizarLogosVisuais() {
 // ============================================================
 // 14. HUB MASTER (CONSULTORIA — GESTÃO DE CLÍNICAS/TENANTS)
 // ============================================================
-// Acesso já é garantido pelo login (Supabase Auth) + verificação de
-// state.isAdmin (tabela consultoria_admins) — sem chave extra no cliente.
-
 async function prepararHubMaster() {
     const hubGatekeeper = document.getElementById('hubGatekeeper');
     const hubConteudoOculto = document.getElementById('hubConteudoOculto');
@@ -3074,10 +3191,8 @@ async function prepararHubMaster() {
     if (hubGatekeeper) hubGatekeeper.classList.add('hidden');
     if (hubConteudoOculto) hubConteudoOculto.classList.remove('hidden');
 
-    // 1º: carrega os dados do Supabase PRIMEIRO
     await carregarConfigGlobal();
 
-    // 2º: popula os campos com dados FRESCOS no formulário Master
     const cfgLogoMetodo = document.getElementById('cfgLogoMetodo') || document.getElementById('hubMasterLogoMetodoUrl');
     const cfgLogoConsultoria = document.getElementById('cfgLogoConsultoria');
     const cfgNomeConsultoriaGlobal = document.getElementById('cfgNomeConsultoriaGlobal');
@@ -3090,23 +3205,19 @@ async function prepararHubMaster() {
     if (cfgWhatsApp) cfgWhatsApp.value = (state.configGlobal?.whatsapp) || '';
     if (cfgEmailConsultoria) cfgEmailConsultoria.value = (state.configGlobal?.email_suporte) || '';
 
-    // 3º: atualiza links do Suporte no Rodapé e a Logo na interface
     if (typeof aplicarConfigNaInterface === 'function') aplicarConfigNaInterface();
 
-    // 4º: renderiza a lista de clínicas
     await renderizarListaClinicas();
 }
 
 function aplicarConfigNaInterface() {
     const cfg = state.configGlobal || {};
 
-    // 1. Nome da consultoria no rodapé
     const lblNome = document.getElementById('lblNomeConsultoria');
     if (lblNome && cfg.nome_consultoria) {
         lblNome.textContent = cfg.nome_consultoria;
     }
 
-    // 2. WhatsApp Suporte (Abre janela do WhatsApp Web/App)
     const lnkWhats = document.getElementById('lnkWhatsConsultoria');
     if (lnkWhats && cfg.whatsapp) {
         const num = cfg.whatsapp.replace(/\D/g, '');
@@ -3116,41 +3227,21 @@ function aplicarConfigNaInterface() {
         };
     }
 
-    // 3. E-mail Suporte (Abre a tela de Compor E-mail direto no Gmail Web)
     const lnkEmail = document.getElementById('lnkEmailConsultoria');
     if (lnkEmail && cfg.email_suporte) {
         lnkEmail.onclick = (e) => {
             e.preventDefault();
-            const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(cfg.email_suporte)}&su=Suporte%20- %20Alavanca%20360`;
+            const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(cfg.email_suporte)}&su=Suporte%20-%20Alavanca%20360`;
             window.open(gmailUrl, '_blank');
         };
     }
 
-    // 4. Logo Master (Aplica se houver URL válida inserida ou enviada)
     const imgLogoMetodo = document.getElementById('imgLogoMetodo');
     if (imgLogoMetodo && cfg.logo_metodo_url) {
         imgLogoMetodo.src = cfg.logo_metodo_url;
     }
 }
 
-async function atualizarLogosSistema() {
-    const dados = {
-        logo_metodo_url: document.getElementById('cfgLogoMetodo')?.value || '',
-        logo_consultoria_url: document.getElementById('cfgLogoConsultoria')?.value || '',
-        nome_consultoria: document.getElementById('cfgNomeConsultoriaGlobal')?.value || ''
-    };
-
-    const atualizado = await apiUpdate('config_global', 'global', dados);
-    if (atualizado) {
-        state.configGlobal = atualizado;
-    }
-    if (typeof atualizarLogosVisuais === 'function') atualizarLogosVisuais();
-    if (typeof aplicarConfigNaInterface === 'function') aplicarConfigNaInterface();
-}
-
-// ============================================================
-// SALVA HUB MASTER E FORÇA ATUALIZAÇÃO IMEDIATA DA TELA
-// ============================================================
 async function salvarConfigGlobal() {
     const nome  = document.getElementById('cfgNomeConsultoriaGlobal')?.value.trim() || '';
     const logo  = document.getElementById('cfgLogoConsultoria')?.value.trim() || document.getElementById('cfgLogoMetodo')?.value.trim() || '';
@@ -3162,7 +3253,7 @@ async function salvarConfigGlobal() {
             id: 1,
             nome_consultoria: nome,
             logo_consultoria_url: logo,
-            logo_metodo_url: logo, // Persiste a logo da consultoria/método em PNG/JPEG
+            logo_metodo_url: logo,
             whatsapp: wsp,
             email_suporte: email,
             updated_at: new Date().toISOString()
@@ -3176,10 +3267,7 @@ async function salvarConfigGlobal() {
 
         if (error) throw error;
 
-        // Atualiza a memória global
         state.configGlobal = data || payload;
-
-        // Força a atualização dos links e campos na tela
         aplicarConfigNaInterface();
 
         alert("✅ Configurações Globais e Suporte salvos com sucesso!");
@@ -3193,8 +3281,6 @@ async function renderizarListaClinicas() {
     const tbody = document.getElementById('tbodyClinicasMaster');
     if (!tbody) return;
 
-    // Buscamos diretamente do supabaseClient em vez do apiList genérico
-    // para garantir que ignore filtros de clinica_id da sessão administrativa
     const { data: todas, error } = await supabaseClient
         .from('clinicas')
         .select('*')
@@ -3248,7 +3334,7 @@ async function cadastrarNovaClinica() {
         return;
     }
     if (senha_login.length < 6) {
-        alert('A senha precisa ter pelo menos 6 caracteres (exigência do Supabase Auth).');
+        alert('A senha precisa ter pelo menos 6 caracteres.');
         return;
     }
 
@@ -3257,7 +3343,7 @@ async function cadastrarNovaClinica() {
 
     try {
         if (!supabaseAuxClient) {
-            throw new Error('O cliente auxiliar do Supabase não está configurado corretamente.');
+            throw new Error('O cliente auxiliar do Supabase não está configurado.');
         }
 
         const { data: signUpData, error: signUpError } = await supabaseAuxClient.auth.signUp({
@@ -3308,7 +3394,7 @@ async function cadastrarNovaClinica() {
 }
 
 // ============================================================
-// BLOCO DE AUTENTICAÇÃO E CONTEXTO (VERSÃO ESTÁVEL DO PROJETO)
+// BLOCO DE AUTENTICAÇÃO E CONTEXTO
 // ============================================================
 
 async function autenticarClinica() {
@@ -3400,7 +3486,6 @@ async function carregarContextoUsuario(user) {
         state.clinicaAtual = null;
     }
 
-    // 🛡️ Se o usuário tem clínica vinculada, NÃO é admin (multi-tenant isolado)
     if (state.clinicaAtual) {
         state.isAdmin = false;
     }
@@ -3422,7 +3507,7 @@ async function entrarNoSistema() {
 }
 
 // ============================================================
-// REFRESH E POVOAMENTO COMPLETO DA INTERFACE (Sincronização de Dados)
+// REFRESH E POVOAMENTO COMPLETO DA INTERFACE
 // ============================================================
 function renderizarModuloFinanceiroCompleto() {
     renderizarInsumos();
@@ -3440,12 +3525,11 @@ function renderizarModuloFinanceiroCompleto() {
 // FUNCIONALIDADES DE DISPARO DE CONTATO E DOCUMENTOS (HUB / M7)
 // ============================================================
 
-// 1. Disparar contato direto do Suporte SaaS no HUB Clínica
 function dispararContatoSuporteSaaS(meio) {
-    const emailConsultoria = state.configGlobal?.email_consultoria || '';
-    const whatsConsultoria = state.configGlobal?.whatsapp_consultoria || '';
+    const emailConsultoria = state.configGlobal?.email_suporte || '';
+    const whatsConsultoria = state.configGlobal?.whatsapp || '';
     const nomeClinica = state.clinicaAtual?.nome_clinica || state.clinicaAtual?.nome || 'Minha Clínica';
-    const emailClinica = state.clinicaAtual?.email || 'Nâo cadastrado';
+    const emailClinica = state.clinicaAtual?.email_responsavel || 'Não cadastrado';
 
     if (meio === 'whatsapp') {
         if (!whatsConsultoria) { alert('Número de WhatsApp do Suporte não configurado no HUB Master.'); return; }
@@ -3455,19 +3539,18 @@ function dispararContatoSuporteSaaS(meio) {
     } else if (meio === 'email') {
         if (!emailConsultoria) { alert('E-mail do Suporte não configurado no HUB Master.'); return; }
         const assunto = encodeURIComponent(`[Suporte SaaS] Solicitação de Atendimento - ${nomeClinica}`);
-        const corpo = encodeURIComponent(`Clinica: ${nomeClinica}\nE-mail da Clínica: ${emailClinica}\n\nDescreva sua dúvida/problema aqui:`);
+        const corpo = encodeURIComponent(`Clínica: ${nomeClinica}\nE-mail da Clínica: ${emailClinica}\n\nDescreva sua dúvida/problema aqui:`);
         window.open(`mailto:${emailConsultoria}?subject=${assunto}&body=${corpo}`, '_blank');
     }
 }
 
-// 2. Disparar Envio de Orçamentos e Receituários por WhatsApp / E-mail do cliente
 function dispararDocumentoCliente(meio) {
     const selPac = document.getElementById('selectDocPaciente');
     const selTipo = document.getElementById('selectTipoDoc');
     const pacName = selPac ? selPac.value : '';
     const tipo = selTipo ? selTipo.value : 'documento';
 
-    const paciente = state.pacientes.find(p => p.nome === pacName);
+    const paciente = state.pacientes?.find(p => p.nome === pacName);
     const nomeClinica = state.clinicaAtual?.nome_clinica || state.clinicaAtual?.nome || 'Nossa Clínica';
     const enderecoClinica = state.clinicaAtual?.endereco || '';
     const docNome = tipo === 'orcamento' ? 'Orçamento/Planejamento' : 'Receituário';
@@ -3487,7 +3570,6 @@ function dispararDocumentoCliente(meio) {
     }
 }
 
-// 📸 Função Aprimorada para conversão de logomarca PNG/JPEG (HUB Clínica e HUB Master)
 function converterLogoParaBase64(event, targetInputId = 'hubClinicaLogoUrl', targetPreviewImgId = 'imgPreviewLogo', targetContainerId = 'previewLogoContainer', targetNameId = 'nomeArquivoLogo') {
     const file = event.target.files[0];
     if (!file) return;
