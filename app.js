@@ -762,52 +762,6 @@ async function salvarHubClinica(event) {
     }
 }
 
-    // Feedback visual de carregamento no botão
-    const btnSalvar = event?.currentTarget || document.querySelector('button[onclick="salvarHubClinica()"]');
-    const textoOriginal = btnSalvar ? btnSalvar.innerHTML : '';
-    if (btnSalvar) {
-        btnSalvar.disabled = true;
-        btnSalvar.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Salvando...`;
-        if (window.lucide) lucide.createIcons();
-    }
-
-    const nome = (document.getElementById('hubClinicaNome') || document.getElementById('nomeClinica'))?.value.trim();
-    const endereco = (document.getElementById('hubClinicaEndereco') || document.getElementById('enderecoClinica'))?.value.trim();
-    const url_google_agenda = (document.getElementById('hubClinicaGoogleAgenda') || document.getElementById('urlGoogleAgenda'))?.value.trim();
-    const url_calendly = (document.getElementById('hubClinicaCalendly') || document.getElementById('urlCalendly'))?.value.trim();
-    const email = (document.getElementById('hubClinicaEmail') || document.getElementById('emailClinica'))?.value.trim();
-    const logo_clinica_url = (document.getElementById('hubClinicaLogoUrl') || document.getElementById('logoClinicaUrl'))?.value.trim();
-    const url_planilha_nap = (document.getElementById('hubClinicaPlanilhaNap') || document.getElementById('urlPlanilhaNap'))?.value.trim();
-
-    const dadosAtualizados = {
-        nome_clinica: nome,
-        endereco: endereco,
-        url_google_agenda: url_google_agenda,
-        url_calendly: url_calendly,
-        email: email,
-        logo_clinica_url: logo_clinica_url,
-        url_planilha_nap: url_planilha_nap
-    };
-
-    try {
-        const resultado = await apiUpdate('clinicas', state.clinicaAtual.id, dadosAtualizados);
-        if (resultado) {
-            state.clinicaAtual = { ...state.clinicaAtual, ...resultado };
-            if (typeof aplicarConfigNaInterface === 'function') aplicarConfigNaInterface();
-            alert('✅ Configurações e integrações da clínica salvas com sucesso!');
-        }
-    } catch (err) {
-        console.error('Erro ao salvar no HUB Clínica:', err);
-        alert('Erro ao salvar as configurações no servidor: ' + (err.message || err));
-    } finally {
-        if (btnSalvar) {
-            btnSalvar.disabled = false;
-            btnSalvar.innerHTML = textoOriginal;
-            if (window.lucide) lucide.createIcons();
-        }
-    }
-}
-
 // 🛡️ FUNÇÃO INTELIGENTE PARA FECHAR O HUB MASTER
 function fecharHubMaster() {
     if (state.clinicaAtual) {
