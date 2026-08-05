@@ -688,31 +688,42 @@ function converterLogoMasterParaBase64(event) {
   reader.readAsDataURL(file);
 }
 
-// Salvar Parâmetros Master
+// Salvar Parâmetros Master (Versão Blindada e Sincronizada)
 async function salvarHubMaster() {
-  const nomeConsultoria = document.getElementById('hubMasterNomeConsultoria')?.value || '';
-  const logoUrl = document.getElementById('hubMasterLogoUrl')?.value || '';
-  const emailSuporte = document.getElementById('hubMasterEmailSuporte')?.value || '';
-  const whatsapp = document.getElementById('hubMasterWhatsapp')?.value || '';
+  const nomeConsultoria = (document.getElementById('hubMasterNomeConsultoria') || document.getElementById('nomeConsultoria')).value.trim();
+  const logoUrl = (document.getElementById('hubMasterLogoUrl') || document.getElementById('logoUrl')).value.trim();
+  const emailSuporte = (document.getElementById('hubMasterEmailSuporte') || document.getElementById('emailConsultoria')).value.trim();
+  const whatsapp = (document.getElementById('hubMasterWhatsapp') || document.getElementById('whatsappConsultoria')).value.trim();
 
   const payload = {
     id: 'global',
     nome_consultoria: nomeConsultoria,
-    logo_url: logoUrl,
-    email_suporte: emailSuporte,
-    whatsapp: whatsapp,
+    logo_metodo_url: logoUrl,
+    email_consultoria: emailSuporte,
+    whatsapp_consultoria: whatsapp,
     updated_at: new Date().toISOString()
   };
 
   try {
-    const res = await apiUpdate('config_global', 'global', payload);
-    if (res?.error) {
+    // Tenta atualizar diretamente o registro global
+    let res = await apiUpdate('config_global', 'global', payload);
+    
+    // Se não existir na base, cria o registro único
+    if (!res) {
       await apiCreate('config_global', payload);
     }
-    alert('Parâmetros do Hub Master salvos com sucesso!');
+    
+    // Atualiza o estado em memória imediatamente
+    state.configGlobal = { ...state.configGlobal, ...payload };
+    
+    // Reaplica a marca e os links de suporte na interface
+    if (typeof aplicarMarcaMetodoNaTelaLogin === 'function') aplicarMarcaMetodoNaTelaLogin();
+    if (typeof aplicarConfigNaInterface === 'function') aplicarConfigNaInterface();
+
+    alert('✅ Parâmetros do Hub Master salvos com sucesso no Supabase!');
   } catch (err) {
     console.error('Erro ao salvar Hub Master:', err);
-    alert('Erro ao salvar parâmetros do Hub Master.');
+    alert('Erro ao salvar parâmetros do Hub Master: ' + (err.message || err));
   }
 }
 
