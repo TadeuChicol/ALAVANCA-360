@@ -1442,62 +1442,6 @@ function atualizarTemplateDocumento() {
         </div>
     `;
 
-    let corpo = '';
-    const dataAtual = new Date().toLocaleDateString('pt-BR');
-
-    if (tipo === 'orcamento') {
-        corpo = `
-            <div class="space-y-4 text-xs text-slate-300">
-                <h2 class="text-center font-bold text-sm uppercase text-sky-400 my-2">Proposta Orçamentária e Plano de Tratamento</h2>
-                <p><strong>Paciente:</strong> ${pacName}</p>
-                <p><strong>Data de Emissão:</strong> ${dataAtual}</p>
-                <div class="border border-slate-800 rounded p-4 bg-slate-950/50 space-y-2">
-                    <p class="text-slate-400 italic">Discriminação dos procedimentos recomendados para a reabilitação funcional e estética.</p>
-                </div>
-            </div>
-        `;
-    } else {
-        corpo = `
-            <div class="space-y-4 text-xs text-slate-300">
-                <h2 class="text-center font-bold text-sm uppercase text-emerald-400 my-2">Receituário / Prescrição Clínica</h2>
-                <p><strong>Paciente:</strong> ${pacName}</p>
-                <p><strong>Data:</strong> ${dataAtual}</p>
-                <div class="border border-slate-800 rounded p-4 bg-slate-950/50 min-h-[120px]">
-                    <p class="text-slate-400 italic">Prescrição de medicamentos e orientações pós-procedimento.</p>
-                </div>
-            </div>
-        `;
-    }
-
-    const rodape = `
-        <div class="mt-12 pt-6 border-t border-slate-800 text-center space-y-8">
-            <div class="w-48 border-b border-slate-500 mx-auto"></div>
-            <p class="text-[10px] text-slate-400">${dentName} — ${cro}</p>
-        </div>
-    `;
-
-    preview.innerHTML = cabecalho + corpo + rodape;
-}
-
-function imprimirDocumentoPDF() {
-    const conteudo = document.getElementById('areaPreviewDocumento')?.innerHTML;
-    if (!conteudo) return;
-    
-    const janelaImpressao = window.open('', '', 'width=800,height=600');
-    janelaImpressao.document.write(`
-        <html>
-            <head>
-                <title>Documento Oficial - Método Alavanca 360</title>
-                <script src="https://cdn.tailwindcss.com"></script>
-            </head>
-            <body class="p-8 bg-white text-black" onload="window.print(); window.close();">
-                ${conteudo}
-            </body>
-        </html>
-    `);
-    janelaImpressao.document.close();
-}
-
     const assinaturaValidador = `
         <div class="mt-8 pt-6 border-t border-gray-200 flex justify-between items-end text-xs text-gray-700">
             <div>
@@ -1528,6 +1472,25 @@ function imprimirDocumentoPDF() {
             ${assinaturaValidador}
         `;
     }
+}
+
+function imprimirDocumentoPDF() {
+    const conteudo = document.getElementById('areaPreviewDocumento')?.innerHTML;
+    if (!conteudo) return;
+    
+    const janelaImpressao = window.open('', '', 'width=800,height=600');
+    janelaImpressao.document.write(`
+        <html>
+            <head>
+                <title>Documento Oficial - Método Alavanca 360</title>
+                <script src="https://cdn.tailwindcss.com"></script>
+            </head>
+            <body class="p-8 bg-white text-black" onload="window.print(); window.close();">
+                ${conteudo}
+            </body>
+        </html>
+    `);
+    janelaImpressao.document.close();
 }
 
 function imprimirDocumentoPDF() {
