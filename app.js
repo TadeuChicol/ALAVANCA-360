@@ -152,6 +152,32 @@ async function apiDelete(table, id) {
     }
 }
 
+
+
+document.getElementById('btnEntrarSistema')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    autenticarClinica();
+});
+
+async function carregarConfigGlobal() {
+    let cfg = await apiGet('config_global', 'global');
+    if (!cfg) {
+        cfg = {
+            id: 'global',
+            logo_metodo_url: 'images/logo-alavanca-360.png',
+            nome_consultoria: 'Alavanca 360 Consultoria',
+            whatsapp_consultoria: '5511999999999',
+            email_consultoria: 'contato@tce-tadeuchicolempowerment.cloud',
+            logo_consultoria_url: ''
+        };
+    }
+    // Garante fallback se estiver vazio no banco
+    if (!cfg.email_consultoria) cfg.email_consultoria = 'contato@tce-tadeuchicolempowerment.cloud';
+    // Garante valor fallback se estiver nulo/vazio no banco
+    if (!cfg.nome_consultoria) cfg.nome_consultoria = 'Alavanca 360 Consultoria';
+    state.configGlobal = cfg;
+}
+
 // ============================================================
 // 2. LOGIN / AUTENTICAÇÃO (SUPABASE AUTH)
 // ============================================================
@@ -217,9 +243,51 @@ async function carregarConfigGlobal() {
     state.configGlobal = cfg;
 }
 
+// ============================================================
+// 3. RENDERIZADOR DE LOGOS E NOME DA CLÍNICA NO HEADER
+// ============================================================
+function atualizarLogosVisuais() {
+    const clinica = state.clinicaAtual;
+    const cfgGlobal = state.configGlobal;
+
+    const imgLogoClinica = document.getElementById('imgLogoClinicaNav');
+    const iconDefault = document.getElementById('iconDefaultClinica');
+    const imgLogoMetodo = document.getElementById('imgLogoMetodoNav');
+    const lblNomeClinica = document.getElementById('lblNomeClinicaNav');
+
+    if (lblNomeClinica && clinica) {
+        lblNomeClinica.textContent = clinica.nome_clinica || clinica.nome || clinica.email_responsavel || 'Clínica Conectada';
+    }
+
+    if (clinica && clinica.logo_clinica_url) {
+        if (imgLogoClinica) {
+            imgLogoClinica.src = clinica.logo_clinica_url;
+            imgLogoClinica.classList.remove('hidden');
+        }
+        if (iconDefault) iconDefault.classList.add('hidden');
+    } else {
+        if (imgLogoClinica) imgLogoClinica.classList.add('hidden');
+        if (iconDefault) iconDefault.classList.remove('hidden');
+    }
+
+    const logoMetodoPadrao = 'https://gtcybiuxdpxixdjnshty.supabase.co/storage/v1/object/public/logos-clinicas/logo-alavanca360.png';
+    if (imgLogoMetodo) {
+        imgLogoMetodo.src = (cfgGlobal && cfgGlobal.logo_metodo_url) || logoMetodoPadrao;
+        imgLogoMetodo.classList.remove('hidden');
+    }
+}
+
+// Garante que a função esteja disponível globalmente para o HTML ou escuta o clique diretamente
+window.autenticarClinica = autenticarClinica;======================
+// APLICAÇÃO DE MARCA E INTEGRAÇÕES DINÂMICAS
+// ============================================================
+
 function aplicarMarcaMetodoNaTelaLogin() {
     const logoMetodo = (state.configGlobal && state.configGlobal.logo_metodo_url) || 'images/logo-alavanca-360.png';
-    document.querySelectorAll('.logo-metodo-alavanca').forEach(img => { img.src = logoMetodo; });
+    document.querySelectorAll('.logo-metodo-alavanca').forEach(img => { 
+        img.src = logoMetodo; 
+    });
+    
     const nomeConsultoria = document.getElementById('lblNomeConsultoriaLogin');
     if (nomeConsultoria && state.configGlobal) {
         nomeConsultoria.textContent = state.configGlobal.nome_consultoria || 'Alavanca 360 Consultoria';
@@ -227,17 +295,22 @@ function aplicarMarcaMetodoNaTelaLogin() {
 }
 
 function aplicarConfigNaInterface() {
-    // 1. Aplica Logo do Método/Sistema em toda a interface
-    const logoMetodo = (state.configGlobal && state.configGlobal.logo_metodo_url) || 'images/logo-alavanca-360.png';
-    document.querySelectorAll('.logo-metodo-alavanca').forEach(img => { img.src = logoMetodo; });
+    const cfg = state.configGlobal || {};
+    const logoMetodo = cfg.logo_metodo_url || 'images/logo-alavanca-360.png';
 
-    // 2. Controle de Logos e Nome da Clínica no Topo e na Sidebar
+    // 1. Aplica Logo do Sistema / Método (Ampliada)
+    document.querySelectorAll('.logo-metodo-alavanca').forEach(img => { 
+        img.src = logoMetodo; 
+    });
+
+    // 2. HUB Clínica — Inserção / Povoamento Automático da Logo da Clínica
     const containerMarcaClinica = document.getElementById('containerMarcaClinicaTopo');
+    const logoClinicaUrl = state.clinicaAtual?.logo_clinica_url;
     
-    if (state.clinicaAtual && state.clinicaAtual.logo_clinica_url) {
+    if (state.clinicaAtual && logoClinicaUrl) {
         if (containerMarcaClinica) containerMarcaClinica.classList.remove('hidden');
         document.querySelectorAll('.logo-clinica-topo').forEach(img => { 
-            img.src = state.clinicaAtual.logo_clinica_url;
+            img.src = logoClinicaUrl;
             img.classList.remove('hidden');
         });
     } else {
@@ -245,39 +318,38 @@ function aplicarConfigNaInterface() {
         document.querySelectorAll('.logo-clinica-topo').forEach(img => img.classList.add('hidden'));
     }
 
-    // Atualiza nome da clínica na interface
+    // Atualiza nome da clínica no topo
     document.querySelectorAll('.nome-clinica-topo').forEach(el => {
         el.textContent = state.clinicaAtual?.nome_clinica || state.clinicaAtual?.nome || 'Sua Clínica';
     });
 
-    // 3. Preenche formulário do HUB Master se os campos existirem na página
-    const cfg = state.configGlobal || {};
-    const inpNome  = document.getElementById('cfgNomeConsultoriaGlobal');
-    const inpLogo  = document.getElementById('cfgLogoConsultoria');
-    const inpWsp   = document.getElementById('cfgWhatsApp');
-    const inpEmail = document.getElementById('cfgEmailConsultoria');
-
+    // 3. Preenchimento de campos de formulário (HUB Master)
+    const inpNome  = document.getElementById('hubMasterNomeConsultoria') || document.getElementById('cfgNomeConsultoriaGlobal');
+    const inpLogo  = document.getElementById('hubMasterLogoUrl') || document.getElementById('cfgLogoConsultoria');
+    const inpWsp   = document.getElementById('hubMasterWhatsapp') || document.getElementById('cfgWhatsApp');
+    const inpEmail = document.getElementById('hubMasterEmailSuporte') || document.getElementById('cfgEmailConsultoria');
+    
     if (inpNome)  inpNome.value  = cfg.nome_consultoria || '';
-    if (inpLogo)  inpLogo.value  = cfg.logo_consultoria_url || '';
+    if (inpLogo)  inpLogo.value  = cfg.logo_metodo_url || cfg.logo_consultoria_url || '';
     if (inpWsp)   inpWsp.value   = cfg.whatsapp_consultoria || cfg.whatsapp || '';
     if (inpEmail) inpEmail.value = cfg.email_consultoria || cfg.email_suporte || '';
 
-    // 4. Propagação dos links dinâmicos de WhatsApp e E-mail de Suporte
-    const btnWhats = document.getElementById('btnSuporteWhatsapp');
-    const whatsappNum = cfg.whatsapp_consultoria || cfg.whatsapp;
-    if (btnWhats && whatsappNum) {
-        const numClean = whatsappNum.replace(/\D/g, '');
-        btnWhats.href = `https://wa.me/${numClean}`;
-    }
+    // 4. Redirecionamento Dinâmico do WhatsApp (HUB Master e HUB Clínica)
+    const whatsappNum = cfg.whatsapp_consultoria || cfg.whatsapp || '';
+    const numClean = whatsappNum.replace(/\D/g, '');
     
-    const btnEmail = document.getElementById('btnSuporteEmail');
-    const emailDestino = cfg.email_consultoria || cfg.email_suporte;
-    if (btnEmail && emailDestino) {
-        const emailClinica = state.clinicaAtual?.email || '';
-        const nomeClinica = state.clinicaAtual?.nome_clinica || 'Clinica';
-        const assunto = encodeURIComponent(`[Suporte] Atendimento - ${nomeClinica}`);
-        const corpo = encodeURIComponent(`Olá Suporte,\n\nSou da clínica ${nomeClinica} (E-mail: ${emailClinica}).\n\nPreciso de suporte com: `);
-        btnEmail.href = `mailto:${emailDestino}?subject=${assunto}&body=${corpo}`;
+    document.querySelectorAll('.btn-suporte-whatsapp').forEach(btnWhats => {
+        if (numClean) {
+            btnWhats.href = `https://wa.me/${numClean}`;
+            btnWhats.classList.remove('hidden');
+        } else {
+            btnWhats.href = '#';
+        }
+    });
+
+    // 5. Google Agenda e Planilha Google Sheets (Fonte de Verdade)
+    if (typeof renderizarAgendaLocal === 'function') {
+        renderizarAgendaLocal();
     }
 }
 
@@ -630,32 +702,6 @@ function switchTab(tabId) {
     if (window.lucide) lucide.createIcons();
 }
 
-// 📸 Função para conversão local da logomarca (PNG/JPEG)
-function converterLogoParaBase64(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    if (!['image/png', 'image/jpeg'].includes(file.type)) {
-        alert('Por favor, selecione apenas arquivos nos formatos PNG ou JPEG.');
-        return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        const base64Url = e.target.result;
-        const elLogoInput = document.getElementById('hubClinicaLogoUrl');
-        const elPreviewImg = document.getElementById('imgPreviewLogo');
-        const elPreviewContainer = document.getElementById('previewLogoContainer');
-        const elNomeArquivo = document.getElementById('nomeArquivoLogo');
-
-        if (elLogoInput) elLogoInput.value = base64Url;
-        if (elPreviewImg) elPreviewImg.src = base64Url;
-        if (elPreviewContainer) elPreviewContainer.classList.remove('hidden');
-        if (elNomeArquivo) elNomeArquivo.textContent = file.name;
-    };
-    reader.readAsDataURL(file);
-}
-
 function preencherFormularioHubClinica() {
     if (!state.clinicaAtual) return;
     const c = state.clinicaAtual;
@@ -685,68 +731,72 @@ function preencherFormularioHubClinica() {
     }
 }
 
-// Converter logo do Hub Master para Base64
-function converterLogoMasterParaBase64(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-
-  if (!file.type.match('image/png') && !file.type.match('image/jpeg')) {
-    alert('Por favor, selecione apenas arquivos PNG ou JPEG.');
-    return;
-  }
-
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    const base64Url = e.target.result;
-    const inputUrl = document.getElementById('hubMasterLogoUrl');
-    if (inputUrl) inputUrl.value = base64Url;
-    
-    const preview = document.getElementById('hubMasterLogoPreview');
-    if (preview) {
-      preview.src = base64Url;
-      preview.style.display = 'block';
+// 📸 Função unificada para conversão local da logomarca (PNG/JPEG)
+function converterLogoParaBase64(event, targetInputId = 'hubClinicaLogoUrl', targetPreviewImgId = 'imgPreviewLogo', targetContainerId = 'previewLogoContainer', targetNameId = 'nomeArquivoLogo') {
+    const file = event.target.files[0];
+    if (!file) return;
+    if (!['image/png', 'image/jpeg'].includes(file.type)) {
+        alert('Por favor, selecione apenas arquivos nos formatos PNG ou JPEG.');
+        return;
     }
-  };
-  reader.readAsDataURL(file);
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const base64Url = e.target.result;
+        const elLogoInput = document.getElementById(targetInputId);
+        const elPreviewImg = document.getElementById(targetPreviewImgId);
+        const elPreviewContainer = document.getElementById(targetContainerId);
+        const elNomeArquivo = document.getElementById(targetNameId);
+        
+        if (elLogoInput) elLogoInput.value = base64Url;
+        if (elPreviewImg) elPreviewImg.src = base64Url;
+        if (elPreviewContainer) elPreviewContainer.classList.remove('hidden');
+        if (elNomeArquivo) elNomeArquivo.textContent = file.name;
+    };
+    reader.readAsDataURL(file);
 }
 
-// Salvar Parâmetros Master (Versão Blindada e Sincronizada)
-async function salvarHubMaster() {
-  const nomeConsultoria = (document.getElementById('hubMasterNomeConsultoria') || document.getElementById('nomeConsultoria')).value.trim();
-  const logoUrl = (document.getElementById('hubMasterLogoUrl') || document.getElementById('logoUrl')).value.trim();
-  const emailSuporte = (document.getElementById('hubMasterEmailSuporte') || document.getElementById('emailConsultoria')).value.trim();
-  const whatsapp = (document.getElementById('hubMasterWhatsapp') || document.getElementById('whatsappConsultoria')).value.trim();
+// Disparado ao clicar em "Salvar Parâmetros Master"
+async function salvarHubMaster(event) {
+    if (event) event.preventDefault();
 
-  const payload = {
-    id: 'global',
-    nome_consultoria: nomeConsultoria,
-    logo_metodo_url: logoUrl,
-    email_consultoria: emailSuporte,
-    whatsapp_consultoria: whatsapp,
-    updated_at: new Date().toISOString()
-  };
+    const btnSalvar = event?.currentTarget || document.querySelector("button[onclick='salvarHubMaster()']");
+    const textoOriginal = btnSalvar ? btnSalvar.innerHTML : 'Salvar Parâmetros Master';
 
-  try {
-    // Tenta atualizar diretamente o registro global
-    let res = await apiUpdate('config_global', 'global', payload);
-    
-    // Se não existir na base, cria o registro único
-    if (!res) {
-      await apiCreate('config_global', payload);
+    try {
+        if (btnSalvar) {
+            btnSalvar.disabled = true;
+            btnSalvar.innerHTML = 'Salvando...';
+        }
+
+        const nome_consultoria = document.getElementById('hubMasterNomeConsultoria')?.value.trim() || '';
+        const logo_metodo_url = document.getElementById('hubMasterLogoUrl')?.value || '';
+        const email_suporte = document.getElementById('hubMasterEmailSuporte')?.value.trim() || '';
+        const whatsapp_suporte = document.getElementById('hubMasterWhatsapp')?.value.trim() || '';
+
+        const payload = {
+            nome_consultoria,
+            logo_metodo_url,
+            email_suporte,
+            whatsapp_suporte
+        };
+
+        const idConfig = state.configGlobal?.id || 1;
+        const resultado = await apiUpdate('config_global', idConfig, payload);
+
+        if (resultado) {
+            state.configGlobal = { ...state.configGlobal, ...resultado };
+            if (typeof aplicarConfigNaInterface === 'function') aplicarConfigNaInterface();
+            alert('✅ Configurações Master salvas e aplicadas com sucesso!');
+        }
+    } catch (err) {
+        console.error('Erro ao salvar HUB Master:', err);
+        alert('❌ Erro ao salvar configurações do HUB Master.');
+    } finally {
+        if (btnSalvar) {
+            btnSalvar.disabled = false;
+            btnSalvar.innerHTML = textoOriginal;
+        }
     }
-    
-    // Atualiza o estado em memória imediatamente
-    state.configGlobal = { ...state.configGlobal, ...payload };
-    
-    // Reaplica a marca e os links de suporte na interface
-    if (typeof aplicarMarcaMetodoNaTelaLogin === 'function') aplicarMarcaMetodoNaTelaLogin();
-    if (typeof aplicarConfigNaInterface === 'function') aplicarConfigNaInterface();
-
-    alert('✅ Parâmetros do Hub Master salvos com sucesso no Supabase!');
-  } catch (err) {
-    console.error('Erro ao salvar Hub Master:', err);
-    alert('Erro ao salvar parâmetros do Hub Master: ' + (err.message || err));
-  }
 }
 
 async function salvarHubClinica(event) {
@@ -1493,13 +1543,6 @@ function imprimirDocumentoPDF() {
     janelaImpressao.document.close();
 }
 
-function imprimirDocumentoPDF() {
-    const conteudo = document.getElementById('areaPreviewDocumento').innerHTML;
-    const win = window.open('', '', 'width=850,height=700');
-    win.document.write(`<html><head><script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"><\/script></head><body class="p-10 bg-white" onload="window.print(); window.close();">${conteudo}</body></html>`);
-    win.document.close();
-}
-
 // ============================================================
 // 12. SELECTS DINÂMICOS
 // ============================================================
@@ -1520,7 +1563,7 @@ function rebuildSelects() {
 }
 
 // ============================================================
-// 12B. MÓDULO 8 — CUSTOS, INSUMOS E PRECIFICAÇÃO
+// 12B. MÓDULO 8 — CUSTOS, INSUMOS E PRECIFICAÇÃO (COMPLETO E INTEGRADO À API)
 // ============================================================
 
 function mudarSubAbaCustos(nome) {
@@ -1530,6 +1573,9 @@ function mudarSubAbaCustos(nome) {
     if (alvo) alvo.classList.remove('hidden');
     const btn = document.getElementById('subtabBtn-' + nome);
     if (btn) btn.classList.add('bg-emerald-600', 'text-white');
+
+    if (nome === 'mapa') atualizarSelectsMapa();
+    if (nome === 'resultado') renderizarResultadosCustos();
 }
 
 function calcularCustoUnitarioInsumo(ins) {
@@ -1538,6 +1584,7 @@ function calcularCustoUnitarioInsumo(ins) {
     return qtd > 0 ? preco / qtd : 0;
 }
 
+// --- 1. INSUMOS ---
 async function salvarInsumo() {
     const nome = document.getElementById('insNome').value.trim();
     const apresentacao = document.getElementById('insApresentacao').value.trim();
@@ -1552,7 +1599,10 @@ async function salvarInsumo() {
             clinica_id: clinicaId(), nome, apresentacao, quantidade_apresentacao, unidade_medida, preco_apresentacao
         });
         state.insumos.push(criado);
-        ['insNome', 'insApresentacao', 'insQuantidade', 'insUnidade', 'insPreco'].forEach(id => document.getElementById(id).value = '');
+        ['insNome', 'insApresentacao', 'insQuantidade', 'insUnidade', 'insPreco'].forEach(id => {
+            const input = document.getElementById(id);
+            if (input) input.value = '';
+        });
         renderizarModuloFinanceiroCompleto();
     } catch (e) {
         alert('Erro ao salvar insumo.');
@@ -1561,16 +1611,22 @@ async function salvarInsumo() {
 
 async function removerInsumo(id) {
     if (!confirm('Remover este insumo? Vínculos com serviços também serão removidos.')) return;
-    await apiDelete('insumos', id);
-    state.insumos = state.insumos.filter(i => i.id !== id);
-    state.mapaInsumosServicos = state.mapaInsumosServicos.filter(m => m.insumo_id !== id);
-    renderizarModuloFinanceiroCompleto();
+    try {
+        await apiDelete('insumos', id);
+        state.insumos = state.insumos.filter(i => i.id !== id);
+        if (state.mapaInsumosServicos) {
+            state.mapaInsumosServicos = state.mapaInsumosServicos.filter(m => m.insumo_id !== id);
+        }
+        renderizarModuloFinanceiroCompleto();
+    } catch (e) {
+        alert('Erro ao excluir insumo.');
+    }
 }
 
 function renderizarInsumos() {
     const tbody = document.getElementById('tbodyInsumos');
     if (!tbody) return;
-    if (state.insumos.length === 0) {
+    if (!state.insumos || state.insumos.length === 0) {
         tbody.innerHTML = `<tr><td colspan="6" class="p-3 text-center text-slate-600">Nenhum insumo cadastrado.</td></tr>`;
         return;
     }
@@ -1588,6 +1644,7 @@ function renderizarInsumos() {
     }).join('');
 }
 
+// --- 2. SERVIÇOS ---
 async function salvarServico() {
     const nome = document.getElementById('servNome').value.trim();
     const categoria = document.getElementById('servCategoria').value.trim();
@@ -1602,7 +1659,10 @@ async function salvarServico() {
             clinica_id: clinicaId(), nome, categoria, tempo_medio_min, preco_convenio, preco_particular
         });
         state.servicos.push(criado);
-        ['servNome', 'servCategoria', 'servTempo', 'servPrecoConvenio', 'servPrecoParticular'].forEach(id => document.getElementById(id).value = '');
+        ['servNome', 'servCategoria', 'servTempo', 'servPrecoConvenio', 'servPrecoParticular'].forEach(id => {
+            const input = document.getElementById(id);
+            if (input) input.value = '';
+        });
         renderizarModuloFinanceiroCompleto();
     } catch (e) {
         alert('Erro ao salvar serviço.');
@@ -1611,27 +1671,45 @@ async function salvarServico() {
 
 async function removerServico(id) {
     if (!confirm('Remover este serviço? Vínculos e atendimentos relacionados também serão afetados.')) return;
-    await apiDelete('servicos', id);
-    state.servicos = state.servicos.filter(s => s.id !== id);
-    state.mapaInsumosServicos = state.mapaInsumosServicos.filter(m => m.servico_id !== id);
-    renderizarModuloFinanceiroCompleto();
+    try {
+        await apiDelete('servicos', id);
+        state.servicos = state.servicos.filter(s => s.id !== id);
+        if (state.mapaInsumosServicos) {
+            state.mapaInsumosServicos = state.mapaInsumosServicos.filter(m => m.servico_id !== id);
+        }
+        renderizarModuloFinanceiroCompleto();
+    } catch (e) {
+        alert('Erro ao excluir serviço.');
+    }
+}
+
+// Atualização inline de preços de venda dos serviços
+async function atualizarPrecoServico(id, campo, valor) {
+    const servico = state.servicos.find(s => String(s.id) === String(id));
+    if (!servico) return;
+    
+    const numVal = parseFloat(valor) || 0;
+    servico[campo] = numVal;
+
+    try {
+        await apiUpdate('servicos', id, { [campo]: numVal });
+    } catch (e) {
+        console.error('Erro ao atualizar preço do serviço via API', e);
+    }
 }
 
 function renderizarServicos() {
     const tbody = document.getElementById('tbodyServicos');
     if (!tbody) return;
-    if (state.servicos.length === 0) {
+    if (!state.servicos || state.servicos.length === 0) {
         tbody.innerHTML = `<tr><td colspan="6" class="p-3 text-center text-slate-600">Nenhum serviço cadastrado.</td></tr>`;
         return;
     }
-    // Preço Convênio/Particular editável direto na linha — útil especialmente
-    // depois de uma importação em massa via CSV (a planilha de custos, em
-    // geral, não traz o preço de venda cobrado do paciente, só o custo).
     tbody.innerHTML = state.servicos.map(s => `
         <tr class="border-b border-slate-800/60">
             <td class="p-2 text-slate-200">${s.nome}</td>
             <td class="p-2 text-slate-400">${s.categoria || ''}</td>
-            <td class="p-2 text-slate-400">${s.tempo_medio_min || 0}</td>
+            <td class="p-2 text-slate-400">${s.tempo_medio_min || 0} min</td>
             <td class="p-1">
                 <input type="number" value="${s.preco_convenio || 0}" onchange="atualizarPrecoServico('${s.id}', 'preco_convenio', this.value)"
                     class="w-24 bg-slate-950 border border-slate-800 p-1.5 rounded text-sky-400 text-xs">
@@ -1643,6 +1721,192 @@ function renderizarServicos() {
             <td class="p-2 text-right"><button onclick="removerServico('${s.id}')" class="text-rose-400 hover:underline">Excluir</button></td>
         </tr>
     `).join('');
+}
+
+// --- 3. MAPA DE CONSUMO (INSUMO X SERVIÇO) ---
+function atualizarSelectsMapa() {
+    const selS = document.getElementById('mapaServico');
+    const selI = document.getElementById('mapaInsumo');
+    if (selS) {
+        selS.innerHTML = (state.servicos || []).map(s => `<option value="${s.id}">${s.nome}</option>`).join('') || '<option value="">Cadastre um serviço primeiro</option>';
+    }
+    if (selI) {
+        selI.innerHTML = (state.insumos || []).map(i => `<option value="${i.id}">${i.nome}</option>`).join('') || '<option value="">Cadastre um insumo primeiro</option>';
+    }
+}
+
+async function salvarMapaInsumoServico() {
+    const servico_id = document.getElementById('mapaServico').value;
+    const insumo_id = document.getElementById('mapaInsumo').value;
+    const quantidade_consumida = parseFloat(document.getElementById('mapaQuantidade').value) || 0;
+
+    if (!servico_id || !insumo_id || quantidade_consumida <= 0) {
+        alert('Selecione os itens e informe uma quantidade válida.');
+        return;
+    }
+
+    try {
+        const criado = await apiCreate('mapa_insumos_servicos', {
+            clinica_id: clinicaId(), servico_id, insumo_id, quantidade_consumida
+        });
+        if (!state.mapaInsumosServicos) state.mapaInsumosServicos = [];
+        state.mapaInsumosServicos.push(criado);
+        document.getElementById('mapaQuantidade').value = '';
+        renderizarModuloFinanceiroCompleto();
+    } catch (e) {
+        alert('Erro ao vincular insumo ao serviço.');
+    }
+}
+
+async function removerMapaInsumoServico(id) {
+    try {
+        await apiDelete('mapa_insumos_servicos', id);
+        state.mapaInsumosServicos = state.mapaInsumosServicos.filter(m => m.id !== id);
+        renderizarModuloFinanceiroCompleto();
+    } catch (e) {
+        alert('Erro ao excluir vínculo.');
+    }
+}
+
+function renderizarMapaInsumos() {
+    const tbody = document.getElementById('tbodyMapaInsumos');
+    if (!tbody) return;
+    const mapa = state.mapaInsumosServicos || [];
+    if (mapa.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="p-3 text-center text-slate-600">Nenhum vínculo cadastrado.</td></tr>`;
+        return;
+    }
+    tbody.innerHTML = mapa.map(m => {
+        const s = (state.servicos || []).find(x => String(x.id) === String(m.servico_id)) || { nome: 'Removido' };
+        const i = (state.insumos || []).find(x => String(x.id) === String(m.insumo_id)) || { nome: 'Removido', quantidade_apresentacao: 1, preco_apresentacao: 0 };
+        const custoUnit = calcularCustoUnitarioInsumo(i);
+        const custoTotal = Number(m.quantidade_consumida || 0) * custoUnit;
+
+        return `
+            <tr class="border-b border-slate-800/60">
+                <td class="p-2 font-medium text-slate-200">${s.nome}</td>
+                <td class="p-2 text-slate-400">${i.nome}</td>
+                <td class="p-2 text-slate-400">${m.quantidade_consumida}</td>
+                <td class="p-2 font-bold text-amber-400">${formatarMoeda(custoTotal)}</td>
+                <td class="p-2 text-right"><button onclick="removerMapaInsumoServico('${m.id}')" class="text-rose-400 hover:underline">Excluir</button></td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// --- 4. CUSTOS FIXOS ---
+async function salvarCustoFixo() {
+    const nome = document.getElementById('fixoNome').value.trim();
+    const valor = parseFloat(document.getElementById('fixoValor').value) || 0;
+
+    if (!nome || valor <= 0) { alert('Informe a descrição e o valor.'); return; }
+
+    try {
+        const criado = await apiCreate('custos_fixos', { clinica_id: clinicaId(), nome, valor });
+        if (!state.custosFixos) state.custosFixos = [];
+        state.custosFixos.push(criado);
+        document.getElementById('fixoNome').value = '';
+        document.getElementById('fixoValor').value = '';
+        renderizarModuloFinanceiroCompleto();
+    } catch (e) {
+        alert('Erro ao salvar custo fixo.');
+    }
+}
+
+async function removerCustoFixo(id) {
+    try {
+        await apiDelete('custos_fixos', id);
+        state.custosFixos = state.custosFixos.filter(f => f.id !== id);
+        renderizarModuloFinanceiroCompleto();
+    } catch (e) {
+        alert('Erro ao excluir custo fixo.');
+    }
+}
+
+function renderizarCustosFixos() {
+    const tbody = document.getElementById('tbodyCustosFixos');
+    const lblTotal = document.getElementById('lblTotalCustosFixos');
+    const fixos = state.custosFixos || [];
+    const total = fixos.reduce((acc, f) => acc + Number(f.valor || 0), 0);
+
+    if (lblTotal) lblTotal.innerText = formatarMoeda(total);
+    if (!tbody) return;
+
+    if (fixos.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="3" class="p-3 text-center text-slate-600">Nenhum custo fixo cadastrado.</td></tr>`;
+        return;
+    }
+    tbody.innerHTML = fixos.map(f => `
+        <tr class="border-b border-slate-800/60">
+            <td class="p-2 font-medium text-slate-200">${f.nome}</td>
+            <td class="p-2 font-bold text-slate-300">${formatarMoeda(f.valor)}</td>
+            <td class="p-2 text-right"><button onclick="removerCustoFixo('${f.id}')" class="text-rose-400 hover:underline">Excluir</button></td>
+        </tr>
+    `).join('');
+}
+
+// --- 5. RESULTADOS E MATRIZ DE PRECIFICAÇÃO ---
+function renderizarResultadosCustos() {
+    const tbody = document.getElementById('tbodyResultadoCustos');
+    if (!tbody) return;
+
+    const servicos = state.servicos || [];
+    if (servicos.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="p-3 text-center text-slate-600">Cadastre serviços e insumos para visualizar a matriz.</td></tr>`;
+        return;
+    }
+
+    const totalFixos = (state.custosFixos || []).reduce((acc, f) => acc + Number(f.valor || 0), 0);
+    const mapa = state.mapaInsumosServicos || [];
+
+    let html = '';
+    servicos.forEach(s => {
+        const insumoCustos = mapa.filter(m => String(m.servico_id) === String(s.id)).reduce((acc, m) => {
+            const ins = (state.insumos || []).find(i => String(i.id) === String(m.insumo_id));
+            return acc + (ins ? calcularCustoUnitarioInsumo(ins) * Number(m.quantidade_consumida || 0) : 0);
+        }, 0);
+
+        ['convenio', 'particular'].forEach(mod => {
+            const cfg = (state.configPrecificacao && state.configPrecificacao[mod]) || {};
+            const minutosMes = (Number(cfg.horas_dia) || 8) * (Number(cfg.dias_mes) || 22) * 60;
+            const proLabore = Number(cfg.pro_labore) || 0;
+            const valorMinutoFixo = minutosMes > 0 ? (totalFixos + proLabore) / minutosMes : 0;
+            const custoHoraFixo = valorMinutoFixo * (Number(s.tempo_medio_min) || 0);
+
+            const custoTotal = insumoCustos + custoHoraFixo;
+            const precoVenda = mod === 'convenio' ? Number(s.preco_convenio || 0) : Number(s.preco_particular || 0);
+            const impostoTaxaR$ = (precoVenda * ((Number(cfg.imposto_pct) || 0) + (Number(cfg.taxa_cartao_pct) || 0))) / 100;
+            const margemR$ = precoVenda - custoTotal - impostoTaxaR$;
+            const margemPct = precoVenda > 0 ? (margemR$ / precoVenda) * 100 : 0;
+
+            const metaMargem = Number(cfg.margem_desejada_pct) || 0;
+            const statusClass = margemPct >= metaMargem ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold';
+            const statusTexto = margemPct >= metaMargem ? 'Lucrativo' : 'Abaixo da Meta';
+
+            html += `
+                <tr class="border-b border-slate-800/60">
+                    <td class="p-2 font-medium text-slate-200">${s.nome}</td>
+                    <td class="p-2 capitalize font-semibold ${mod === 'convenio' ? 'text-sky-400' : 'text-purple-400'}">${mod}</td>
+                    <td class="p-2 text-slate-300">${formatarMoeda(custoTotal)}</td>
+                    <td class="p-2 text-slate-300">${formatarMoeda(precoVenda)}</td>
+                    <td class="p-2 text-slate-300">${formatarMoeda(margemR$)}</td>
+                    <td class="p-2 text-slate-300">${margemPct.toFixed(1)}%</td>
+                    <td class="p-2 ${statusClass}">${statusTexto}</td>
+                </tr>
+            `;
+        });
+    });
+    tbody.innerHTML = html;
+}
+
+// Renderização consolidada do Módulo Financeiro
+function renderizarModuloFinanceiroCompleto() {
+    renderizarInsumos();
+    renderizarServicos();
+    renderizarMapaInsumos();
+    renderizarCustosFixos();
+    atualizarSelectsMapa();
+    renderizarResultadosCustos();
 }
 
 // Atualiza só o preço (Convênio ou Particular) de um serviço já cadastrado,
@@ -2424,6 +2688,10 @@ async function salvarAtendimento() {
 
     if (!paciente_id || !servico_id) { alert('Selecione paciente e serviço.'); return; }
 
+    // Trava de Segurança Financeira (Valida a margem antes de permitir salvar)
+    const margemAprovada = await dispararVerificacaoFinanceira();
+    if (!margemAprovada) return;
+
     const paciente = state.pacientes.find(p => p.id === paciente_id);
     const servico = state.servicos.find(s => s.id === servico_id);
 
@@ -2915,55 +3183,43 @@ function atualizarLogosVisuais() {
     }
 }
 
-// Auxiliar interna para fazer o upload do arquivo binário para o Storage
-async function uploadLogoClinicaStorage(fileInputId, idClinica) {
-    const fileInput = document.getElementById(fileInputId);
-    if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
-        return null; // Nenhuma imagem anexada, segue fluxo padrão
-    }
+// Auxiliar para fazer o upload do arquivo de Imagem para o Supabase Storage
+async function uploadLogoSupabaseStorage(arquivo, bucket = 'logos-clinicas') {
+    if (!arquivo) return null;
 
-    const file = fileInput.files[0];
-    
-    // Filtro e blindagem de formato
     const tiposPermitidos = ['image/jpeg', 'image/png', 'image/jpg'];
-    if (!tiposPermitidos.includes(file.type)) {
-        alert('Formato de arquivo inválido. Por favor, envie apenas imagens em JPEG ou PNG.');
-        fileInput.value = '';
+    if (!tiposPermitidos.includes(arquivo.type)) {
+        alert('Formato de arquivo inválido. Envie apenas imagens em JPEG ou PNG.');
         return null;
     }
 
-    // Filtro e restrição de tamanho limite (2MB)
-    if (file.size > 2 * 1024 * 1024) {
-        alert('A imagem é muito pesada. O tamanho máximo permitido é de 2MB.');
-        fileInput.value = '';
+    if (arquivo.size > 2 * 1024 * 1024) {
+        alert('A imagem é muito pesada. O tamanho máximo permitido é 2MB.');
         return null;
     }
 
-    const extensao = file.type.split('/')[1] || 'png';
-    // Caminho estratégico organizado por ID de clínica para evitar conflitos de nomes
-    const pathArquivo = `${idClinica}/logo_operacional_${Date.now()}.${extensao}`;
+    const extensao = arquivo.name.split('.').pop() || 'png';
+    const pathArquivo = `logo_${Date.now()}_${Math.random().toString(36).substring(2, 6)}.${extensao}`;
 
     try {
-        // Envia o arquivo de imagem para o bucket público do Supabase
         const { data, error } = await supabaseClient.storage
-            .from('logos-clinicas')
-            .upload(pathArquivo, file, {
-                cacheControl: '0', // Força a CDN a limpar caches antigos e carregar a imagem na hora
+            .from(bucket)
+            .upload(pathArquivo, arquivo, {
+                cacheControl: '0',
                 upsert: true
             });
 
         if (error) throw error;
 
-        // Gera a URL de acesso público direto para salvar no banco
         const { data: urlData } = supabaseClient.storage
-            .from('logos-clinicas')
+            .from(bucket)
             .getPublicUrl(pathArquivo);
 
         return urlData.publicUrl;
 
     } catch (err) {
-        console.error('Falha de Storage upload:', err);
-        alert('Aviso: Não foi possível realizar o upload do arquivo de imagem. Certifique-se de criar um bucket chamado "logos-clinicas" configurado como "Public" no seu console do Supabase.');
+        console.error('Falha no upload para o Storage:', err);
+        alert('Não foi possível fazer o upload da imagem. Verifique se o bucket "logos-clinicas" existe e é Público no Supabase.');
         return null;
     }
 }
@@ -3596,27 +3852,4 @@ function dispararDocumentoCliente(meio) {
         const corpo = encodeURIComponent(`Olá ${pacName},\n\nAnexo/Segue a via do seu ${docNome} emitido por ${nomeClinica}.\n\nAtenciosamente,\n${nomeClinica}\n${enderecoClinica}`);
         window.open(`mailto:${emailPac}?subject=${assunto}&body=${corpo}`, '_blank');
     }
-}
-
-function converterLogoParaBase64(event, targetInputId = 'hubClinicaLogoUrl', targetPreviewImgId = 'imgPreviewLogo', targetContainerId = 'previewLogoContainer', targetNameId = 'nomeArquivoLogo') {
-    const file = event.target.files[0];
-    if (!file) return;
-    if (!['image/png', 'image/jpeg'].includes(file.type)) {
-        alert('Por favor, selecione apenas arquivos nos formatos PNG ou JPEG.');
-        return;
-    }
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        const base64Url = e.target.result;
-        const elLogoInput = document.getElementById(targetInputId);
-        const elPreviewImg = document.getElementById(targetPreviewImgId);
-        const elPreviewContainer = document.getElementById(targetContainerId);
-        const elNomeArquivo = document.getElementById(targetNameId);
-        
-        if (elLogoInput) elLogoInput.value = base64Url;
-        if (elPreviewImg) elPreviewImg.src = base64Url;
-        if (elPreviewContainer) elPreviewContainer.classList.remove('hidden');
-        if (elNomeArquivo) elNomeArquivo.textContent = file.name;
-    };
-    reader.readAsDataURL(file);
 }
