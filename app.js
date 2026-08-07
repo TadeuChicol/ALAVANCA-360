@@ -277,8 +277,10 @@ function atualizarLogosVisuais() {
     }
 }
 
-// Garante que a função esteja disponível globalmente para o HTML ou escuta o clique diretamente
-window.autenticarClinica = autenticarClinica;======================
+// Garante que a função esteja disponível globalmente
+window.autenticarClinica = autenticarClinica;
+
+// ============================================================
 // APLICAÇÃO DE MARCA E INTEGRAÇÕES DINÂMICAS
 // ============================================================
 
@@ -347,7 +349,7 @@ function aplicarConfigNaInterface() {
         }
     });
 
-    // 5. Google Agenda e Planilha Google Sheets (Fonte de Verdade)
+    // 5. Google Agenda e Planilha Google Sheets
     if (typeof renderizarAgendaLocal === 'function') {
         renderizarAgendaLocal();
     }
@@ -421,12 +423,9 @@ function traduzErroSupabase(msg) {
     return msg || 'Erro ao conectar ao servidor.';
 }
 
-// Carrega: se o usuário é admin da Consultoria, e/ou dono de alguma clínica.
-// Retorna true se o login pode prosseguir (é admin OU tem clínica ativa vinculada).
 async function carregarContextoUsuario(user) {
     state.usuario = user;
 
-    // Busca se é administrador master da Consultoria
     const { data: adminData } = await supabaseClient
         .from('consultoria_admins')
         .select('*')
@@ -435,7 +434,6 @@ async function carregarContextoUsuario(user) {
 
     state.isAdmin = !!adminData;
 
-    // Busca se existe clínica associada ao usuário
     const { data: clinicas, error } = await supabaseClient
         .from('clinicas')
         .select('*')
@@ -444,14 +442,13 @@ async function carregarContextoUsuario(user) {
 
     if (!error && clinicas) {
         if (clinicas.ativo === false && !state.isAdmin) {
-            return false; // clínica suspensa e usuário não é admin
+            return false;
         }
         state.clinicaAtual = clinicas;
     } else {
         state.clinicaAtual = null;
     }
 
-    // 🛡️ Mantém a permissão de admin master se ele constar na tabela consultoria_admins
     if (adminData) {
         state.isAdmin = true;
     }
@@ -472,7 +469,7 @@ async function entrarNoSistema() {
 }
 
 // ============================================================
-// 3. INICIALIZAÇÃO DO APP (JÁ AUTENTICADO)
+// INICIALIZAÇÃO DO APP (JÁ AUTENTICADO)
 // ============================================================
 
 async function init() {
@@ -594,7 +591,10 @@ async function carregarDadosFinanceiros() {
     }
 }
 
+// ============================================================
 // 4. NAVEGAÇÃO ENTRE MÓDULOS (VERSÃO CORRIGIDA PARA HUB MASTER)
+// ============================================================
+
 function switchTab(tabId) {
     console.log(`[Alavanca 360] Alternando para aba: ${tabId}`);
 
