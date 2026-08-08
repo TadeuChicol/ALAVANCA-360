@@ -777,7 +777,7 @@ async function salvarHubMaster(event) {
         }
 
         const nome_consultoria = document.getElementById('hubMasterNomeConsultoria')?.value.trim() || '';
-        const logo_metodo_url = document.getElementById('hubMasterLogoUrl')?.value || '';
+        const logo_metodo_url = 'images/logo-alavanca-360.png';
         const email_suporte = document.getElementById('hubMasterEmailSuporte')?.value.trim() || '';
         const whatsapp_suporte = document.getElementById('hubMasterWhatsapp')?.value.trim() || '';
 
@@ -785,7 +785,7 @@ async function salvarHubMaster(event) {
             nome_consultoria,
             logo_metodo_url,
             email_suporte,
-            whatsapp_suporte
+            whatsapp: whatsapp_suporte
         };
 
         const idConfig = state.configGlobal?.id || 1;
@@ -3534,41 +3534,6 @@ function aplicarConfigNaInterface() {
     }
 }
 
-async function salvarConfigGlobal() {
-    const nome  = document.getElementById('cfgNomeConsultoriaGlobal')?.value.trim() || '';
-    const logo  = document.getElementById('cfgLogoConsultoria')?.value.trim() || document.getElementById('cfgLogoMetodo')?.value.trim() || '';
-    const wsp   = document.getElementById('cfgWhatsApp')?.value.trim() || '';
-    const email = document.getElementById('cfgEmailConsultoria')?.value.trim() || '';
-
-    try {
-        const payload = {
-            id: 1,
-            nome_consultoria: nome,
-            logo_consultoria_url: logo,
-            logo_metodo_url: logo,
-            whatsapp: wsp,
-            email_suporte: email,
-            updated_at: new Date().toISOString()
-        };
-
-        const { data, error } = await supabaseClient
-            .from('config_global')
-            .upsert(payload)
-            .select()
-            .single();
-
-        if (error) throw error;
-
-        state.configGlobal = data || payload;
-        aplicarConfigNaInterface();
-
-        alert("✅ Configurações Globais e Suporte salvos com sucesso!");
-    } catch (e) {
-        console.error("Erro ao salvar marca global:", e);
-        alert("Erro ao salvar configurações globais: " + (e.message || e));
-    }
-}
-
 async function renderizarListaClinicas() {
     const tbody = document.getElementById('tbodyClinicasMaster');
     if (!tbody) return;
@@ -3865,107 +3830,6 @@ function dispararDocumentoCliente(meio) {
 // ============================================================
 // LÓGICA DE PERSISTÊNCIA NO SUPABASE: HUB MASTER & HUB CLÍNICA
 // ============================================================
-
-// 1. Salvar e Propagar Hub Master (Tabela config_global)
-async function salvarHubMaster(e) {
-    if (e) e.preventDefault();
-
-    const dadosMaster = {
-        id: 'global',
-        nome_consultoria: document.getElementById('hubMasterNomeConsultoria')?.value.trim() || 'Alavanca 360 Consultoria',
-        logo_metodo_url: document.getElementById('hubMasterLogoUrl')?.value.trim() || 'images/logo-alavanca-360.png',
-        whatsapp_consultoria: document.getElementById('hubMasterWhatsapp')?.value.trim() || '',
-        email_consultoria: document.getElementById('hubMasterEmailSuporte')?.value.trim() || ''
-    };
-
-    try {
-        // Tenta atualizar no Supabase através da sua função apiUpdate
-        let res = await apiUpdate('config_global', 'global', dadosMaster);
-        
-        // Se a linha 'global' ainda não existir no banco, cria
-        if (!res) {
-            res = await apiCreate('config_global', dadosMaster);
-        }
-
-        // Atualiza o estado global da aplicação
-        state.configGlobal = dadosMaster;
-
-        // Propaga na interface
-        aplicarConfigNaInterface();
-
-        alert('✅ Configurações do HUB Master salvas e propagadas com sucesso!');
-    } catch (err) {
-        console.error('Erro ao salvar HUB Master:', err);
-        alert('❌ Erro ao salvar configurações no Supabase. Verifique a conexão.');
-    }
-}
-
-// 2. Salvar e Sincronizar Hub Clínica (Tabela clinicas)
-async function salvarHubClinica(e) {
-    if (e) e.preventDefault();
-
-    if (!state.clinicaAtual || !state.clinicaAtual.id) {
-        alert('⚠️ Erro: Nenhum contexto de clínica ativa encontrado.');
-        return;
-    }
-
-    const clinicaId = state.clinicaAtual.id;
-
-    const dadosClinica = {
-        nome_clinica: document.getElementById('hubClinicaNome')?.value.trim() || '',
-        endereco: document.getElementById('hubClinicaEndereco')?.value.trim() || '',
-        email: document.getElementById('hubClinicaEmail')?.value.trim() || '',
-        logo_clinica_url: document.getElementById('hubClinicaLogoUrl')?.value.trim() || '',
-        google_agenda_url: document.getElementById('hubClinicaGoogleAgenda')?.value.trim() || '',
-        calendly_url: document.getElementById('hubClinicaCalendly')?.value.trim() || '',
-        planilha_nap_url: document.getElementById('hubClinicaPlanilhaNap')?.value.trim() || ''
-    };
-
-    try {
-        const res = await apiUpdate('clinicas', clinicaId, dadosClinica);
-
-        if (res) {
-            // Atualiza o objeto da clínica no estado global
-            state.clinicaAtual = { ...state.clinicaAtual, ...dadosClinica };
-
-            // Re-aplica no TopBar e nos módulos
-            aplicarConfigNaInterface();
-
-            alert('✅ Configurações da Clínica atualizadas e sincronizadas com sucesso!');
-        } else {
-            throw new Error('Não foi possível atualizar o registro da clínica.');
-        }
-    } catch (err) {
-        console.error('Erro ao salvar HUB Clínica:', err);
-        alert('❌ Erro ao sincronizar dados com o Supabase.');
-    }
-}
-
-// Função utilitária para conversão de imagens de logo em Base64
-function converterLogoParaBase64(event, inputHiddenId, imgPreviewId, containerPreviewId, txtNomeArquivoId) {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        const base64String = e.target.result;
-        
-        // Define o valor no campo oculto
-        const hiddenInput = document.getElementById(inputHiddenId);
-        if (hiddenInput) hiddenInput.value = base64String;
-
-        // Exibe o preview
-        const imgPreview = document.getElementById(imgPreviewId);
-        const container = document.getElementById(containerPreviewId);
-        const txtNome = document.getElementById(txtNomeArquivoId);
-
-        if (imgPreview) imgPreview.src = base64String;
-        if (txtNome) txtNome.textContent = file.name;
-        if (container) container.classList.remove('hidden');
-    };
-
-    reader.readAsDataURL(file);
-}
 
 // Torna as funções disponíveis globalmente para execução via onclick
 window.salvarHubMaster = salvarHubMaster;
