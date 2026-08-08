@@ -300,59 +300,67 @@ function aplicarConfigNaInterface() {
     const cfg = state.configGlobal || {};
     const logoMetodo = cfg.logo_metodo_url || 'images/logo-alavanca-360.png';
 
-    // 1. Aplica Logo do Sistema / Método (Ampliada)
+    // 1. Aplica Logomarca do Sistema / Método nas telas
     document.querySelectorAll('.logo-metodo-alavanca').forEach(img => { 
         img.src = logoMetodo; 
     });
 
-    // 2. HUB Clínica — Inserção / Povoamento Automático da Logo da Clínica
-    const containerMarcaClinica = document.getElementById('containerMarcaClinicaTopo');
-    const logoClinicaUrl = state.clinicaAtual?.logo_clinica_url;
-    
-    if (state.clinicaAtual && logoClinicaUrl) {
-        if (containerMarcaClinica) containerMarcaClinica.classList.remove('hidden');
-        document.querySelectorAll('.logo-clinica-topo').forEach(img => { 
-            img.src = logoClinicaUrl;
-            img.classList.remove('hidden');
-        });
-    } else {
-        if (containerMarcaClinica) containerMarcaClinica.classList.add('hidden');
-        document.querySelectorAll('.logo-clinica-topo').forEach(img => img.classList.add('hidden'));
+    // Atualiza a logo e nome do rodapé acima do botão de WhatsApp
+    const imgRodape = document.getElementById('imgLogoSidebarRodape');
+    if (imgRodape) imgRodape.src = logoMetodo;
+
+    const txtRodape = document.getElementById('txtNomeConsultoriaRodape');
+    if (txtRodape) txtRodape.textContent = cfg.nome_consultoria || 'Alavanca 360 Consultoria';
+
+    // 2. Isolamento de Marca / TopBar da Clínica Logada
+    const logoClinicaNav = document.getElementById('imgLogoClinicaNav');
+    const iconDefault = document.getElementById('iconDefaultClinica');
+    const lblNomeNav = document.getElementById('lblNomeClinicaNav');
+    const logoClinicaUrl = state.clinicaAtual?.logo_clinica_url || state.clinicaAtual?.logo_url;
+
+    if (state.clinicaAtual) {
+        if (lblNomeNav) lblNomeNav.textContent = state.clinicaAtual.nome_clinica || state.clinicaAtual.nome || 'Clínica Odontológica';
+        
+        if (logoClinicaUrl && logoClinicaNav) {
+            logoClinicaNav.src = logoClinicaUrl;
+            logoClinicaNav.classList.remove('hidden');
+            if (iconDefault) iconDefault.classList.add('hidden');
+        }
     }
 
-    // Atualiza nome da clínica no topo
-    document.querySelectorAll('.nome-clinica-topo').forEach(el => {
-        el.textContent = state.clinicaAtual?.nome_clinica || state.clinicaAtual?.nome || 'Sua Clínica';
-    });
-
-    // 3. Preenchimento de campos de formulário (HUB Master)
-    const inpNome  = document.getElementById('hubMasterNomeConsultoria') || document.getElementById('cfgNomeConsultoriaGlobal');
-    const inpLogo  = document.getElementById('hubMasterLogoUrl') || document.getElementById('cfgLogoConsultoria');
-    const inpWsp   = document.getElementById('hubMasterWhatsapp') || document.getElementById('cfgWhatsApp');
-    const inpEmail = document.getElementById('hubMasterEmailSuporte') || document.getElementById('cfgEmailConsultoria');
+    // 3. Preenchimento dos campos do formulário no HUB Master
+    const inpNome  = document.getElementById('hubMasterNomeConsultoria');
+    const inpLogo  = document.getElementById('hubMasterLogoUrl');
+    const inpWsp   = document.getElementById('hubMasterWhatsapp');
+    const inpEmail = document.getElementById('hubMasterEmailSuporte');
     
     if (inpNome)  inpNome.value  = cfg.nome_consultoria || '';
-    if (inpLogo)  inpLogo.value  = cfg.logo_metodo_url || cfg.logo_consultoria_url || '';
-    if (inpWsp)   inpWsp.value   = cfg.whatsapp_consultoria || cfg.whatsapp || '';
-    if (inpEmail) inpEmail.value = cfg.email_consultoria || cfg.email_suporte || '';
+    if (inpLogo)  inpLogo.value  = cfg.logo_metodo_url || '';
+    if (inpWsp)   inpWsp.value   = cfg.whatsapp_consultoria || '';
+    if (inpEmail) inpEmail.value = cfg.email_consultoria || '';
 
-    // 4. Redirecionamento Dinâmico do WhatsApp (HUB Master e HUB Clínica)
-    const whatsappNum = cfg.whatsapp_consultoria || cfg.whatsapp || '';
-    const numClean = whatsappNum.replace(/\D/g, '');
-    
-    document.querySelectorAll('.btn-suporte-whatsapp').forEach(btnWhats => {
-        if (numClean) {
-            btnWhats.href = `https://wa.me/${numClean}`;
-            btnWhats.classList.remove('hidden');
-        } else {
-            btnWhats.href = '#';
-        }
-    });
-
-    // 5. Google Agenda e Planilha Google Sheets
-    if (typeof renderizarAgendaLocal === 'function') {
-        renderizarAgendaLocal();
+    // 4. Preenchimento dos campos do formulário no HUB Clínica
+    if (state.clinicaAtual) {
+        const c = state.clinicaAtual;
+        if (document.getElementById('hubClinicaNome')) document.getElementById('hubClinicaNome').value = c.nome_clinica || c.nome || '';
+        if (document.getElementById('hubClinicaEndereco')) document.getElementById('hubClinicaEndereco').value = c.endereco || '';
+        if (document.getElementById('hubClinicaEmail')) document.getElementById('hubClinicaEmail').value = c.email || '';
+        if (document.getElementById('hubClinicaLogoUrl')) document.getElementById('hubClinicaLogoUrl').value = c.logo_clinica_url || c.logo_url || '';
+        if (document.getElementById('hubClinicaGoogleAgenda')) document.getElementById('hubClinicaGoogleAgenda').value = c.google_agenda_url || '';
+        if (document.getElementById('hubClinicaCalendly')) document.getElementById('hubClinicaCalendly').value = c.calendly_url || '';
+        if (document.getElementById('hubClinicaPlanilhaNap')) document.getElementById('hubClinicaPlanilhaNap').value = c.planilha_nap_url || '';
     }
+
+    // 5. Redirecionamento Dinâmico do WhatsApp de Suporte
+    const whatsappNum = cfg.whatsapp_consultoria || '5511999999999';
+    const numClean = whatsappNum.replace(/\D/g, '');
+    const btnWhats = document.getElementById('btnSuporteWhatsapp');
+    if (btnWhats) {
+        btnWhats.href = `https://wa.me/${numClean}?text=Ol%C3%A1%2C%20preciso%20de%20suporte%20no%20sistema.`;
+    }
+
+    // Refresh nos ícones Lucide caso carregados dinamicamente
+    if (window.lucide) lucide.createIcons();
 }
 
 function mostrarTelaLogin(mensagemErro) {
@@ -3853,3 +3861,113 @@ function dispararDocumentoCliente(meio) {
         window.open(`mailto:${emailPac}?subject=${assunto}&body=${corpo}`, '_blank');
     }
 }
+
+// ============================================================
+// LÓGICA DE PERSISTÊNCIA NO SUPABASE: HUB MASTER & HUB CLÍNICA
+// ============================================================
+
+// 1. Salvar e Propagar Hub Master (Tabela config_global)
+async function salvarHubMaster(e) {
+    if (e) e.preventDefault();
+
+    const dadosMaster = {
+        id: 'global',
+        nome_consultoria: document.getElementById('hubMasterNomeConsultoria')?.value.trim() || 'Alavanca 360 Consultoria',
+        logo_metodo_url: document.getElementById('hubMasterLogoUrl')?.value.trim() || 'images/logo-alavanca-360.png',
+        whatsapp_consultoria: document.getElementById('hubMasterWhatsapp')?.value.trim() || '',
+        email_consultoria: document.getElementById('hubMasterEmailSuporte')?.value.trim() || ''
+    };
+
+    try {
+        // Tenta atualizar no Supabase através da sua função apiUpdate
+        let res = await apiUpdate('config_global', 'global', dadosMaster);
+        
+        // Se a linha 'global' ainda não existir no banco, cria
+        if (!res) {
+            res = await apiCreate('config_global', dadosMaster);
+        }
+
+        // Atualiza o estado global da aplicação
+        state.configGlobal = dadosMaster;
+
+        // Propaga na interface
+        aplicarConfigNaInterface();
+
+        alert('✅ Configurações do HUB Master salvas e propagadas com sucesso!');
+    } catch (err) {
+        console.error('Erro ao salvar HUB Master:', err);
+        alert('❌ Erro ao salvar configurações no Supabase. Verifique a conexão.');
+    }
+}
+
+// 2. Salvar e Sincronizar Hub Clínica (Tabela clinicas)
+async function salvarHubClinica(e) {
+    if (e) e.preventDefault();
+
+    if (!state.clinicaAtual || !state.clinicaAtual.id) {
+        alert('⚠️ Erro: Nenhum contexto de clínica ativa encontrado.');
+        return;
+    }
+
+    const clinicaId = state.clinicaAtual.id;
+
+    const dadosClinica = {
+        nome_clinica: document.getElementById('hubClinicaNome')?.value.trim() || '',
+        endereco: document.getElementById('hubClinicaEndereco')?.value.trim() || '',
+        email: document.getElementById('hubClinicaEmail')?.value.trim() || '',
+        logo_clinica_url: document.getElementById('hubClinicaLogoUrl')?.value.trim() || '',
+        google_agenda_url: document.getElementById('hubClinicaGoogleAgenda')?.value.trim() || '',
+        calendly_url: document.getElementById('hubClinicaCalendly')?.value.trim() || '',
+        planilha_nap_url: document.getElementById('hubClinicaPlanilhaNap')?.value.trim() || ''
+    };
+
+    try {
+        const res = await apiUpdate('clinicas', clinicaId, dadosClinica);
+
+        if (res) {
+            // Atualiza o objeto da clínica no estado global
+            state.clinicaAtual = { ...state.clinicaAtual, ...dadosClinica };
+
+            // Re-aplica no TopBar e nos módulos
+            aplicarConfigNaInterface();
+
+            alert('✅ Configurações da Clínica atualizadas e sincronizadas com sucesso!');
+        } else {
+            throw new Error('Não foi possível atualizar o registro da clínica.');
+        }
+    } catch (err) {
+        console.error('Erro ao salvar HUB Clínica:', err);
+        alert('❌ Erro ao sincronizar dados com o Supabase.');
+    }
+}
+
+// Função utilitária para conversão de imagens de logo em Base64
+function converterLogoParaBase64(event, inputHiddenId, imgPreviewId, containerPreviewId, txtNomeArquivoId) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const base64String = e.target.result;
+        
+        // Define o valor no campo oculto
+        const hiddenInput = document.getElementById(inputHiddenId);
+        if (hiddenInput) hiddenInput.value = base64String;
+
+        // Exibe o preview
+        const imgPreview = document.getElementById(imgPreviewId);
+        const container = document.getElementById(containerPreviewId);
+        const txtNome = document.getElementById(txtNomeArquivoId);
+
+        if (imgPreview) imgPreview.src = base64String;
+        if (txtNome) txtNome.textContent = file.name;
+        if (container) container.classList.remove('hidden');
+    };
+
+    reader.readAsDataURL(file);
+}
+
+// Torna as funções disponíveis globalmente para execução via onclick
+window.salvarHubMaster = salvarHubMaster;
+window.salvarHubClinica = salvarHubClinica;
+window.converterLogoParaBase64 = converterLogoParaBase64;
