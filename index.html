@@ -64,32 +64,33 @@
 
     <!-- TOPBAR GLOBAL -->
     <header class="bg-slate-900 border-b border-slate-800 px-6 py-4 flex justify-between items-center shrink-0">
-        <div class="flex items-center space-x-4">
-            <!-- Container expandido 2.5X para Logomarca Master/Clínica -->
-            <div id="logoClinicaContainer" class="w-28 h-20 bg-slate-950 rounded-xl flex items-center justify-center border border-slate-800 p-1.5 overflow-hidden">
-                <i id="iconDefaultClinica" data-lucide="activity" class="text-emerald-400 w-10 h-10"></i>
-                <img id="imgLogoClinicaNav" class="hidden w-full h-full object-contain" src="" alt="Logo da Clínica/Sistema">
+            <div class="flex items-center space-x-4">
+        <!-- Container expandido 2.5X para Logomarca Master/Clínica -->
+        <div id="logoClinicaContainer" class="w-28 h-20 bg-slate-950 rounded-xl flex items-center justify-center border border-slate-800 p-1.5 overflow-hidden">
+            <i id="iconDefaultClinica" data-lucide="activity" class="text-emerald-400 w-10 h-10"></i>
+            <img id="imgLogoClinicaNav" class="hidden w-full h-full object-contain" src="" alt="Logo da Clínica/Sistema">
+        </div>
+        <div>
+            <div class="flex items-center gap-3">
+                <span id="lblNomeConsultoria" class="text-sm font-bold text-slate-100">Alavanca 360 Consultoria</span>
             </div>
-            <div>
-                <h1 id="lblNomeClinicaNav" class="text-xl font-extrabold text-slate-100">Clínica Odontológica</h1>
-                <p class="text-xs text-slate-400">Ambiente: <span id="txtIdSupabase" class="font-mono text-emerald-400">--</span></p>
-            </div>
         </div>
+    </div>  <!-- FECHA o container esquerdo (logo + nome) -->
 
-        <div class="hidden lg:flex items-center space-x-4 bg-slate-950 px-4 py-2 rounded-xl border border-slate-800 text-xs">
-            <span class="flex items-center text-rose-400 font-medium"><span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse mr-2"></span>Evasão de Orçamento Monitorada</span>
-            <span class="text-slate-600">|</span>
-            <span class="flex items-center text-emerald-400 font-medium"><span class="w-2 h-2 rounded-full bg-emerald-500 mr-2"></span>Foco Comercial Ativo</span>
-        </div>
+    <div class="hidden lg:flex items-center space-x-4 bg-slate-950 px-4 py-2 rounded-xl border border-slate-800 text-xs">
+        <span class="flex items-center text-rose-400 font-medium"><span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse mr-2"></span>Evasão de Orçamento Monitorada</span>
+        <span class="text-slate-600">|</span>
+        <span class="flex items-center text-emerald-400 font-medium"><span class="w-2 h-2 rounded-full bg-emerald-500 mr-2"></span>Foco Comercial Ativo</span>
+    </div>
 
-        <div class="flex items-center space-x-3">
-            <span class="bg-slate-800 text-slate-300 text-xs px-3 py-1.5 rounded-lg font-medium border border-slate-700 flex items-center gap-1">
-                <i data-lucide="shield" class="w-3.5 h-3.5 text-amber-400"></i> Ambiente SAAS Ativo
-            </span>
-            <button onclick="sairDoSistema()" title="Sair do Sistema" class="bg-slate-800 hover:bg-rose-600/30 text-slate-300 hover:text-rose-400 text-xs px-3 py-1.5 rounded-lg font-medium border border-slate-700 hover:border-rose-500/30 flex items-center gap-1 transition">
-                <i data-lucide="log-out" class="w-3.5 h-3.5"></i> Sair
-            </button>
-        </div>
+    <div class="flex items-center space-x-3">
+        <span class="bg-slate-800 text-slate-300 text-xs px-3 py-1.5 rounded-lg font-medium border border-slate-700 flex items-center gap-1">
+            <i data-lucide="shield" class="w-3.5 h-3.5 text-amber-400"></i> Ambiente SAAS Ativo
+        </span>
+        <button onclick="sairDoSistema()" title="Sair do Sistema" class="bg-slate-800 hover:bg-rose-600/30 text-slate-300 hover:text-rose-400 text-xs px-3 py-1.5 rounded-lg font-medium border border-slate-700 hover:border-rose-500/30 flex items-center gap-1 transition">
+            <i data-lucide="log-out" class="w-3.5 h-3.5"></i> Sair
+        </button>
+    </div>
     </header>
 
     <!-- LAYOUT PRINCIPAL -->
@@ -144,16 +145,11 @@
                 </button>
             </nav>
 
-            <!-- RODAPÉ DO SIDEBAR COM LOGOMARCA MASTER/CLÍNICA E SUPORTE APENAS WHATSAPP -->
+            <!-- RODAPÉ DO SIDEBAR COM SUPORTE APENAS WHATSAPP -->
             <div class="p-4 bg-slate-950/90 rounded-2xl border border-slate-800 space-y-3 text-center">
-                <!-- Logomarca do Sistema situada logo acima do botão de WhatsApp -->
-                <div class="flex flex-col items-center justify-center gap-1 pb-2 border-b border-slate-800/80">
-                    <img id="imgLogoSidebarRodape" class="h-14 w-auto object-contain" src="images/logo-alavanca-360.png" alt="Logo Suporte Sistema">
-                    <span id="txtNomeConsultoriaRodape" class="text-[10px] font-semibold text-slate-400 tracking-wide uppercase">Alavanca 360 Consultoria</span>
-                </div>
-                <!-- Botão Suporte WhatsApp (Único Ativo) -->
+                <!-- Botão Suporte WhatsApp (Único Ativo) — número alimentado pelo config_global -->
                 <div>
-                    <a id="btnSuporteWhatsapp" href="https://wa.me/" target="_blank" rel="noopener noreferrer" class="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl transition shadow-lg shadow-emerald-950/50">
+                    <a id="lnkWhatsConsultoria" href="#" target="_blank" rel="noopener noreferrer" class="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl transition shadow-lg shadow-emerald-950/50">
                         <i data-lucide="message-square" class="w-4 h-4"></i>
                         Suporte via WhatsApp
                     </a>
@@ -542,6 +538,22 @@
                 <i data-lucide="external-link" class="w-3.5 h-3.5 text-sky-400"></i> Calendly
             </a>
         </div>
+    </div>
+
+    <!-- M6 - Agenda de Escassez via Calendly (fonte da verdade) -->
+    <div class="space-y-4">
+        <div class="flex items-center justify-between gap-3 flex-wrap">
+            <h3 class="text-sm font-bold text-emerald-400 uppercase tracking-wider">Agenda de Escassez</h3>
+            <div class="flex items-center gap-2">
+                <button onclick="enviarLinkAgendamentoWhatsApp()" class="flex items-center gap-2 px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg transition">
+                    <i data-lucide="message-circle" class="w-4 h-4"></i> Enviar link via WhatsApp
+                </button>
+                <a id="lnkAbrirCalendly" href="#" target="_blank" rel="noopener" class="flex items-center gap-2 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-lg transition">
+                    <i data-lucide="external-link" class="w-4 h-4"></i> Abrir no Calendly
+                </a>
+            </div>
+        </div>
+        <iframe id="iframeCalendly" src="" class="w-full h-[600px] rounded-xl border border-slate-800 bg-slate-950" frameborder="0" allow="fullscreen"></iframe>
     </div>
 
     <!-- Filtros de visualização de calendário -->
