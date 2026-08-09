@@ -688,6 +688,7 @@ function switchTab(tabId) {
                 break;
             case 'tab-agenda':
                 if (typeof renderizarAgendaLocal === 'function') renderizarAgendaLocal();
+                prepararAgendaM6(); 
                 break;
             case 'tab-documentos':
                 if (typeof atualizarTemplateDocumento === 'function') atualizarTemplateDocumento();
@@ -840,6 +841,11 @@ async function salvarHubClinica(event) {
         if (resultado) {
             // Atualiza o cache global da clínica ativa
             state.clinicaAtual = { ...state.clinicaAtual, ...resultado };
+
+            // Dispara a sincronização da planilha NAP (abastece insumos/custos do financeiro)
+            if (typeof sincronizarDadosPlanilhaGoogle === 'function' && dadosAtualizados.url_planilha_nap) {
+               await sincronizarDadosPlanilhaGoogle(dadosAtualizados.url_planilha_nap);
+            }
             
             // Força a propagação do logo e nome nas telas topo do Hub
             aplicarConfigNaInterface();
@@ -872,6 +878,26 @@ function fecharHubMaster() {
         });
         console.log('[Alavanca 360] HUB Master fechado (Nenhuma clínica selecionada).');
     }
+}
+
+// Gera o link do WhatsApp com o link de agendamento do Calendly da clínica
+function enviarLinkAgendamentoWhatsApp() {
+    const calendly = state.clinicaAtual?.url_calendly || '';
+    if (!calendly) {
+        alert('⚠️ Nenhum link do Calendly configurado no HUB Clínica.');
+        return;
+    }
+    const msg = encodeURIComponent(`Olá! Agende seu horário pelo link: ${calendly}`);
+    window.open(`https://wa.me/?text=${msg}`, '_blank');
+}
+
+// M6 - Aplica o Calendly da clínica no iframe e no botão de abrir
+function prepararAgendaM6() {
+    const calendly = state.clinicaAtual?.url_calendly || '';
+    const iframe = document.getElementById('iframeCalendly');
+    const lnkAbrir = document.getElementById('lnkAbrirCalendly');
+    if (iframe) iframe.src = calendly;
+    if (lnkAbrir) lnkAbrir.href = calendly;
 }
 
 // ============================================================
@@ -3505,29 +3531,30 @@ async function prepararHubMaster() {
 function aplicarConfigNaInterface() {
     const cfg = state.configGlobal || {};
 
-    const lblNome = document.getElementById('lblNomeConsultoria');
-    if (lblNome && cfg.nome_consultoria) {
-        lblNome.textContent = cfg.nome_consultoria;
+    // 1. CANTO SUPERIOR ESQUERDO (TopBar): Nome da Consultoria / Marca Master
+    const lblNomeConsultoria = document.getElementById('lblNomeConsultoria');
+    if (lblNomeConsultoria && cfg.nome_consultoria) {
+        lblNomeConsultoria.textContent = cfg.nome_consultoria;
     }
 
+    // 2. BOTÃO DE SUPORTE WHATSAPP (sem logo, sem nome — só WhatsApp clicável)
     const lnkWhats = document.getElementById('lnkWhatsConsultoria');
     if (lnkWhats && cfg.whatsapp) {
         const num = cfg.whatsapp.replace(/\D/g, '');
-        lnkWhats.onclick = (e) => {
-            e.preventDefault();
-            window.open(`https://wa.me/${num}`, '_blank');
-        };
+        lnkWhats.href = `https://wa.me/${num}`;
+        lnkWhats.target = '_blank';
+        lnkWhats.rel = 'noopener';
     }
 
+    // 3. E-MAIL DE SUPORTE DO SISTEMA (propagado para uso futuro)
     const lnkEmail = document.getElementById('lnkEmailConsultoria');
     if (lnkEmail && cfg.email_suporte) {
-        lnkEmail.onclick = (e) => {
-            e.preventDefault();
-            const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(cfg.email_suporte)}&su=Suporte%20-%20Alavanca%20360`;
-            window.open(gmailUrl, '_blank');
-        };
+        lnkEmail.href = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(cfg.email_suporte)}&su=Suporte%20-%20Alavanca%20360`;
+        lnkEmail.target = '_blank';
+        lnkEmail.rel = 'noopener';
     }
 
+    // 4. LOGO DO MÉTODO (se existir)
     const imgLogoMetodo = document.getElementById('imgLogoMetodo');
     if (imgLogoMetodo && cfg.logo_metodo_url) {
         imgLogoMetodo.src = cfg.logo_metodo_url;
