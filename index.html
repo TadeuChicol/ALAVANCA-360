@@ -153,6 +153,10 @@
                         <i data-lucide="message-square" class="w-4 h-4"></i>
                         Suporte via WhatsApp
                     </a>
+                    <a id="lnkSuporteTelegram" href="https://t.me/SEU_BOT" target="_blank" rel="noopener" class="flex items-center gap-2 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-lg transition">
+                        <i data-lucide="send" class="w-4 h-4 text-sky-400"></i> 
+                        Suporte via Telegram
+                    </a>
                 </div>
             </div>
         </aside>
@@ -531,16 +535,13 @@
             <p class="text-xs text-slate-400">Gerenciamento interno síncrono integrado às agendas digitais externas.</p>
         </div>
         <div class="flex gap-2">
-            <a id="lnkGoogleSheets" href="#" target="_blank" class="bg-slate-900 border border-slate-700 text-slate-300 text-xs px-3 py-1.5 rounded-lg flex items-center gap-1 hover:bg-slate-800 transition">
-                <i data-lucide="external-link" class="w-3.5 h-3.5 text-emerald-400"></i> Google Agenda
-            </a>
-            <a id="lnkCalendly" href="#" target="_blank" class="bg-slate-900 border border-slate-700 text-slate-300 text-xs px-3 py-1.5 rounded-lg flex items-center gap-1 hover:bg-slate-800 transition">
-                <i data-lucide="external-link" class="w-3.5 h-3.5 text-sky-400"></i> Calendly
+            <a id="lnkCalCom" href="#" target="_blank" rel="noopener" class="bg-slate-900 border border-slate-700 text-slate-300 text-xs px-3 py-1.5 rounded-lg flex items-center gap-1 hover:bg-slate-800 transition">
+                <i data-lucide="external-link" class="w-3.5 h-3.5 text-sky-400"></i> Abrir no Cal.com
             </a>
         </div>
     </div>
 
-    <!-- M6 - Agenda de Escassez via Calendly (fonte da verdade) -->
+    <!-- M6 - Agenda de Escassez via Cal.com (fonte da verdade) -->
     <div class="space-y-4">
         <div class="flex items-center justify-between gap-3 flex-wrap">
             <h3 class="text-sm font-bold text-emerald-400 uppercase tracking-wider">Agenda de Escassez</h3>
@@ -548,12 +549,12 @@
                 <button onclick="enviarLinkAgendamentoWhatsApp()" class="flex items-center gap-2 px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg transition">
                     <i data-lucide="message-circle" class="w-4 h-4"></i> Enviar link via WhatsApp
                 </button>
-                <a id="lnkAbrirCalendly" href="#" target="_blank" rel="noopener" class="flex items-center gap-2 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-lg transition">
-                    <i data-lucide="external-link" class="w-4 h-4"></i> Abrir no Calendly
+                <a id="lnkAbrirCalCom" href="#" target="_blank" rel="noopener" class="flex items-center gap-2 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-lg transition">
+                    <i data-lucide="external-link" class="w-4 h-4"></i> Abrir no Cal.com
                 </a>
             </div>
         </div>
-        <iframe id="iframeCalendly" src="" class="w-full h-[600px] rounded-xl border border-slate-800 bg-slate-950" frameborder="0" allow="fullscreen"></iframe>
+        <iframe id="iframeCalCom" src="" class="w-full h-[600px] rounded-xl border border-slate-800 bg-slate-950" frameborder="0" allow="fullscreen"></iframe>
     </div>
 
     <!-- Filtros de visualização de calendário -->
@@ -1023,6 +1024,9 @@
 
 <!-- CONFIGURAÇÃO HUB A - CLÍNICA -->
 <div id="tab-hub-clinica" class="tab-content hidden p-6 space-y-6">
+    <p class="text-xs text-slate-400 mt-1">
+        Consultoria: <span id="lblNomeConsultoriaHubClinica" class="text-sky-400 font-semibold">Alavanca 360 Consultoria</span>
+    </p>
     <div class="flex items-center justify-between border-b border-slate-800 pb-4">
         <div>
             <h2 class="text-xl font-bold text-slate-100 flex items-center gap-2">
@@ -1033,7 +1037,7 @@
         </div>
         <button onclick="salvarHubClinica(event)" class="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white font-semibold text-xs rounded-lg transition flex items-center gap-2 shadow-lg shadow-sky-900/20 cursor-pointer">
             <i data-lucide="save" class="w-4 h-4"></i>
-            Salvar e Sincronizar
+            Salvar integrações
         </button>
     </div>
 
@@ -1068,12 +1072,8 @@
         <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-4">
             <h3 class="text-sm font-bold text-sky-400 uppercase tracking-wider">Integrações de Agendamento Externo</h3>
             <div>
-                <label class="block text-xs font-medium text-slate-400 mb-1">URL de Incorporação Google Agenda (iFrame Embed)</label>
-                <input type="url" id="hubClinicaGoogleAgenda" placeholder="https://calendar.google.com/calendar/embed?src=..." class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-200 focus:border-sky-500 focus:outline-none">
-            </div>
-            <div>
-                <label class="block text-xs font-medium text-slate-400 mb-1">Link Direto Calendly / Agendador Online</label>
-                <input type="url" id="hubClinicaCalendly" placeholder="https://calendly.com/suaclinica" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-200 focus:border-sky-500 focus:outline-none">
+                <label class="block text-xs font-medium text-slate-400 mb-1">Link de Agendamento Cal.com (Autoatendimento do Paciente)</label>
+                <input type="url" id="hubClinicaCalCom" placeholder="https://cal.com/seu-usuario" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-200 focus:border-sky-500 focus:outline-none">
             </div>
             <div>
                 <label class="block text-xs font-medium text-slate-400 mb-1">Link da Planilha NAP (Google Sheets)</label>
@@ -1120,7 +1120,6 @@
                     <label class="block text-slate-400 mb-1">Nome da Consultoria / Marca Master</label>
                     <input type="text" id="hubMasterNomeConsultoria" value="Alavanca 360 Consultoria" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-300 rounded focus:border-amber-500 outline-none">
                 </div>
-
                 <div>
                     <label class="block text-slate-400 mb-1">E-mail de Suporte do Sistema</label>
                     <input type="email" id="hubMasterEmailSuporte" value="contato@tce-tadeuchicolempowerment.cloud" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-300 rounded focus:border-amber-500 outline-none">
@@ -1128,6 +1127,10 @@
                 <div>
                     <label class="block text-slate-400 mb-1">WhatsApp de Suporte (com DDD)</label>
                     <input type="text" id="hubMasterWhatsapp" placeholder="5511999999999" value="5511999999999" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-300 rounded focus:border-amber-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">https://t.me/alavanca360_bot</label>
+                    <input type="url" id="hubMasterTelegram" placeholder="https://t.me/seu_bot" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-200 focus:border-sky-500 focus:outline-none">
                 </div>
             </div>
             <div class="flex justify-end pt-2">
