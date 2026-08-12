@@ -333,11 +333,13 @@ function aplicarConfigNaInterface() {
     const inpLogo  = document.getElementById('hubMasterLogoUrl');
     const inpWsp   = document.getElementById('hubMasterWhatsapp');
     const inpEmail = document.getElementById('hubMasterEmailSuporte');
+    const inpTelegram = document.getElementById('hubMasterTelegram');
     
     if (inpNome)  inpNome.value  = cfg.nome_consultoria || '';
     if (inpLogo)  inpLogo.value  = cfg.logo_metodo_url || '';
     if (inpWsp)   inpWsp.value   = cfg.whatsapp_consultoria || '';
     if (inpEmail) inpEmail.value = cfg.email_consultoria || '';
+    if (inpTelegram) inpTelegram.value = cfg.telegram_consultoria || '';
 
     // 4. Preenchimento dos campos do formulário no HUB Clínica
     if (state.clinicaAtual) {
@@ -346,9 +348,13 @@ function aplicarConfigNaInterface() {
         if (document.getElementById('hubClinicaEndereco')) document.getElementById('hubClinicaEndereco').value = c.endereco || '';
         if (document.getElementById('hubClinicaEmail')) document.getElementById('hubClinicaEmail').value = c.email || '';
         if (document.getElementById('hubClinicaLogoUrl')) document.getElementById('hubClinicaLogoUrl').value = c.logo_clinica_url || c.logo_url || '';
-        if (document.getElementById('hubClinicaGoogleAgenda')) document.getElementById('hubClinicaGoogleAgenda').value = c.google_agenda_url || '';
-        if (document.getElementById('hubClinicaCalendly')) document.getElementById('hubClinicaCalendly').value = c.calendly_url || '';
         if (document.getElementById('hubClinicaPlanilhaNap')) document.getElementById('hubClinicaPlanilhaNap').value = c.planilha_nap_url || '';
+    }
+
+    // 4.1 Nome da Consultoria no cabeçalho do HUB Clínica
+    const lblNomeConsultoriaHub = document.getElementById('lblNomeConsultoriaHubClinica');
+    if (lblNomeConsultoriaHub) {
+        lblNomeConsultoriaHub.textContent = cfg.nome_consultoria || 'Alavanca 360 Consultoria';
     }
 
     // 5. Redirecionamento Dinâmico do WhatsApp de Suporte
@@ -357,6 +363,14 @@ function aplicarConfigNaInterface() {
     const btnWhats = document.getElementById('btnSuporteWhatsapp');
     if (btnWhats) {
         btnWhats.href = `https://wa.me/${numClean}?text=Ol%C3%A1%2C%20preciso%20de%20suporte%20no%20sistema.`;
+    }
+
+    // 5.1 Redirecionamento Dinâmico do Telegram de Suporte
+    const lnkTelegram = document.getElementById('lnkSuporteTelegram');
+    if (lnkTelegram && cfg.telegram_consultoria) {
+        lnkTelegram.href = cfg.telegram_consultoria;
+        lnkTelegram.target = '_blank';
+        lnkTelegram.rel = 'noopener';
     }
 
     // Refresh nos ícones Lucide caso carregados dinamicamente
@@ -441,6 +455,16 @@ async function carregarContextoUsuario(user) {
         .maybeSingle();
 
     state.isAdmin = !!adminData;
+
+    // 🛡️ Bloco 2 — Oculta o botão do HUB Master para usuários não-admin
+    const btnMaster = document.getElementById('btn-tab-hub-master');
+    if (btnMaster) {
+        if (state.isAdmin) {
+            btnMaster.classList.remove('hidden');
+        } else {
+            btnMaster.classList.add('hidden');
+        }
+    }
 
     const { data: clinicas, error } = await supabaseClient
         .from('clinicas')
@@ -717,16 +741,14 @@ function preencherFormularioHubClinica() {
     
     const elNome     = document.getElementById('hubClinicaNome') || document.getElementById('nomeClinica');
     const elEnd      = document.getElementById('hubClinicaEndereco') || document.getElementById('enderecoClinica');
-    const elAgenda   = document.getElementById('hubClinicaGoogleAgenda') || document.getElementById('urlGoogleAgenda');
-    const elCalendly = document.getElementById('hubClinicaCalendly') || document.getElementById('urlCalendly');
+    const elCalCom   = document.getElementById('hubClinicaCalCom') || document.getElementById('urlCalCom');
     const elEmail    = document.getElementById('hubClinicaEmail') || document.getElementById('emailClinica');
     const elLogo     = document.getElementById('hubClinicaLogoUrl') || document.getElementById('logoClinicaUrl');
     const elNap      = document.getElementById('hubClinicaPlanilhaNap') || document.getElementById('urlPlanilhaNap');
 
     if (elNome)     elNome.value     = c.nome_clinica || c.nome || '';
     if (elEnd)      elEnd.value      = c.endereco || '';
-    if (elAgenda)   elAgenda.value   = c.url_google_agenda || '';
-    if (elCalendly) elCalendly.value = c.url_calendly || '';
+    if (elCalCom)   elCalCom.value   = c.url_calcom || '';
     if (elEmail)    elEmail.value    = c.email || c.email_suporte || '';
     if (elLogo)     elLogo.value     = c.logo_clinica_url || '';
     if (elNap)      elNap.value      = c.url_planilha_nap || '';
@@ -781,12 +803,13 @@ async function salvarHubMaster(event) {
         const logo_metodo_url = 'images/logo-alavanca-360.png';
         const email_suporte = document.getElementById('hubMasterEmailSuporte')?.value.trim() || '';
         const whatsapp_suporte = document.getElementById('hubMasterWhatsapp')?.value.trim() || '';
-
+        const telegram_consultoria = document.getElementById('hubMasterTelegram')?.value.trim() || '';
         const payload = {
             nome_consultoria,
             logo_metodo_url,
             email_suporte,
-            whatsapp: whatsapp_suporte
+            whatsapp: whatsapp_suporte,
+            telegram_consultoria
         };
 
         const idConfig = state.configGlobal?.id || 1;
@@ -829,8 +852,7 @@ async function salvarHubClinica(event) {
     const dadosAtualizados = {
         nome_clinica: (document.getElementById('hubClinicaNome') || document.getElementById('nomeClinica'))?.value.trim() || '',
         endereco: (document.getElementById('hubClinicaEndereco') || document.getElementById('enderecoClinica'))?.value.trim() || '',
-        url_google_agenda: (document.getElementById('hubClinicaGoogleAgenda') || document.getElementById('urlGoogleAgenda'))?.value.trim() || '',
-        url_calendly: (document.getElementById('hubClinicaCalendly') || document.getElementById('urlCalendly'))?.value.trim() || '',
+        url_calcom: (document.getElementById('hubClinicaCalCom') || document.getElementById('urlCalCom'))?.value.trim() || '',
         email: emailInput,
         logo_clinica_url: (document.getElementById('hubClinicaLogoUrl') || document.getElementById('logoClinicaUrl'))?.value.trim() || '',
         url_planilha_nap: (document.getElementById('hubClinicaPlanilhaNap') || document.getElementById('urlPlanilhaNap'))?.value.trim() || ''
@@ -880,24 +902,23 @@ function fecharHubMaster() {
     }
 }
 
-// Gera o link do WhatsApp com o link de agendamento do Calendly da clínica
+// Gera o link do WhatsApp com o link de agendamento do Calcom da clínica
 function enviarLinkAgendamentoWhatsApp() {
-    const calendly = state.clinicaAtual?.url_calendly || '';
-    if (!calendly) {
-        alert('⚠️ Nenhum link do Calendly configurado no HUB Clínica.');
+    const calcom = state.clinicaAtual?.url_calcom || '';
+    if (!calcom) {
+        alert('⚠️ Nenhum link do Cal.com configurado no HUB Clínica.');
         return;
     }
-    const msg = encodeURIComponent(`Olá! Agende seu horário pelo link: ${calendly}`);
+    const msg = encodeURIComponent(`Olá! Agende seu horário pelo link: ${calcom}`);
     window.open(`https://wa.me/?text=${msg}`, '_blank');
 }
 
-// M6 - Aplica o Calendly da clínica no iframe e no botão de abrir
 function prepararAgendaM6() {
-    const calendly = state.clinicaAtual?.url_calendly || '';
-    const iframe = document.getElementById('iframeCalendly');
-    const lnkAbrir = document.getElementById('lnkAbrirCalendly');
-    if (iframe) iframe.src = calendly;
-    if (lnkAbrir) lnkAbrir.href = calendly;
+    const calcom = state.clinicaAtual?.url_calcom || '';
+    const iframe = document.getElementById('iframeCalCom');
+    const lnkAbrir = document.getElementById('lnkAbrirCalCom');
+    if (iframe) iframe.src = calcom;
+    if (lnkAbrir) lnkAbrir.href = calcom;
 }
 
 // ============================================================
@@ -1384,22 +1405,6 @@ function renderizarAgendaLocal() {
             }).join('');
         }
     }
-
-    // 2. Sincronização com Google Agenda / Calendly (Exibição da Fonte de Verdade)
-    const containerGoogle = document.getElementById('containerGoogleAgendaIframe');
-    const linkExternoGoogle = document.getElementById('btnAbrirGoogleAgendaExterno');
-    
-    if (state.clinicaAtual) {
-        const urlGoogle = state.clinicaAtual.url_google_agenda;
-        if (containerGoogle && urlGoogle) {
-            containerGoogle.innerHTML = `<iframe src="${urlGoogle}" style="border: 0" width="100%" height="600" frameborder="0" scrolling="no"></iframe>`;
-        }
-        if (linkExternoGoogle && urlGoogle) {
-            linkExternoGoogle.href = urlGoogle;
-            linkExternoGoogle.target = "_blank";
-        }
-    }
-}
 
 function prepararEdicaoAgenda(id) {
     const a = state.agendamentos.find(x => x.id === id);
@@ -3269,8 +3274,8 @@ async function salvarHubClinicaBasico() {
 
     const nome = (document.getElementById('hubClinicaNome') || document.getElementById('cfgNomeClinica'))?.value.trim() || '';
     const endereco = (document.getElementById('hubClinicaEndereco') || document.getElementById('cfgEndereco'))?.value.trim() || '';
-    const urlSheets = (document.getElementById('hubClinicaGoogleAgenda') || document.getElementById('cfgUrlSheets'))?.value.trim() || '';
-    const urlCalendly = (document.getElementById('hubClinicaCalendly') || document.getElementById('cfgUrlCalendly'))?.value.trim() || '';
+    const urlCalCom = (document.getElementById('hubClinicaCalCom') || document.getElementById('cfgUrlCalCom'))?.value.trim() || '';
+    const urlPlanilha = (document.getElementById('hubClinicaPlanilhaNap') || document.getElementById('cfgUrlSheets'))?.value.trim() || '';
     const fileInput = document.getElementById('cfgLogoLocalFile') || document.getElementById('hubClinicaLogoFile');
 
     if (!nome) {
@@ -3318,8 +3323,8 @@ async function salvarHubClinicaBasico() {
                 nome: nome,
                 nome_clinica: nome,
                 endereco: endereco,
-                url_google_agenda: urlSheets,
-                url_calendly: urlCalendly,
+                url_calcom: urlCalCom,
+                url_planilha_nap: urlPlanilha,
                 logo_clinica_url: logoUrl
             })
             .eq('id', state.clinicaAtual.id)
@@ -3352,10 +3357,10 @@ async function salvarHubClinicaBasico() {
 // 2. HUB CLÍNICA - SINCRONIZADOR DE INSUMOS DO GOOGLE SHEETS
 // ============================================================
 async function sincronizarDadosPlanilhaGoogle() {
-    if (!state.clinicaAtual || !state.clinicaAtual.url_google_agenda) {
-        alert("Cadastre a URL da planilha no campo 'Link Integrador Google Agenda' e salve antes de sincronizar.");
-        return;
-    }
+        if (!state.clinicaAtual || !state.clinicaAtual.url_planilha_nap) {
+           alert("Cadastre a URL da planilha NAP no HUB Clínica e salve antes de sincronizar.");
+           return;
+        }
 
     const btn = document.getElementById('btnSincronizarPlanilha');
     const originalText = btn ? btn.textContent : 'Sincronizar Insumos (Planilha)';
@@ -3366,7 +3371,7 @@ async function sincronizarDadosPlanilhaGoogle() {
     }
 
     try {
-        const urlStr = state.clinicaAtual.url_google_agenda.trim();
+        const urlStr = state.clinicaAtual.url_planilha_nap.trim();
         let urlCsv = '';
 
         if (urlStr.includes('@') && !urlStr.includes('http')) {
@@ -3503,6 +3508,8 @@ function atualizarLogosVisuais() {
 // 14. HUB MASTER (CONSULTORIA — GESTÃO DE CLÍNICAS/TENANTS)
 // ============================================================
 async function prepararHubMaster() {
+    if (!state.isAdmin) return;
+
     const hubGatekeeper = document.getElementById('hubGatekeeper');
     const hubConteudoOculto = document.getElementById('hubConteudoOculto');
     
@@ -3562,6 +3569,8 @@ function aplicarConfigNaInterface() {
 }
 
 async function renderizarListaClinicas() {
+    if (!state.isAdmin) return;
+
     const tbody = document.getElementById('tbodyClinicasMaster');
     if (!tbody) return;
 
@@ -3656,8 +3665,8 @@ async function cadastrarNovaClinica() {
             whatsapp_responsavel: '',
             endereco: '',
             logo_clinica_url: '',
-            url_google_agenda: 'https://calendar.google.com',
-            url_calendly: 'https://calendly.com',
+            url_calcom: '',
+            url_planilha_nap: '',
             plano_contratado,
             ativo: true
         });
@@ -3674,119 +3683,6 @@ async function cadastrarNovaClinica() {
         alert('Erro ao cadastrar clínica: ' + (e.message || e));
     } finally {
         if (btn) { btn.disabled = false; btn.textContent = 'Cadastrar Clínica e Gerar Acesso'; }
-    }
-}
-
-// ============================================================
-// BLOCO DE AUTENTICAÇÃO E CONTEXTO
-// ============================================================
-
-async function autenticarClinica() {
-    const email = (document.getElementById('inputCodigoAcesso')?.value || '').trim();
-    const senha = (document.getElementById('inputSenhaAcesso')?.value || '').trim();
-
-    if (!email || !senha) {
-        mostrarTelaLogin('Informe o e-mail e a senha de acesso.');
-        return;
-    }
-
-    const btn = document.getElementById('btnEntrarSistema');
-    const textoOriginal = btn ? btn.textContent : '→ Entrar no Sistema';
-    if (btn) {
-        btn.textContent = 'Verificando...';
-        btn.disabled = true;
-    }
-
-    try {
-        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password: senha });
-
-        if (error) {
-            mostrarTelaLogin(traduzErroSupabase(error.message));
-            return;
-        }
-
-        const ok = await carregarContextoUsuario(data.user);
-        if (!ok) {
-            await supabaseClient.auth.signOut();
-            mostrarTelaLogin('Este usuário não está vinculado a nenhuma clínica ativa nem é administrador da Consultoria.');
-            return;
-        }
-
-        await entrarNoSistema();
-    } catch (e) {
-        console.error(e);
-        mostrarTelaLogin('Erro ao autenticar. Tente novamente.');
-    } finally {
-        if (btn) {
-            btn.textContent = textoOriginal;
-            btn.disabled = false;
-        }
-    }
-}
-
-function mostrarTelaLogin(mensagem) {
-    const elErro = document.getElementById('loginErro');
-    if (elErro) {
-        if (mensagem) {
-            elErro.textContent = mensagem;
-            elErro.classList.remove('hidden');
-        } else {
-            elErro.classList.add('hidden');
-        }
-    } else if (mensagem) {
-        alert(mensagem);
-    }
-}
-
-function traduzErroSupabase(msg) {
-    if (/invalid login credentials/i.test(msg)) return 'E-mail ou senha inválidos.';
-    if (/email not confirmed/i.test(msg)) return 'E-mail ainda não confirmado. Verifique a caixa de entrada.';
-    return msg || 'Erro ao conectar ao servidor.';
-}
-
-async function carregarContextoUsuario(user) {
-    state.usuario = user;
-
-    const { data: adminData } = await supabaseClient
-        .from('consultoria_admins')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-    state.isAdmin = !!adminData;
-
-    const { data: clinicas, error } = await supabaseClient
-        .from('clinicas')
-        .select('*')
-        .eq('owner_user_id', user.id)
-        .maybeSingle();
-
-    if (!error && clinicas) {
-        if (clinicas.ativo === false && !state.isAdmin) {
-            return false;
-        }
-        state.clinicaAtual = clinicas;
-    } else {
-        state.clinicaAtual = null;
-    }
-
-    if (state.clinicaAtual) {
-        state.isAdmin = false;
-    }
-
-    return state.isAdmin || !!state.clinicaAtual;
-}
-
-async function sairDoSistema() {
-    await supabaseClient.auth.signOut();
-    window.location.reload();
-}
-
-async function entrarNoSistema() {
-    document.getElementById('telaLogin').classList.add('hidden');
-    document.getElementById('appPrincipal').classList.remove('hidden');
-    if (typeof init === 'function') {
-        await init();
     }
 }
 
