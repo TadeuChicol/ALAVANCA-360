@@ -745,6 +745,7 @@ function preencherFormularioHubClinica() {
     const elEmail    = document.getElementById('hubClinicaEmail') || document.getElementById('emailClinica');
     const elLogo     = document.getElementById('hubClinicaLogoUrl') || document.getElementById('logoClinicaUrl');
     const elNap      = document.getElementById('hubClinicaPlanilhaNap') || document.getElementById('urlPlanilhaNap');
+    const elWpp      = document.getElementById('hubClinicaWhatsApp') || document.getElementById('cfgWhatsApp'); // NOVO
 
     if (elNome)     elNome.value     = c.nome_clinica || c.nome || '';
     if (elEnd)      elEnd.value      = c.endereco || '';
@@ -752,6 +753,7 @@ function preencherFormularioHubClinica() {
     if (elEmail)    elEmail.value    = c.email || c.email_suporte || '';
     if (elLogo)     elLogo.value     = c.logo_clinica_url || '';
     if (elNap)      elNap.value      = c.url_planilha_nap || '';
+    if (elWpp)      elWpp.value      = c.whatsapp || ''; // NOVO
 
     // Se já houver logomarca cadastrada no banco, mostra no preview
     if (c.logo_clinica_url) {
@@ -905,12 +907,19 @@ function fecharHubMaster() {
 // Gera o link do WhatsApp com o link de agendamento do Calcom da clínica
 function enviarLinkAgendamentoWhatsApp() {
     const calcom = state.clinicaAtual?.url_calcom || '';
+    const wpp    = state.clinicaAtual?.whatsapp || '';
+
     if (!calcom) {
         alert('⚠️ Nenhum link do Cal.com configurado no HUB Clínica.');
         return;
     }
+    if (!wpp) {
+        alert('⚠️ Cadastre o WhatsApp da clínica no HUB Clínica antes de enviar o link de agendamento.');
+        return;
+    }
+
     const msg = encodeURIComponent(`Olá! Agende seu horário pelo link: ${calcom}`);
-    window.open(`https://wa.me/?text=${msg}`, '_blank');
+    window.open(`https://wa.me/${wpp}?text=${msg}`, '_blank');
 }
 
 function prepararAgendaM6() {
@@ -3276,6 +3285,7 @@ async function salvarHubClinicaBasico() {
     const endereco = (document.getElementById('hubClinicaEndereco') || document.getElementById('cfgEndereco'))?.value.trim() || '';
     const urlCalCom = (document.getElementById('hubClinicaCalCom') || document.getElementById('cfgUrlCalCom'))?.value.trim() || '';
     const urlPlanilha = (document.getElementById('hubClinicaPlanilhaNap') || document.getElementById('cfgUrlSheets'))?.value.trim() || '';
+    const whatsapp = (document.getElementById('hubClinicaWhatsApp') || document.getElementById('cfgWhatsApp'))?.value.trim() || '';
     const fileInput = document.getElementById('cfgLogoLocalFile') || document.getElementById('hubClinicaLogoFile');
 
     if (!nome) {
@@ -3325,6 +3335,7 @@ async function salvarHubClinicaBasico() {
                 endereco: endereco,
                 url_calcom: urlCalCom,
                 url_planilha_nap: urlPlanilha,
+                whatsapp: whatsapp,
                 logo_clinica_url: logoUrl
             })
             .eq('id', state.clinicaAtual.id)
