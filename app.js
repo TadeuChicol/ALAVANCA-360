@@ -1414,6 +1414,7 @@ function renderizarAgendaLocal() {
             }).join('');
         }
     }
+} 
 
 function prepararEdicaoAgenda(id) {
     const a = state.agendamentos.find(x => x.id === id);
