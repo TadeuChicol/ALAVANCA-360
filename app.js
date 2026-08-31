@@ -656,13 +656,12 @@ function switchTab(tabId) {
     const conteudoOculto = document.getElementById('hubConteudoOculto');
 
     if (targetId === 'tab-hub-master') {
+        console.log('[HUB Master] isAdmin =', state.isAdmin);
         if (state.isAdmin) {
-            // Se for Admin Master: Esconde o aviso de bloqueio e mostra o painel real
             if (gatekeeper) gatekeeper.classList.add('hidden');
             if (conteudoOculto) conteudoOculto.classList.remove('hidden');
             if (typeof prepararHubMaster === 'function') prepararHubMaster();
         } else {
-            // Se NÃO for Admin Master: Mostra o Gatekeeper e esconde o painel
             if (gatekeeper) gatekeeper.classList.remove('hidden');
             if (conteudoOculto) conteudoOculto.classList.add('hidden');
         }
