@@ -442,7 +442,7 @@ async function carregarContextoUsuario(user) {
         .eq('user_id', user.id)
         .maybeSingle();
 
-    state.isAdmin = !!adminData;
+    state.isAdmin = !!(adminData && adminData.user_id === user.id);
 
     // 🛡️ Bloco 2 — Oculta o botão do HUB Master para usuários não-admin
     const btnMaster = document.getElementById('btn-tab-hub-master');
