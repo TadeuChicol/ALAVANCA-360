@@ -28,7 +28,7 @@
     <section id="telaLogin" class="h-screen w-full flex items-center justify-center bg-slate-950 p-4">
         <div class="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-8 space-y-6 shadow-2xl">
             <div class="flex flex-col items-center text-center space-y-3">
-                <img class="logo-metodo-alavanca h-40 object-contain max-w-[280px]" src="images/logo-alavanca-360.png" alt="Logo Método ALAVANCA 360®">
+                <img id="imgLogoLogin" class="logo-metodo-alavanca h-40 object-contain max-w-[280px]" src="images/logo-alavanca-360.png" alt="Logo Método ALAVANCA 360®">
                 <div>
                     <h1 class="text-lg font-bold text-slate-100">ALAVANCA 360<span class="align-super text-xs">®</span></h1>
                     <p class="text-xs text-slate-400">Acesso exclusivo por clínica — Sistema Multi-Tenant</p>
@@ -140,24 +140,18 @@
                 <button onclick="switchTab('tab-hub-clinica')" class="nav-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium transition text-slate-400 hover:text-slate-200 hover:bg-slate-800" id="btn-tab-hub-clinica">
                     <i data-lucide="sliders" class="w-4 h-4"></i> <span class="font-semibold text-emerald-400">HUB Clínica</span>
                 </button>
-                <button onclick="switchTab('tab-hub-master')" class="nav-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium transition text-slate-400 hover:text-slate-200 hover:bg-slate-800" id="btn-tab-hub-master">
+                <button onclick="switchTab('tab-hub-master')" class="nav-btn hidden w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium transition text-slate-400 hover:text-slate-200 hover:bg-slate-800" id="btn-tab-hub-master">
                     <i data-lucide="settings-2" class="w-4 h-4"></i> <span class="font-semibold text-amber-400">HUB Master</span>
                 </button>
             </nav>
 
             <!-- RODAPÉ DO SIDEBAR COM SUPORTE APENAS WHATSAPP -->
             <div class="p-4 bg-slate-950/90 rounded-2xl border border-slate-800 space-y-3 text-center">
-                <!-- Botão Suporte WhatsApp (Único Ativo) — número alimentado pelo config_global -->
-                <div>
-                    <a id="lnkWhatsConsultoria" href="#" target="_blank" rel="noopener noreferrer" class="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl transition shadow-lg shadow-emerald-950/50">
-                        <i data-lucide="message-square" class="w-4 h-4"></i>
-                        Suporte via WhatsApp
-                    </a>
-                    <a id="lnkSuporteTelegram" href="https://t.me/SEU_BOT" target="_blank" rel="noopener" class="flex items-center gap-2 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-lg transition">
-                        <i data-lucide="send" class="w-4 h-4 text-sky-400"></i> 
-                        Suporte via Telegram
-                    </a>
-                </div>
+                <!-- Suporte via Telegram (único canal do instituto) -->
+                <a id="lnkSuporteTelegram" href="https://t.me/suporte_tce_bot" target="_blank" rel="noopener" class="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold rounded-xl transition shadow-lg shadow-sky-900/20">
+                    <i data-lucide="send" class="w-4 h-4"></i>
+                    Suporte via Telegram
+                </a>
             </div>
         </aside>
 
@@ -1084,6 +1078,13 @@
                 <label class="block text-xs font-medium text-slate-400 mb-1">Link da Planilha NAP (Google Sheets)</label>
                 <input type="url" id="hubClinicaPlanilhaNap" placeholder="https://docs.google.com/spreadsheets/d/..." class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-200 focus:border-sky-500 focus:outline-none">
             </div>
+            <div>
+                <button onclick="sincronizarTodasAbasPlanilha()" class="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold rounded-xl transition shadow-lg shadow-sky-900/20 cursor-pointer">
+                    <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                    Sincronizar todas as abas da planilha
+                </button>
+                <p class="text-[10px] text-slate-500 mt-1">Importa insumos, serviços, custos fixos e configurações de margem da planilha NAP.</p>
+            </div>
         </div>
 
 <!-- CONFIGURAÇÃO HUB B - MASTER CONSULTOR -->
@@ -1128,12 +1129,18 @@
                     <input type="email" id="hubMasterEmailSuporte" value="contato@tce-tadeuchicolempowerment.cloud" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-300 rounded focus:border-amber-500 outline-none">
                 </div>
                 <div>
-                    <label class="block text-slate-400 mb-1">WhatsApp de Suporte (com DDD)</label>
-                    <input type="text" id="hubMasterWhatsapp" placeholder="5511999999999" value="5511999999999" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-300 rounded focus:border-amber-500 outline-none">
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Link do Suporte Telegram</label>
+                    <input type="url" id="hubMasterTelegram" value="https://t.me/suporte_tce_bot" placeholder="https://t.me/suporte_tce_bot" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-200 focus:border-sky-500 focus:outline-none">
+                    <p class="text-[10px] text-slate-500 mt-1">Usado no botão de suporte. Altere aqui e reverbera em todo o sistema.</p>
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-slate-400 mb-1">https://t.me/alavanca360_bot</label>
-                    <input type="url" id="hubMasterTelegram" placeholder="https://t.me/seu_bot" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-200 focus:border-sky-500 focus:outline-none">
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Logomarca do Método (tela de login)</label>
+                    <input type="file" id="inputLogoMetodoFile" accept="image/png, image/jpeg" onchange="converterLogoParaBase64(event, 'hubMasterLogoMetodoUrl', 'imgPreviewLogoMetodo', 'previewLogoMetodoContainer', 'nomeArquivoLogoMetodo')" class="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-amber-500/10 file:text-amber-400 hover:file:bg-amber-500/20 cursor-pointer">
+                    <input type="hidden" id="hubMasterLogoMetodoUrl">
+                    <div id="previewLogoMetodoContainer" class="hidden mt-2 flex items-center gap-2">
+                        <img id="imgPreviewLogoMetodo" src="" alt="Preview Logo Método" class="h-10 object-contain rounded bg-slate-950 p-1 border border-slate-800">
+                        <span id="nomeArquivoLogoMetodo" class="text-[10px] text-slate-400"></span>
+                    </div>
                 </div>
             </div>
             <div class="flex justify-end pt-2">
