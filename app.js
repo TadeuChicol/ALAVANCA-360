@@ -152,8 +152,6 @@ async function apiDelete(table, id) {
     }
 }
 
-
-
 document.getElementById('btnEntrarSistema')?.addEventListener('click', (e) => {
     e.preventDefault();
     autenticarClinica();
@@ -166,14 +164,13 @@ async function carregarConfigGlobal() {
             id: 'global',
             logo_metodo_url: 'images/logo-alavanca-360.png',
             nome_consultoria: 'Alavanca 360 Consultoria',
-            whatsapp_consultoria: '5511999999999',
-            email_consultoria: 'contato@tce-tadeuchicolempowerment.cloud',
+            email_suporte: 'contato@tce-tadeuchicolempowerment.cloud',
+            link_suporte_telegram: 'https://t.me/suporte_tce_bot',
             logo_consultoria_url: ''
         };
     }
-    // Garante fallback se estiver vazio no banco
-    if (!cfg.email_consultoria) cfg.email_consultoria = 'contato@tce-tadeuchicolempowerment.cloud';
-    // Garante valor fallback se estiver nulo/vazio no banco
+    if (!cfg.email_suporte) cfg.email_suporte = 'contato@tce-tadeuchicolempowerment.cloud';
+    if (!cfg.link_suporte_telegram) cfg.link_suporte_telegram = 'https://t.me/suporte_tce_bot';
     if (!cfg.nome_consultoria) cfg.nome_consultoria = 'Alavanca 360 Consultoria';
     state.configGlobal = cfg;
 }
@@ -240,6 +237,7 @@ async function carregarConfigGlobal() {
     if (!cfg.email_consultoria) cfg.email_consultoria = 'contato@tce-tadeuchicolempowerment.cloud';
     // Garante valor fallback se estiver nulo/vazio no banco
     if (!cfg.nome_consultoria) cfg.nome_consultoria = 'Alavanca 360 Consultoria';
+    if (typeof aplicarMarcaMetodoNaTelaLogin === 'function') aplicarMarcaMetodoNaTelaLogin();
     state.configGlobal = cfg;
 }
 
@@ -330,16 +328,14 @@ function aplicarConfigNaInterface() {
 
     // 3. Preenchimento dos campos do formulário no HUB Master
     const inpNome  = document.getElementById('hubMasterNomeConsultoria');
-    const inpLogo  = document.getElementById('hubMasterLogoUrl');
-    const inpWsp   = document.getElementById('hubMasterWhatsapp');
+    const inpLogo  = document.getElementById('hubMasterLogoMetodoUrl');
     const inpEmail = document.getElementById('hubMasterEmailSuporte');
     const inpTelegram = document.getElementById('hubMasterTelegram');
     
     if (inpNome)  inpNome.value  = cfg.nome_consultoria || '';
     if (inpLogo)  inpLogo.value  = cfg.logo_metodo_url || '';
-    if (inpWsp)   inpWsp.value   = cfg.whatsapp_consultoria || '';
-    if (inpEmail) inpEmail.value = cfg.email_consultoria || '';
-    if (inpTelegram) inpTelegram.value = cfg.telegram_consultoria || '';
+    if (inpEmail) inpEmail.value = cfg.email_suporte || '';
+    if (inpTelegram) inpTelegram.value = cfg.link_suporte_telegram || '';
 
     // 4. Preenchimento dos campos do formulário no HUB Clínica
     if (state.clinicaAtual) {
@@ -357,18 +353,10 @@ function aplicarConfigNaInterface() {
         lblNomeConsultoriaHub.textContent = cfg.nome_consultoria || 'Alavanca 360 Consultoria';
     }
 
-    // 5. Redirecionamento Dinâmico do WhatsApp de Suporte
-    const whatsappNum = cfg.whatsapp_consultoria || '5511999999999';
-    const numClean = whatsappNum.replace(/\D/g, '');
-    const btnWhats = document.getElementById('btnSuporteWhatsapp');
-    if (btnWhats) {
-        btnWhats.href = `https://wa.me/${numClean}?text=Ol%C3%A1%2C%20preciso%20de%20suporte%20no%20sistema.`;
-    }
-
     // 5.1 Redirecionamento Dinâmico do Telegram de Suporte
     const lnkTelegram = document.getElementById('lnkSuporteTelegram');
-    if (lnkTelegram && cfg.telegram_consultoria) {
-        lnkTelegram.href = cfg.telegram_consultoria;
+    if (lnkTelegram && cfg.link_suporte_telegram) {
+        lnkTelegram.href = cfg.link_suporte_telegram;
         lnkTelegram.target = '_blank';
         lnkTelegram.rel = 'noopener';
     }
@@ -802,16 +790,14 @@ async function salvarHubMaster(event) {
         }
 
         const nome_consultoria = document.getElementById('hubMasterNomeConsultoria')?.value.trim() || '';
-        const logo_metodo_url = 'images/logo-alavanca-360.png';
+        const logo_metodo_url = document.getElementById('hubMasterLogoMetodoUrl')?.value.trim() || 'images/logo-alavanca-360.png';
         const email_suporte = document.getElementById('hubMasterEmailSuporte')?.value.trim() || '';
-        const whatsapp_suporte = document.getElementById('hubMasterWhatsapp')?.value.trim() || '';
         const telegram_consultoria = document.getElementById('hubMasterTelegram')?.value.trim() || '';
         const payload = {
             nome_consultoria,
             logo_metodo_url,
             email_suporte,
-            whatsapp: whatsapp_suporte,
-            telegram_consultoria
+            link_suporte_telegram: telegram_consultoria
         };
 
         const idConfig = state.configGlobal?.id || 1;
@@ -3090,12 +3076,10 @@ function aplicarConfigNaInterface() {
     // 1. Preenche os campos de input dentro do HUB Master
     const inpNome  = document.getElementById('cfgNomeConsultoriaGlobal');
     const inpLogo  = document.getElementById('cfgLogoConsultoria');
-    const inpWsp   = document.getElementById('cfgWhatsApp');
     const inpEmail = document.getElementById('cfgEmailConsultoria');
 
     if (inpNome)  inpNome.value  = cfg.nome_consultoria || '';
     if (inpLogo)  inpLogo.value  = cfg.logo_consultoria_url || '';
-    if (inpWsp)   inpWsp.value   = cfg.whatsapp || '';
     if (inpEmail) inpEmail.value = cfg.email_suporte || '';
 
     // 2. Atualiza o nome da Consultoria no Footer da Sidebar (Imagem 3)
@@ -3105,10 +3089,10 @@ function aplicarConfigNaInterface() {
     }
 
     // 3. Atualiza os links de WhatsApp e E-mail no Footer (Imagem 3)
-    const lnkWhats = document.getElementById('lnkWhatsConsultoria');
-    if (lnkWhats && cfg.whatsapp) {
-        const apenasNumeros = cfg.whatsapp.replace(/\D/g, '');
-        lnkWhats.href = `https://wa.me/${apenasNumeros}`;
+    // ✅ DEVE ESTAR ASSIM:
+    const lnkTelegram = document.getElementById('lnkWhatsConsultoria');
+    if (lnkTelegram) {
+       lnkTelegram.href = cfg.link_suporte_telegram || 'https://t.me/suporte_mmf_bot';
     }
 
     const lnkEmail = document.getElementById('lnkEmailConsultoria');
@@ -3142,14 +3126,6 @@ function atualizarLinksRodape() {
     const lblConsultoria = document.getElementById('lblSidebarConsultoria');
     if (lblConsultoria) {
         lblConsultoria.textContent = cfgGlobal.nome_consultoria || 'Alavanca 360 Consultoria';
-    }
-
-    // Link WhatsApp
-    const wspNum = cfgGlobal.whatsapp || cfgGlobal.whatsapp_consultoria || '5511964363466';
-    const btnWsp = document.getElementById('btnSuporteWhatsapp');
-    if (btnWsp) {
-        btnWsp.href = `https://wa.me/${wspNum.replace(/\D/g, '')}?text=${encodeURIComponent('Olá! Preciso de suporte no sistema Alavanca 360.')}`;
-        btnWsp.target = '_blank';
     }
 
     // Link E-mail
@@ -3483,6 +3459,180 @@ async function sincronizarDadosPlanilhaGoogle() {
 }
 
 // ============================================================
+// 2B. HUB CLÍNICA - INTEGRAÇÃO COMPLETA DA PLANILHA (TODAS AS ABAS)
+// ============================================================
+const MAPA_ABAS_PLANILHA = {
+    'FORNECEDORES_INSUMOS':   { tabela: 'insumos',              mapear: (l) => mapearInsumo(l) },
+    'CUSTOS_INSUMOS_UNID':    { tabela: 'insumos',              mapear: (l) => mapearCustoUnitario(l) },
+    'MAP_INSUMOS_SERVICOS':   { tabela: 'mapa_insumos_servicos', mapear: (l) => mapearMapaConsumo(l) },
+    'CUSTOS_FIXOS_VARIAVEIS': { tabela: 'custos_fixos',         mapear: (l) => mapearCustoFixo(l) },
+    'CONFIG_CONVÊNIO':        { tabela: 'config_precificacao',  mapear: (l) => mapearConfig(l, 'convenio') },
+    'CONFIG_PARTICULAR':      { tabela: 'config_precificacao',  mapear: (l) => mapearConfig(l, 'particular') },
+    'SERVIÇOS_PROCEDIMENTOS': { tabela: 'servicos',             mapear: (l) => mapearServico(l) },
+    'TABELA_CONVÊNIO':        { tabela: 'servicos',             mapear: (l) => mapearPrecoConvenio(l) },
+    'TABELA_PARTICULAR':      { tabela: 'servicos',             mapear: (l) => mapearPrecoParticular(l) },
+    'TABELA_FINAL':           { tabela: 'servicos',             mapear: (l) => mapearTabelaFinal(l) }
+};
+
+async function sincronizarTodasAbasPlanilha() {
+    const url = state.clinicaAtual?.url_planilha_nap;
+    if (!url) { alert('Configure o link da planilha no HUB Clínica.'); return; }
+    const spreadsheetId = extrairIdPlanilha(url);
+    if (!spreadsheetId) { alert('Link de planilha inválido.'); return; }
+
+    const btn = document.getElementById('btnSincronizarPlanilha');
+    if (btn) { btn.disabled = true; btn.textContent = 'Sincronizando todas as abas...'; }
+
+    let total = 0;
+    const falhas = [];
+    for (const aba of Object.keys(MAPA_ABAS_PLANILHA)) {
+        try {
+            const linhas = await buscarAbaGoogleSheets(spreadsheetId, aba);
+            const config = MAPA_ABAS_PLANILHA[aba];
+            const registros = linhas.map(config.mapear).filter(Boolean);
+            await upsertRegistros(config.tabela, registros);
+            total += registros.length;
+        } catch (e) {
+            falhas.push(aba);
+            console.warn('[Planilha] Falha na aba ' + aba + ':', e.message);
+        }
+    }
+
+    if (typeof renderizarModuloFinanceiroCompleto === 'function') renderizarModuloFinanceiroCompleto();
+    if (btn) { btn.disabled = false; btn.textContent = 'Sincronizar Insumos (Planilha)'; }
+
+    const msgFalhas = falhas.length ? '\n\nAbas com falha: ' + falhas.join(', ') : '';
+    alert('Integração concluída: ' + total + ' registros sincronizados.' + msgFalhas);
+}
+
+function extrairIdPlanilha(url) {
+    const m = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
+    return m ? m[1] : null;
+}
+
+async function buscarAbaGoogleSheets(spreadsheetId, aba) {
+    const url = 'https://docs.google.com/spreadsheets/d/' + spreadsheetId +
+        '/gviz/tq?tqx=out:json&sheet=' + encodeURIComponent(aba);
+    const resp = await fetch(url);
+    const texto = await resp.text();
+    const json = JSON.parse(texto.substring(texto.indexOf('{'), texto.lastIndexOf('}') + 1));
+    const cols = json.table.cols.map(c => c.label);
+    return json.table.rows.map(linha => {
+        const obj = {};
+        cols.forEach((col, i) => { obj[col] = linha.c ? linha.c[i] ? linha.c[i].v : null : null; });
+        return obj;
+    });
+}
+
+function mapearInsumo(linha) {
+    if (!linha['ID_Insumo']) return null;
+    return {
+        clinica_id: state.clinicaAtual.id,
+        codigo_externo: String(linha['ID_Insumo']).trim(),
+        nome: linha['Nome_Insumo'],
+        preco_apresentacao: parseFloat(String(linha['A360_CUSTO'] || '0').replace(',', '.')) || 0
+    };
+}
+
+function mapearCustoUnitario(linha) {
+    if (!linha['ID_Insumo']) return null;
+    return {
+        clinica_id: state.clinicaAtual.id,
+        codigo_externo: String(linha['ID_Insumo']).trim(),
+        nome: linha['Nome_Insumo'],
+        apresentacao: linha['Apresentacao'],
+        quantidade_apresentacao: parseFloat(String(linha['Quantidade'] || '0').replace(',', '.')) || 0,
+        unidade_medida: linha['Unidade_Medida'],
+        preco_apresentacao: parseFloat(String(linha['A360_CUSTO'] || '0').replace(',', '.')) || 0
+    };
+}
+
+function mapearMapaConsumo(linha) {
+    if (!linha['Codigo_Servico'] || !linha['Codigo_Insumo']) return null;
+    return {
+        clinica_id: state.clinicaAtual.id,
+        servico_codigo: String(linha['Codigo_Servico']).trim(),
+        insumo_codigo: String(linha['Codigo_Insumo']).trim(),
+        quantidade_consumida: parseFloat(String(linha['Quantidade'] || '0').replace(',', '.')) || 0
+    };
+}
+
+function mapearCustoFixo(linha) {
+    if (!linha['Categoria']) return null;
+    return {
+        clinica_id: state.clinicaAtual.id,
+        nome_item: linha['Categoria'],
+        valor_mensal: parseFloat(String(linha['Valor_Mensal'] || '0').replace(/\./g, '').replace(',', '.')) || 0
+    };
+}
+
+function mapearConfig(linha, modalidade) {
+    if (!linha['ProLabore']) return null;
+    return {
+        clinica_id: state.clinicaAtual.id,
+        modalidade: modalidade,
+        pro_labore_desejado: parseFloat(String(linha['ProLabore'] || '0').replace(',', '.')) || 0,
+        horas_dia: parseFloat(String(linha['Horas_Dia'] || '0').replace(',', '.')) || 0,
+        dias_mes: parseFloat(String(linha['Dias_Mes'] || '0').replace(',', '.')) || 0,
+        margem_desejada_pct: parseFloat(String(linha['Margem_Minima'] || '0').replace('%', '').replace(',', '.')) || 0,
+        imposto_pct: parseFloat(String(linha['Imposto'] || '0').replace('%', '').replace(',', '.')) || 0,
+        taxa_maquininha_pct: parseFloat(String(linha['Taxa_Maquininha'] || '0').replace('%', '').replace(',', '.')) || 0
+    };
+}
+
+function mapearServico(linha) {
+    if (!linha['ID_Servico']) return null;
+    return {
+        clinica_id: state.clinicaAtual.id,
+        codigo_externo: String(linha['ID_Servico']).trim(),
+        nome: linha['Nome_Servico'],
+        categoria: linha['Categoria'],
+        tempo_medio_min: parseFloat(String(linha['Tempo_Medio_Min'] || '0').replace(',', '.')) || 0,
+        custo_servico_externo: parseFloat(String(linha['Custo_Servico_Externo'] || '0').replace(',', '.')) || 0,
+        custo_radiografia: parseFloat(String(linha['Custo_Radiografia'] || '0').replace(',', '.')) || 0,
+        outros_custos_diretos: parseFloat(String(linha['Outros_Custos_Diretos'] || '0').replace(',', '.')) || 0
+    };
+}
+
+function mapearPrecoConvenio(linha) {
+    if (!linha['ID_Servico']) return null;
+    return {
+        clinica_id: state.clinicaAtual.id,
+        codigo_externo: String(linha['ID_Servico']).trim(),
+        preco_convenio: parseFloat(String(linha['Preço Correto'] || linha['Preço IDEAL'] || '0').replace(',', '.')) || 0
+    };
+}
+
+function mapearPrecoParticular(linha) {
+    if (!linha['ID_Servico']) return null;
+    return {
+        clinica_id: state.clinicaAtual.id,
+        codigo_externo: String(linha['ID_Servico']).trim(),
+        preco_particular: parseFloat(String(linha['Preco_A_Vista_Serviço_R$'] || '0').replace(',', '.')) || 0
+    };
+}
+
+function mapearTabelaFinal(linha) {
+    if (!linha['ID_Servico']) return null;
+    return {
+        clinica_id: state.clinicaAtual.id,
+        codigo_externo: String(linha['ID_Servico']).trim(),
+        nome: linha['Nome_Servico'],
+        preco_convenio: parseFloat(String(linha['Preço -CONVÊNIO (IDEAL)'] || '0').replace(',', '.')) || 0,
+        preco_particular: parseFloat(String(linha['PARTICULAR'] || '0').replace(',', '.')) || 0
+    };
+}
+
+async function upsertRegistros(tabela, registros) {
+    if (!registros.length) return;
+    const { data, error } = await supabaseClient.from(tabela).upsert(registros);
+    if (error) throw error;
+    return data;
+}
+
+window.sincronizarTodasAbasPlanilha = sincronizarTodasAbasPlanilha;
+
+// ============================================================
 // 3. RENDERIZADOR DE LOGOS E NOME DA CLÍNICA NO HEADER
 // ============================================================
 function atualizarLogosVisuais() {
@@ -3533,18 +3683,27 @@ async function prepararHubMaster() {
     const cfgLogoMetodo = document.getElementById('cfgLogoMetodo') || document.getElementById('hubMasterLogoMetodoUrl');
     const cfgLogoConsultoria = document.getElementById('cfgLogoConsultoria');
     const cfgNomeConsultoriaGlobal = document.getElementById('cfgNomeConsultoriaGlobal');
-    const cfgWhatsApp = document.getElementById('cfgWhatsApp');
+    const cfgTelegram = document.getElementById('cfgTelegram');
     const cfgEmailConsultoria = document.getElementById('cfgEmailConsultoria');
 
     if (cfgLogoMetodo) cfgLogoMetodo.value = (state.configGlobal?.logo_metodo_url) || '';
     if (cfgLogoConsultoria) cfgLogoConsultoria.value = (state.configGlobal?.logo_consultoria_url) || (state.configGlobal?.logo_metodo_url) || '';
     if (cfgNomeConsultoriaGlobal) cfgNomeConsultoriaGlobal.value = (state.configGlobal?.nome_consultoria) || '';
-    if (cfgWhatsApp) cfgWhatsApp.value = (state.configGlobal?.whatsapp) || '';
+    if (cfgTelegram) cfgTelegram.value = (state.configGlobal?.link_suporte_telegram) || '';
     if (cfgEmailConsultoria) cfgEmailConsultoria.value = (state.configGlobal?.email_suporte) || '';
 
     if (typeof aplicarConfigNaInterface === 'function') aplicarConfigNaInterface();
 
     await renderizarListaClinicas();
+}
+
+function aplicarPermissoesMenu() {
+    // Mostra o HUB Master apenas para administradores
+    const btnHubMaster = document.getElementById('btn-tab-hub-master');
+    if (btnHubMaster) {
+        if (state.isAdmin) btnHubMaster.classList.remove('hidden');
+        else btnHubMaster.classList.add('hidden');
+    }
 }
 
 function aplicarConfigNaInterface() {
@@ -3556,13 +3715,12 @@ function aplicarConfigNaInterface() {
         lblNomeConsultoria.textContent = cfg.nome_consultoria;
     }
 
-    // 2. BOTÃO DE SUPORTE WHATSAPP (sem logo, sem nome — só WhatsApp clicável)
-    const lnkWhats = document.getElementById('lnkWhatsConsultoria');
-    if (lnkWhats && cfg.whatsapp) {
-        const num = cfg.whatsapp.replace(/\D/g, '');
-        lnkWhats.href = `https://wa.me/${num}`;
-        lnkWhats.target = '_blank';
-        lnkWhats.rel = 'noopener';
+    // 2. BOTÃO DE SUPORTE TELEGRAM (link centralizado no HUB Master)
+    const lnkTelegram = document.getElementById('lnkWhatsConsultoria');
+    if (lnkTelegram) {
+        lnkTelegram.href = cfg.link_suporte_telegram || 'https://t.me/suporte_mmf_bot';
+        lnkTelegram.target = '_blank';
+        lnkTelegram.rel = 'noopener';
     }
 
     // 3. E-MAIL DE SUPORTE DO SISTEMA (propagado para uso futuro)
@@ -3718,17 +3876,15 @@ function renderizarModuloFinanceiroCompleto() {
 // ============================================================
 
 function dispararContatoSuporteSaaS(meio) {
-    const emailConsultoria = state.configGlobal?.email_suporte || '';
-    const whatsConsultoria = state.configGlobal?.whatsapp || '';
     const nomeClinica = state.clinicaAtual?.nome_clinica || state.clinicaAtual?.nome || 'Minha Clínica';
     const emailClinica = state.clinicaAtual?.email_responsavel || 'Não cadastrado';
 
-    if (meio === 'whatsapp') {
-        if (!whatsConsultoria) { alert('Número de WhatsApp do Suporte não configurado no HUB Master.'); return; }
-        const numClean = whatsConsultoria.replace(/\D/g, '');
-        const msg = encodeURIComponent(`Olá Suporte Alavanca 360! Sou da clínica "${nomeClinica}" e preciso de auxílio.`);
-        window.open(`https://wa.me/${numClean}?text=${msg}`, '_blank');
+    if (meio === 'telegram') {
+        // Todo suporte do instituto passa a ser via Telegram (menu do instituto)
+        const linkTelegram = state.configGlobal?.link_suporte_telegram || 'https://t.me/suporte_tce_bot';
+        window.open(linkTelegram, '_blank');
     } else if (meio === 'email') {
+        const emailConsultoria = state.configGlobal?.email_suporte || '';
         if (!emailConsultoria) { alert('E-mail do Suporte não configurado no HUB Master.'); return; }
         const assunto = encodeURIComponent(`[Suporte SaaS] Solicitação de Atendimento - ${nomeClinica}`);
         const corpo = encodeURIComponent(`Clínica: ${nomeClinica}\nE-mail da Clínica: ${emailClinica}\n\nDescreva sua dúvida/problema aqui:`);
