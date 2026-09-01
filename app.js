@@ -221,26 +221,6 @@ document.getElementById('btnEntrarSistema')?.addEventListener('click', (e) => {
     autenticarClinica();
 });
 
-async function carregarConfigGlobal() {
-    let cfg = await apiGet('config_global', 'global');
-    if (!cfg) {
-        cfg = {
-            id: 'global',
-            logo_metodo_url: 'images/logo-alavanca-360.png',
-            nome_consultoria: 'Alavanca 360 Consultoria',
-            whatsapp_consultoria: '5511999999999',
-            email_consultoria: 'contato@tce-tadeuchicolempowerment.cloud',
-            logo_consultoria_url: ''
-        };
-    }
-    // Garante fallback se estiver vazio no banco
-    if (!cfg.email_consultoria) cfg.email_consultoria = 'contato@tce-tadeuchicolempowerment.cloud';
-    // Garante valor fallback se estiver nulo/vazio no banco
-    if (!cfg.nome_consultoria) cfg.nome_consultoria = 'Alavanca 360 Consultoria';
-    if (typeof aplicarMarcaMetodoNaTelaLogin === 'function') aplicarMarcaMetodoNaTelaLogin();
-    state.configGlobal = cfg;
-}
-
 // ============================================================
 // 3. RENDERIZADOR DE LOGOS E NOME DA CLÍNICA NO HEADER
 // ============================================================
@@ -431,16 +411,18 @@ function traduzErroSupabase(msg) {
     if (/invalid login credentials/i.test(msg)) return 'E-mail ou senha inválidos.';
     if (/email not confirmed/i.test(msg)) return 'E-mail ainda não confirmado. Verifique a caixa de entrada (ou peça para a Consultoria desativar a confirmação de e-mail no Supabase).';
     return msg || 'Erro ao conectar ao servidor.';
-}async function carregarContextoUsuario(user) {
+    }
+    
+    async function carregarContextoUsuario(user) {
     state.usuario = user;
 
     const { data: adminData } = await supabaseClient
-        .from('consultoria_admins')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
+    .from('consultoria_admins')
+    .select('*')
+    .eq('email_admin', user.email)
+    .maybeSingle();
 
-    state.isAdmin = !!(adminData && adminData.user_id === user.id);
+    state.isAdmin = !!adminData;
 
     // 🛡️ Bloco 2 — Oculta o botão do HUB Master para usuários não-admin
     const btnMaster = document.getElementById('btn-tab-hub-master');
@@ -471,14 +453,14 @@ function traduzErroSupabase(msg) {
         state.isAdmin = true;
     }
     return state.isAdmin || !!state.clinicaAtual;
-}
+    }
 
-async function sairDoSistema() {
+    async function sairDoSistema() {
     await supabaseClient.auth.signOut();
     window.location.reload();
-}
+    }
 
-async function entrarNoSistema() {
+    async function entrarNoSistema() {
     document.getElementById('telaLogin')?.classList.add('hidden');
     document.getElementById('appPrincipal')?.classList.remove('hidden');
     if (typeof init === 'function') {
@@ -3669,10 +3651,14 @@ async function prepararHubMaster() {
     if (hubGatekeeper) hubGatekeeper.classList.add('hidden');
     if (hubConteudoOculto) hubConteudoOculto.classList.remove('hidden');
 
-    await carregarConfigGlobal();
+    try {
+      await carregarConfigGlobal();
+    } catch (e) {
+      console.error('[HUB Master] Erro ao carregar config global:', e);
+    }
 
     const cfgLogoMetodo = document.getElementById('hubMasterLogoMetodoUrl');
-    const cfgLogoConsultoria = document.getElementById('hubMasterLogoMetodoUrl');
+    const cfgLogoConsultoria = document.getElementById('hubMasterLogoConsultoriaUrl');
     const cfgNomeConsultoriaGlobal = document.getElementById('hubMasterNomeConsultoria');
     const cfgTelegram = document.getElementById('hubMasterTelegram');
     const cfgEmailConsultoria = document.getElementById('hubMasterEmailSuporte');
