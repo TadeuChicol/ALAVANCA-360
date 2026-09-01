@@ -663,7 +663,6 @@ function switchTab(tabId) {
         if (state.isAdmin) {
             if (gatekeeper) gatekeeper.classList.add('hidden');
             if (conteudoOculto) conteudoOculto.classList.remove('hidden');
-            if (typeof prepararHubMaster === 'function') prepararHubMaster();
         } else {
             if (gatekeeper) gatekeeper.classList.remove('hidden');
             if (conteudoOculto) conteudoOculto.classList.add('hidden');
