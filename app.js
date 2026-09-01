@@ -431,9 +431,7 @@ function traduzErroSupabase(msg) {
     if (/invalid login credentials/i.test(msg)) return 'E-mail ou senha inválidos.';
     if (/email not confirmed/i.test(msg)) return 'E-mail ainda não confirmado. Verifique a caixa de entrada (ou peça para a Consultoria desativar a confirmação de e-mail no Supabase).';
     return msg || 'Erro ao conectar ao servidor.';
-}
-
-async function carregarContextoUsuario(user) {
+}async function carregarContextoUsuario(user) {
     state.usuario = user;
 
     const { data: adminData } = await supabaseClient
@@ -486,6 +484,10 @@ async function entrarNoSistema() {
     if (typeof init === 'function') {
         await init();
     }
+    // 🛡️ NOVO — Prepara o HUB Master se for admin (mostra os campos)
+    if (state.isAdmin && typeof prepararHubMaster === 'function') {
+        await prepararHubMaster();
+    }
 }
 
 // ============================================================
@@ -519,6 +521,7 @@ async function init() {
 
     // Redirecionamento de abas
     if (state.isAdmin && !state.clinicaAtual) {
+        if (typeof prepararHubMaster === 'function') await prepararHubMaster();
         switchTab('tab-hub-master');
     } else {
         switchTab('tab-ceo');
@@ -737,10 +740,10 @@ function preencherFormularioHubClinica() {
     if (elNome)     elNome.value     = c.nome_clinica || c.nome || '';
     if (elEnd)      elEnd.value      = c.endereco || '';
     if (elCalCom)   elCalCom.value   = c.url_calcom || '';
-    if (elEmail)    elEmail.value    = c.email || c.email_suporte || '';
+    if (elEmail)    elEmail.value    = c.email_login || c.email_contato || c.email || '';
     if (elLogo)     elLogo.value     = c.logo_clinica_url || '';
-    if (elNap)      elNap.value      = c.url_planilha_nap || '';
-    if (elWpp)      elWpp.value      = c.whatsapp || ''; // NOVO
+    if (elNap)      elNap.value      = c.planilha_nap || c.url_planilha_nap || '';
+    if (elWpp)      elWpp.value      = c.whatsapp || '';
 
     // Se já houver logomarca cadastrada no banco, mostra no preview
     if (c.logo_clinica_url) {
@@ -820,45 +823,38 @@ async function salvarHubMaster(event) {
 
 async function salvarHubClinica(event) {
     if (event) event.preventDefault();
-    
     const btnSalvar = event?.currentTarget || document.getElementById('btnSalvarHubClinica');
     const textoOriginal = btnSalvar ? btnSalvar.innerHTML : 'Salvar Dados';
-    
     if (!state.clinicaAtual || !state.clinicaAtual.id) {
         alert('Erro: Nenhuma clínica ativa selecionada para salvar.');
         return;
     }
-
-    if (btnSalvar) {
-        btnSalvar.disabled = true;
-        btnSalvar.innerHTML = `Salvando...`;
-    }
-
-    const emailInput = (document.getElementById('hubClinicaEmail') || document.getElementById('emailClinica'))?.value.trim() || '';
+    if (btnSalvar) { btnSalvar.disabled = true; btnSalvar.innerHTML = 'Salvando...'; }
 
     const dadosAtualizados = {
+        nome: (document.getElementById('hubClinicaNome') || document.getElementById('nomeClinica'))?.value.trim() || '',
         nome_clinica: (document.getElementById('hubClinicaNome') || document.getElementById('nomeClinica'))?.value.trim() || '',
         endereco: (document.getElementById('hubClinicaEndereco') || document.getElementById('enderecoClinica'))?.value.trim() || '',
         url_calcom: (document.getElementById('hubClinicaCalCom') || document.getElementById('urlCalCom'))?.value.trim() || '',
-        email: emailInput,
+        email: (document.getElementById('hubClinicaEmail') || document.getElementById('emailClinica'))?.value.trim() || '',
+        email_contato: (document.getElementById('hubClinicaEmail') || document.getElementById('emailClinica'))?.value.trim() || '',
+        whatsapp: (document.getElementById('hubClinicaWhatsApp') || document.getElementById('cfgWhatsApp'))?.value.trim() || '',  // ← ANTES NÃO IA
+        logo_url: (document.getElementById('hubClinicaLogoUrl') || document.getElementById('logoClinicaUrl'))?.value.trim() || '',
         logo_clinica_url: (document.getElementById('hubClinicaLogoUrl') || document.getElementById('logoClinicaUrl'))?.value.trim() || '',
+        planilha_nap: (document.getElementById('hubClinicaPlanilhaNap') || document.getElementById('urlPlanilhaNap'))?.value.trim() || '',
         url_planilha_nap: (document.getElementById('hubClinicaPlanilhaNap') || document.getElementById('urlPlanilhaNap'))?.value.trim() || ''
     };
 
     try {
         const resultado = await apiUpdate('clinicas', state.clinicaAtual.id, dadosAtualizados);
         if (resultado) {
-            // Atualiza o cache global da clínica ativa
             state.clinicaAtual = { ...state.clinicaAtual, ...resultado };
-
-            // Dispara a sincronização da planilha NAP (abastece insumos/custos do financeiro)
-            if (typeof sincronizarDadosPlanilhaGoogle === 'function' && dadosAtualizados.url_planilha_nap) {
-               await sincronizarDadosPlanilhaGoogle(dadosAtualizados.url_planilha_nap);
+            // Dispara a integração COMPLETA da planilha (todas as abas)
+            if (typeof sincronizarTodasAbasPlanilha === 'function' && dadosAtualizados.planilha_nap) {
+                await sincronizarTodasAbasPlanilha();
             }
-            
-            // Força a propagação do logo e nome nas telas topo do Hub
             aplicarConfigNaInterface();
-            
+            preencherFormularioHubClinica();
             alert('✅ Dados da Clínica e integrações salvos e propagados com sucesso!');
         } else {
             throw new Error("Erro de resposta do servidor ao atualizar.");
@@ -867,10 +863,7 @@ async function salvarHubClinica(event) {
         console.error('Erro ao salvar no HUB Clínica:', err);
         alert('❌ Erro ao salvar as configurações: ' + (err.message || err));
     } finally {
-        if (btnSalvar) {
-            btnSalvar.disabled = false;
-            btnSalvar.innerHTML = textoOriginal;
-        }
+        if (btnSalvar) { btnSalvar.disabled = false; btnSalvar.innerHTML = textoOriginal; }
     }
 }
 
@@ -3344,7 +3337,7 @@ async function salvarHubClinicaBasico() {
 // 2. HUB CLÍNICA - SINCRONIZADOR DE INSUMOS DO GOOGLE SHEETS
 // ============================================================
 async function sincronizarDadosPlanilhaGoogle() {
-        if (!state.clinicaAtual || !state.clinicaAtual.url_planilha_nap) {
+        if (!state.clinicaAtual || !state.clinicaAtual.planilha_nap) {
            alert("Cadastre a URL da planilha NAP no HUB Clínica e salve antes de sincronizar.");
            return;
         }
@@ -3358,7 +3351,7 @@ async function sincronizarDadosPlanilhaGoogle() {
     }
 
     try {
-        const urlStr = state.clinicaAtual.url_planilha_nap.trim();
+        const urlStr = state.clinicaAtual.planilha_nap.trim();
         let urlCsv = '';
 
         if (urlStr.includes('@') && !urlStr.includes('http')) {
@@ -3679,11 +3672,11 @@ async function prepararHubMaster() {
 
     await carregarConfigGlobal();
 
-    const cfgLogoMetodo = document.getElementById('cfgLogoMetodo') || document.getElementById('hubMasterLogoMetodoUrl');
-    const cfgLogoConsultoria = document.getElementById('cfgLogoConsultoria');
-    const cfgNomeConsultoriaGlobal = document.getElementById('cfgNomeConsultoriaGlobal');
-    const cfgTelegram = document.getElementById('cfgTelegram');
-    const cfgEmailConsultoria = document.getElementById('cfgEmailConsultoria');
+    const cfgLogoMetodo = document.getElementById('hubMasterLogoMetodoUrl');
+    const cfgLogoConsultoria = document.getElementById('hubMasterLogoMetodoUrl');
+    const cfgNomeConsultoriaGlobal = document.getElementById('hubMasterNomeConsultoria');
+    const cfgTelegram = document.getElementById('hubMasterTelegram');
+    const cfgEmailConsultoria = document.getElementById('hubMasterEmailSuporte');
 
     if (cfgLogoMetodo) cfgLogoMetodo.value = (state.configGlobal?.logo_metodo_url) || '';
     if (cfgLogoConsultoria) cfgLogoConsultoria.value = (state.configGlobal?.logo_consultoria_url) || (state.configGlobal?.logo_metodo_url) || '';
