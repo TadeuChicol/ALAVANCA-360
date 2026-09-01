@@ -647,18 +647,21 @@ function switchTab(tabId) {
     }
 
     // 3. TRATAMENTO EXCLUSIVO DO HUB MASTER
+    if (targetId === 'tab-hub-master') {
+    console.log('[HUB Master] isAdmin =', state.isAdmin);
     const gatekeeper = document.getElementById('hubGatekeeper');
     const conteudoOculto = document.getElementById('hubConteudoOculto');
-
-    if (targetId === 'tab-hub-master') {
-        console.log('[HUB Master] isAdmin =', state.isAdmin);
-        if (state.isAdmin) {
-            if (gatekeeper) gatekeeper.classList.add('hidden');
-            if (conteudoOculto) conteudoOculto.classList.remove('hidden');
-        } else {
-            if (gatekeeper) gatekeeper.classList.remove('hidden');
-            if (conteudoOculto) conteudoOculto.classList.add('hidden');
+    if (state.isAdmin) {
+        if (gatekeeper) { gatekeeper.classList.add('hidden'); gatekeeper.style.display = 'none'; }
+        if (conteudoOculto) {
+            conteudoOculto.classList.remove('hidden');
+            conteudoOculto.style.display = 'block';   // ← força a exibição
+            console.log('[HUB Master] Conteúdo revelado:', !conteudoOculto.classList.contains('hidden'));
         }
+    } else {
+        if (gatekeeper) { gatekeeper.classList.remove('hidden'); gatekeeper.style.display = 'block'; }
+        if (conteudoOculto) { conteudoOculto.classList.add('hidden'); conteudoOculto.style.display = 'none'; }
+    }
     }
 
     // 4. Atualiza destaque visual dos botões na barra lateral
