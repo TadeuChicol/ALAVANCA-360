@@ -3466,8 +3466,8 @@ async function sincronizarTodasAbasPlanilha() {
             await upsertRegistros(config.tabela, registros);
             total += registros.length;
         } catch (e) {
-            falhas.push(aba);
-            console.warn('[Planilha] Falha na aba ' + aba + ':', e.message);
+           falhas.push(aba);
+           console.warn('[Planilha] Falha na aba ' + aba + ':', e.message, '| URL:', url);
         }
     }
 
@@ -3485,7 +3485,8 @@ function extrairIdPlanilha(url) {
 
 async function buscarAbaGoogleSheets(spreadsheetId, aba) {
     const url = 'https://docs.google.com/spreadsheets/d/' + spreadsheetId +
-        '/gviz/tq?tqx=out:json&sheet=' + encodeURIComponent(aba);
+     '/gviz/tq?tqx=out:json&sheet=' + encodeURIComponent(aba) +
+     '&headers=1';
     const resp = await fetch(url);
     const texto = await resp.text();
     const json = JSON.parse(texto.substring(texto.indexOf('{'), texto.lastIndexOf('}') + 1));
