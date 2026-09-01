@@ -158,7 +158,16 @@ document.getElementById('btnEntrarSistema')?.addEventListener('click', (e) => {
 });
 
 async function carregarConfigGlobal() {
-    let cfg = await apiGet('config_global', 'global');
+    // Busca o PRIMEIRO registro da tabela (o id é UUID, não 'global')
+    const { data, error } = await supabaseClient
+        .from('config_global')
+        .select('*')
+        .limit(1)
+        .maybeSingle();
+
+    if (error) console.error('[HUB Master] Erro ao buscar config_global:', error);
+
+    let cfg = data;
     if (!cfg) {
         cfg = {
             id: 'global',
@@ -173,6 +182,7 @@ async function carregarConfigGlobal() {
     if (!cfg.link_suporte_telegram) cfg.link_suporte_telegram = 'https://t.me/suporte_tce_bot';
     if (!cfg.nome_consultoria) cfg.nome_consultoria = 'Alavanca 360 Consultoria';
     state.configGlobal = cfg;
+    if (typeof aplicarMarcaMetodoNaTelaLogin === 'function') aplicarMarcaMetodoNaTelaLogin();
 }
 
 // ============================================================
