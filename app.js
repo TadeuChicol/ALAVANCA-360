@@ -3498,15 +3498,18 @@ function extrairIdPlanilha(url) {
 
 async function buscarAbaGoogleSheets(spreadsheetId, aba) {
     const url = 'https://docs.google.com/spreadsheets/d/' + spreadsheetId +
-     '/gviz/tq?tqx=out:json&sheet=' + encodeURIComponent(aba) +
-     '&headers=1';
+        '/gviz/tq?tqx=out:csv&sheet=' + encodeURIComponent(aba) + '&headers=1';
     const resp = await fetch(url);
-    const texto = await resp.text();
-    const json = JSON.parse(texto.substring(texto.indexOf('{'), texto.lastIndexOf('}') + 1));
-    const cols = json.table.cols.map(c => c.label);
-    return json.table.rows.map(linha => {
+    if (!resp.ok) throw new Error('HTTP ' + resp.status + ' na aba ' + aba);
+    const csv = await resp.text();
+
+    // Converte CSV em array de objetos (primeira linha = cabeçalhos)
+    const linhas = csv.trim().split(/\r?\n/).map(l => l.split(','));
+    if (linhas.length < 2) return [];
+    const headers = linhas[0].map(h => h.trim());
+    return linhas.slice(1).map(row => {
         const obj = {};
-        cols.forEach((col, i) => { obj[col] = linha.c ? linha.c[i] ? linha.c[i].v : null : null; });
+        headers.forEach((h, i) => { obj[h] = (row[i] || '').trim(); });
         return obj;
     });
 }
