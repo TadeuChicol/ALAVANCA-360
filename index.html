@@ -1136,7 +1136,7 @@
                 <div>
                     <label class="block text-xs font-medium text-slate-400 mb-1">Logomarca do Método (tela de login)</label>
                     <input type="file" id="inputLogoMetodoFile" accept="image/png, image/jpeg" onchange="converterLogoParaBase64(event, 'hubMasterLogoMetodoUrl', 'imgPreviewLogoMetodo', 'previewLogoMetodoContainer', 'nomeArquivoLogoMetodo')" class="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-amber-500/10 file:text-amber-400 hover:file:bg-amber-500/20 cursor-pointer">
-                    <input type="hidden" id="hubMasterLogoMetodoUrl">
+                    <input type="url" id="hubMasterLogoMetodoUrl" placeholder="https://gtcybiuxdpxixdjnshty.supabase.co/storage/v1/object/public/alavanca-logo/Logo_ALAVANCA%20360_fundo%20transparente.png" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-200 focus:border-amber-500 focus:outline-none mb-2">
                     <div id="previewLogoMetodoContainer" class="hidden mt-2 flex items-center gap-2">
                         <img id="imgPreviewLogoMetodo" src="" alt="Preview Logo Método" class="h-10 object-contain rounded bg-slate-950 p-1 border border-slate-800">
                         <span id="nomeArquivoLogoMetodo" class="text-[10px] text-slate-400"></span>
