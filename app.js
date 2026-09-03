@@ -730,6 +730,8 @@ function preencherFormularioHubClinica() {
     const elLogo     = document.getElementById('hubClinicaLogoUrl') || document.getElementById('logoClinicaUrl');
     const elNap      = document.getElementById('hubClinicaPlanilhaNap') || document.getElementById('urlPlanilhaNap');
     const elWpp      = document.getElementById('hubClinicaWhatsApp') || document.getElementById('cfgWhatsApp'); // NOVO
+    const elTelLink  = document.getElementById('clinicaTelegramLink');
+    const elTelChave = document.getElementById('clinicaTelegramChave');
 
     if (elNome)     elNome.value     = c.nome_clinica || c.nome || '';
     if (elEnd)      elEnd.value      = c.endereco || '';
@@ -738,6 +740,8 @@ function preencherFormularioHubClinica() {
     if (elLogo)     elLogo.value     = c.logo_clinica_url || '';
     if (elNap)      elNap.value      = c.planilha_nap || c.url_planilha_nap || '';
     if (elWpp)      elWpp.value      = c.whatsapp || '';
+    if (elTelLink)  elTelLink.value  = c.telegram_link || '';
+    if (elTelChave) elTelChave.value = c.telegram_chave || '';
 
     // Se já houver logomarca cadastrada no banco, mostra no preview
     if (c.logo_clinica_url) {
@@ -836,7 +840,9 @@ async function salvarHubClinica(event) {
         logo_url: (document.getElementById('hubClinicaLogoUrl') || document.getElementById('logoClinicaUrl'))?.value.trim() || '',
         logo_clinica_url: (document.getElementById('hubClinicaLogoUrl') || document.getElementById('logoClinicaUrl'))?.value.trim() || '',
         planilha_nap: (document.getElementById('hubClinicaPlanilhaNap') || document.getElementById('urlPlanilhaNap'))?.value.trim() || '',
-        url_planilha_nap: (document.getElementById('hubClinicaPlanilhaNap') || document.getElementById('urlPlanilhaNap'))?.value.trim() || ''
+        url_planilha_nap: (document.getElementById('hubClinicaPlanilhaNap') || document.getElementById('urlPlanilhaNap'))?.value.trim() || '',
+        telegram_link: (document.getElementById('clinicaTelegramLink'))?.value.trim() || '',
+        telegram_chave: (document.getElementById('clinicaTelegramChave'))?.value.trim() || ''
     };
 
     try {
