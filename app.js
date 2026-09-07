@@ -3364,7 +3364,7 @@ async function sincronizarTodasAbasPlanilha() {
             const registros = (await Promise.all(linhas.map(config.mapear))).filter(Boolean);
             if (registros.length) {
                 if (config.tabela === 'config_precificacao') {
-                    // CONFIG: usa SÓ a 1ª linha (a configuração real) — ignora as linhas de cálculo extras
+                    // CONFIG: usa SÓ a 1ª linha (a configuração real) — ignora as 8 linhas de cálculo extras
                     const unico = [registros[0]];
                     await supabaseClient.from('config_precificacao')
                         .delete().eq('clinica_id', state.clinicaAtual.id).eq('modalidade', unico[0].modalidade);
