@@ -3453,179 +3453,35 @@ async function sincronizarDadosPlanilhaGoogle() {
 // ============================================================
 // 2B. HUB CLÍNICA - INTEGRAÇÃO COMPLETA DA PLANILHA (TODAS AS ABAS)
 // ============================================================
-const MAPA_ABAS_PLANILHA = {
-    'FORNECEDORES_INSUMOS':   { tabela: 'insumos',              mapear: (l) => mapearInsumo(l) },
-    'CUSTOS_INSUMOS_UNID':    { tabela: 'insumos',              mapear: (l) => mapearCustoUnitario(l) },
-    'MAP_INSUMOS_SERVICOS':   { tabela: 'mapa_insumos_servicos', mapear: (l) => mapearMapaConsumo(l) },
-    'CUSTOS_FIXOS_VARIAVEIS': { tabela: 'custos_fixos',         mapear: (l) => mapearCustoFixo(l) },
-    'CONFIG_CONVÊNIO':        { tabela: 'config_precificacao',  mapear: (l) => mapearConfig(l, 'convenio') },
-    'CONFIG_PARTICULAR':      { tabela: 'config_precificacao',  mapear: (l) => mapearConfig(l, 'particular') },
-    'SERVIÇOS_PROCEDIMENTOS': { tabela: 'servicos',             mapear: (l) => mapearServico(l) },
-    'TABELA_CONVÊNIO':        { tabela: 'servicos',             mapear: (l) => mapearPrecoConvenio(l) },
-    'TABELA_PARTICULAR':      { tabela: 'servicos',             mapear: (l) => mapearPrecoParticular(l) },
-    'TABELA_FINAL':           { tabela: 'servicos',             mapear: (l) => mapearTabelaFinal(l) }
-};
-
 async function sincronizarTodasAbasPlanilha() {
     const url = state.clinicaAtual?.url_planilha_nap;
     if (!url) { alert('Configure o link da planilha no HUB Clínica.'); return; }
     const spreadsheetId = extrairIdPlanilha(url);
     if (!spreadsheetId) { alert('Link de planilha inválido.'); return; }
-
     const btn = document.getElementById('btnSincronizarPlanilha');
     if (btn) { btn.disabled = true; btn.textContent = 'Sincronizando todas as abas...'; }
-
-    let total = 0;
-    const falhas = [];
-    for (const aba of Object.keys(MAPA_ABAS_PLANILHA)) {
-        try {
-            const linhas = await buscarAbaGoogleSheets(spreadsheetId, aba);
-            const config = MAPA_ABAS_PLANILHA[aba];
-            const registros = linhas.map(config.mapear).filter(Boolean);
-            await upsertRegistros(config.tabela, registros);
-            total += registros.length;
-        } catch (e) {
-           falhas.push(aba);
-           console.warn('[Planilha] Falha na aba ' + aba + ':', e.message, '| URL:', url);
-        }
+    try {
+        // Quem lê a planilha agora é o servidor (Supabase Edge Function) — sem CORS
+        const { data, error } = await supabaseClient.functions.invoke('sync-nap', {
+            body: { spreadsheet_id: spreadsheetId, clinica_id: state.clinicaAtual.id }
+        });
+        if (error) throw error;
+        if (!data.ok) throw new Error(JSON.stringify(data.error || data));
+        const porAba = Object.entries(data.totalPorAba || {}).map(([k, v]) => k + ': ' + v).join(', ');
+        const msgFalhas = data.falhas?.length ? '\n\nAbas com falha: ' + data.falhas.join(', ') : '';
+        alert('Integração concluída: ' + data.total + ' registros sincronizados.\n\n' + porAba + msgFalhas);
+        if (typeof renderizarModuloFinanceiroCompleto === 'function') renderizarModuloFinanceiroCompleto();
+    } catch (e) {
+        console.error('[Planilha] Falha na sincronização:', e);
+        alert('Erro ao sincronizar: ' + (e.message || e));
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'Sincronizar Insumos (Planilha)'; }
     }
-
-    if (typeof renderizarModuloFinanceiroCompleto === 'function') renderizarModuloFinanceiroCompleto();
-    if (btn) { btn.disabled = false; btn.textContent = 'Sincronizar Insumos (Planilha)'; }
-
-    const msgFalhas = falhas.length ? '\n\nAbas com falha: ' + falhas.join(', ') : '';
-    alert('Integração concluída: ' + total + ' registros sincronizados.' + msgFalhas);
 }
-
 function extrairIdPlanilha(url) {
     const m = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
     return m ? m[1] : null;
 }
-
-async function buscarAbaGoogleSheets(spreadsheetId, aba) {
-    const url = 'https://docs.google.com/spreadsheets/d/' + spreadsheetId +
-        '/gviz/tq?tqx=out:csv&sheet=' + encodeURIComponent(aba) + '&headers=1';
-    const resp = await fetch(url);
-    if (!resp.ok) throw new Error('HTTP ' + resp.status + ' na aba ' + aba);
-    const csv = await resp.text();
-
-    // Converte CSV em array de objetos (primeira linha = cabeçalhos)
-    const linhas = csv.trim().split(/\r?\n/).map(l => l.split(','));
-    if (linhas.length < 2) return [];
-    const headers = linhas[0].map(h => h.trim());
-    return linhas.slice(1).map(row => {
-        const obj = {};
-        headers.forEach((h, i) => { obj[h] = (row[i] || '').trim(); });
-        return obj;
-    });
-}
-
-function mapearInsumo(linha) {
-    if (!linha['ID_Insumo']) return null;
-    return {
-        clinica_id: state.clinicaAtual.id,
-        codigo_externo: String(linha['ID_Insumo']).trim(),
-        nome: linha['Nome_Insumo'],
-        preco_apresentacao: parseFloat(String(linha['A360_CUSTO'] || '0').replace(',', '.')) || 0
-    };
-}
-
-function mapearCustoUnitario(linha) {
-    if (!linha['ID_Insumo']) return null;
-    return {
-        clinica_id: state.clinicaAtual.id,
-        codigo_externo: String(linha['ID_Insumo']).trim(),
-        nome: linha['Nome_Insumo'],
-        apresentacao: linha['Apresentacao'],
-        quantidade_apresentacao: parseFloat(String(linha['Quantidade'] || '0').replace(',', '.')) || 0,
-        unidade_medida: linha['Unidade_Medida'],
-        preco_apresentacao: parseFloat(String(linha['A360_CUSTO'] || '0').replace(',', '.')) || 0
-    };
-}
-
-function mapearMapaConsumo(linha) {
-    if (!linha['Codigo_Servico'] || !linha['Codigo_Insumo']) return null;
-    return {
-        clinica_id: state.clinicaAtual.id,
-        servico_codigo: String(linha['Codigo_Servico']).trim(),
-        insumo_codigo: String(linha['Codigo_Insumo']).trim(),
-        quantidade_consumida: parseFloat(String(linha['Quantidade'] || '0').replace(',', '.')) || 0
-    };
-}
-
-function mapearCustoFixo(linha) {
-    if (!linha['Categoria']) return null;
-    return {
-        clinica_id: state.clinicaAtual.id,
-        nome_item: linha['Categoria'],
-        valor_mensal: parseFloat(String(linha['Valor_Mensal'] || '0').replace(/\./g, '').replace(',', '.')) || 0
-    };
-}
-
-function mapearConfig(linha, modalidade) {
-    if (!linha['ProLabore']) return null;
-    return {
-        clinica_id: state.clinicaAtual.id,
-        modalidade: modalidade,
-        pro_labore_desejado: parseFloat(String(linha['ProLabore'] || '0').replace(',', '.')) || 0,
-        horas_dia: parseFloat(String(linha['Horas_Dia'] || '0').replace(',', '.')) || 0,
-        dias_mes: parseFloat(String(linha['Dias_Mes'] || '0').replace(',', '.')) || 0,
-        margem_desejada_pct: parseFloat(String(linha['Margem_Minima'] || '0').replace('%', '').replace(',', '.')) || 0,
-        imposto_pct: parseFloat(String(linha['Imposto'] || '0').replace('%', '').replace(',', '.')) || 0,
-        taxa_maquininha_pct: parseFloat(String(linha['Taxa_Maquininha'] || '0').replace('%', '').replace(',', '.')) || 0
-    };
-}
-
-function mapearServico(linha) {
-    if (!linha['ID_Servico']) return null;
-    return {
-        clinica_id: state.clinicaAtual.id,
-        codigo_externo: String(linha['ID_Servico']).trim(),
-        nome: linha['Nome_Servico'],
-        categoria: linha['Categoria'],
-        tempo_medio_min: parseFloat(String(linha['Tempo_Medio_Min'] || '0').replace(',', '.')) || 0,
-        custo_servico_externo: parseFloat(String(linha['Custo_Servico_Externo'] || '0').replace(',', '.')) || 0,
-        custo_radiografia: parseFloat(String(linha['Custo_Radiografia'] || '0').replace(',', '.')) || 0,
-        outros_custos_diretos: parseFloat(String(linha['Outros_Custos_Diretos'] || '0').replace(',', '.')) || 0
-    };
-}
-
-function mapearPrecoConvenio(linha) {
-    if (!linha['ID_Servico']) return null;
-    return {
-        clinica_id: state.clinicaAtual.id,
-        codigo_externo: String(linha['ID_Servico']).trim(),
-        preco_convenio: parseFloat(String(linha['Preço Correto'] || linha['Preço IDEAL'] || '0').replace(',', '.')) || 0
-    };
-}
-
-function mapearPrecoParticular(linha) {
-    if (!linha['ID_Servico']) return null;
-    return {
-        clinica_id: state.clinicaAtual.id,
-        codigo_externo: String(linha['ID_Servico']).trim(),
-        preco_particular: parseFloat(String(linha['Preco_A_Vista_Serviço_R$'] || '0').replace(',', '.')) || 0
-    };
-}
-
-function mapearTabelaFinal(linha) {
-    if (!linha['ID_Servico']) return null;
-    return {
-        clinica_id: state.clinicaAtual.id,
-        codigo_externo: String(linha['ID_Servico']).trim(),
-        nome: linha['Nome_Servico'],
-        preco_convenio: parseFloat(String(linha['Preço -CONVÊNIO (IDEAL)'] || '0').replace(',', '.')) || 0,
-        preco_particular: parseFloat(String(linha['PARTICULAR'] || '0').replace(',', '.')) || 0
-    };
-}
-
-async function upsertRegistros(tabela, registros) {
-    if (!registros.length) return;
-    const { data, error } = await supabaseClient.from(tabela).upsert(registros);
-    if (error) throw error;
-    return data;
-}
-
 window.sincronizarTodasAbasPlanilha = sincronizarTodasAbasPlanilha;
 
 // ============================================================
