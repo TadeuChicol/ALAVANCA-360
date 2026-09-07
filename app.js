@@ -3433,16 +3433,22 @@ function mapearServico(linha) {
 }
 
 async function mapearMapaConsumo(linha) {
-    if (!linha['Codigo_Servico'] || !linha['Codigo_Insumo']) return null;
-    const codServ = String(linha['Codigo_Servico']).trim();
+    if (!linha['Codigo_Insumo']) return null;
+    // A aba usa célula mesclada: Codigo_Servico só vem na 1ª linha de cada serviço.
+    // Se vier vazio, herda o último código visto (forward-fill).
+    if (linha['Codigo_Servico'] && String(linha['Codigo_Servico']).trim()) {
+        ultimoCodigoServico = String(linha['Codigo_Servico']).trim();
+    }
+    const codServ = ultimoCodigoServico;
     const codIns = String(linha['Codigo_Insumo']).trim();
+    if (!codServ || !codIns) return null;
     const { data: srv } = await supabaseClient.from('servicos').select('id')
         .eq('clinica_id', state.clinicaAtual.id).eq('codigo_externo', codServ).maybeSingle();
     const { data: ins } = await supabaseClient.from('insumos').select('id')
         .eq('clinica_id', state.clinicaAtual.id).eq('codigo_externo', codIns).maybeSingle();
     if (!srv || !ins) return null;
     return { clinica_id: state.clinicaAtual.id, servico_id: srv.id, insumo_id: ins.id,
-        quantidade_consumida: num(linha['Quantidade']) };
+        quantidade_consumida: num(linha['Custo_Unitario']) };
 }
 
 function mapearCustoFixo(linha) {
