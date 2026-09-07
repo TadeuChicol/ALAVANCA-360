@@ -3445,9 +3445,9 @@ async function mapearMapaConsumo(linha) {
     const codIns = String(linha['Codigo_Insumo']).trim();
     if (!codServ || !codIns) return null;
     const { data: srv } = await supabaseClient.from('servicos').select('id')
-        .eq('clinica_id', state.clinicaAtual.id).eq('codigo_externo', codServ).maybeSingle();
+        .eq('clinica_id', state.clinicaAtual.id).eq('codigo_externo', codServ).limit(1).maybeSingle();
     const { data: ins } = await supabaseClient.from('insumos').select('id')
-        .eq('clinica_id', state.clinicaAtual.id).eq('codigo_externo', codIns).maybeSingle();
+        .eq('clinica_id', state.clinicaAtual.id).eq('codigo_externo', codIns).limit(1).maybeSingle();
     if (!srv || !ins) return null;
     return { clinica_id: state.clinicaAtual.id, servico_id: srv.id, insumo_id: ins.id,
         quantidade_consumida: num(linha['Custo_Unitario']) };
@@ -3476,7 +3476,8 @@ function mapearTabelaFinal(linha) {
 
 async function upsertRegistros(tabela, registros) {
     if (!registros.length) return;
-    const { data, error } = await supabaseClient.from(tabela).upsert(registros);
+    const { data, error } = await supabaseClient.from(tabela)
+        .upsert(registros, { onConflict: 'codigo_externo' });
     if (error) throw error;
     return data;
 }
