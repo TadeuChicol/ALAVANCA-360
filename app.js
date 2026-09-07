@@ -3342,8 +3342,8 @@ const MAPA_ABAS_PLANILHA = {
     'SERVIÇOS_PROCEDIMENTOS': { tabela: 'servicos',             mapear: (l) => mapearServico(l) },
     'MAP_INSUMOS_SERVICOS':   { tabela: 'mapa_insumos_servicos', mapear: (l) => mapearMapaConsumo(l) },
     'CUSTOS_FIXOS_VARIAVEIS': { tabela: 'custos_fixos',         mapear: (l) => mapearCustoFixo(l) },
-    'CONFIG_CONVÊNIO':        { tabela: 'config_precificacao',  mapear: (l) => mapearConfig(l, 'convenio') },
-    'CONFIG_PARTICULAR':      { tabela: 'config_precificacao',  mapear: (l) => mapearConfig(l, 'particular') },
+    'CONFIG_CONVÊNIO':        { tabela: 'config_precificacao',  onConflict: '(clinica_id, modalidade)', mapear: (l) => mapearConfig(l, 'convenio') },
+    'CONFIG_PARTICULAR':      { tabela: 'config_precificacao',  onConflict: '(clinica_id, modalidade)', mapear: (l) => mapearConfig(l, 'particular') },
     'TABELA_FINAL':           { tabela: 'servicos',             mapear: (l) => mapearTabelaFinal(l) }
 };
 
@@ -3363,7 +3363,7 @@ async function sincronizarTodasAbasPlanilha() {
             const config = MAPA_ABAS_PLANILHA[aba];
             // IMPORTANTE: aguarda as Promises (funções async) resolverem antes de filtrar
             const registros = (await Promise.all(linhas.map(config.mapear))).filter(Boolean);
-            if (registros.length) await upsertRegistros(config.tabela, registros);
+            if (registros.length) await upsertRegistros(config.tabela, registros, config.onConflict);
             porAba[aba] = registros.length;
             total += registros.length;
         } catch (e) {
@@ -3484,12 +3484,15 @@ function mapearTabelaFinal(linha) {
     };
 }
 
-async function upsertRegistros(tabela, registros) {
+async function upsertRegistros(tabela, registros, onConflict) {
     if (!registros.length) return;
-    const { data, error } = await supabaseClient.from(tabela).upsert(registros);
+    let q = supabaseClient.from(tabela).upsert(registros);
+    if (onConflict) q = q.onConflict(onConflict);
+    const { data, error } = await q;
     if (error) throw error;
     return data;
 }
+
 window.sincronizarTodasAbasPlanilha = sincronizarTodasAbasPlanilha;
 
 // ============================================================
