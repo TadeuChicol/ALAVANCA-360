@@ -3357,13 +3357,24 @@ async function sincronizarTodasAbasPlanilha() {
     let total = 0;
     const porAba = {};
     const falhas = [];
-    for (const aba of Object.keys(MAPA_ABAS_PLANILHA)) {
+        for (const aba of Object.keys(MAPA_ABAS_PLANILHA)) {
         try {
             const linhas = await buscarAbaGoogleSheets(spreadsheetId, aba);
             const config = MAPA_ABAS_PLANILHA[aba];
             // IMPORTANTE: aguarda as Promises (funções async) resolverem antes de filtrar
             const registros = (await Promise.all(linhas.map(config.mapear))).filter(Boolean);
-            if (registros.length) await upsertRegistros(config.tabela, registros, config.onConflict);
+            if (registros.length) {
+                if (config.tabela === 'config_precificacao') {
+                    // CONFIG: apaga as linhas da clínica e insere de novo (evita conflito de chave)
+                    await supabaseClient.from('config_precificacao')
+                        .delete()
+                        .eq('clinica_id', state.clinicaAtual.id)
+                        .eq('modalidade', registros[0].modalidade);
+                    await supabaseClient.from('config_precificacao').insert(registros);
+                } else {
+                    await upsertRegistros(config.tabela, registros, config.onConflict);
+                }
+            }
             porAba[aba] = registros.length;
             total += registros.length;
         } catch (e) {
