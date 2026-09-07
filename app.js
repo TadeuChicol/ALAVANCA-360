@@ -3364,10 +3364,11 @@ async function sincronizarTodasAbasPlanilha() {
             const registros = (await Promise.all(linhas.map(config.mapear))).filter(Boolean);
             if (registros.length) {
                 if (config.tabela === 'config_precificacao') {
-                    // CONFIG: apaga a linha da clínica/modalidade e insere de novo (evita conflito de chave)
+                    // CONFIG: usa SÓ a 1ª linha (a configuração real) — ignora as linhas de cálculo extras
+                    const unico = [registros[0]];
                     await supabaseClient.from('config_precificacao')
-                        .delete().eq('clinica_id', state.clinicaAtual.id).eq('modalidade', registros[0].modalidade);
-                    await supabaseClient.from('config_precificacao').insert(registros);
+                        .delete().eq('clinica_id', state.clinicaAtual.id).eq('modalidade', unico[0].modalidade);
+                    await supabaseClient.from('config_precificacao').insert(unico);
                 } else {
                     await upsertRegistros(config.tabela, registros);
                 }
@@ -3402,7 +3403,10 @@ async function buscarAbaGoogleSheets(spreadsheetId, aba) {
     const headers = linhas[0].map(h => h.trim().replace(/^"|"$/g, ''));
     return linhas.slice(1).map(row => {
         const obj = {};
-        headers.forEach((h, i) => { obj[h] = (row[i] || '').trim().replace(/^"|"$/g, ''); });
+        headers.forEach((h, i) => {
+            const chave = h.trim();                       // limpa espaço no nome da coluna
+            obj[chave] = (row[i] || '').trim().replace(/^"|"$/g, '');
+        });
         return obj;
     });
 }
