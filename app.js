@@ -3334,125 +3334,19 @@ async function salvarHubClinicaBasico() {
 }
 
 // ============================================================
-// 2. HUB CLÍNICA - SINCRONIZADOR DE INSUMOS DO GOOGLE SHEETS
-// ============================================================
-async function sincronizarDadosPlanilhaGoogle() {
-        if (!state.clinicaAtual || !state.clinicaAtual.planilha_nap) {
-           alert("Cadastre a URL da planilha NAP no HUB Clínica e salve antes de sincronizar.");
-           return;
-        }
-
-    const btn = document.getElementById('btnSincronizarPlanilha');
-    const originalText = btn ? btn.textContent : 'Sincronizar Insumos (Planilha)';
-    
-    if (btn) {
-        btn.disabled = true;
-        btn.textContent = 'Sincronizando...';
-    }
-
-    try {
-        const urlStr = state.clinicaAtual.planilha_nap.trim();
-        let urlCsv = '';
-
-        if (urlStr.includes('@') && !urlStr.includes('http')) {
-            throw new Error("O campo contém um endereço de e-mail em vez de um link. Por favor, insira a URL da Planilha Google.");
-        }
-
-        if (urlStr.includes('/pub?') || urlStr.includes('output=csv')) {
-            urlCsv = urlStr;
-        } else {
-            const matches = urlStr.match(/\/d\/([a-zA-Z0-9-_]+)/);
-            if (!matches || !matches[1]) {
-                throw new Error("Link da planilha inválido. Verifique se copiou a URL completa da planilha do Google Sheets.");
-            }
-            const spreadsheetId = matches[1];
-            urlCsv = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:csv`;
-        }
-
-        const response = await fetch(urlCsv);
-        if (!response.ok) {
-            throw new Error("Não foi possível acessar a planilha. Verifique se as permissões de acesso estão como 'Qualquer pessoa com o link'.");
-        }
-
-        const csvText = await response.text();
-        
-        const linhas = csvText.split('\n').map(l => {
-            const cols = [];
-            let inQuotes = false;
-            let val = '';
-            for (let i = 0; i < l.length; i++) {
-                let char = l[i];
-                if (char === '"') { inQuotes = !inQuotes; }
-                else if (char === ',' && !inQuotes) { cols.push(val.trim()); val = ''; }
-                else { val += char; }
-            }
-            cols.push(val.trim());
-            return cols.map(c => c.replace(/^"|"$/g, '').trim());
-        });
-
-        if (linhas.length <= 1) {
-            throw new Error("A planilha está vazia ou não foi possível ler as colunas de insumos.");
-        }
-
-        const { error: deleteError } = await supabaseClient
-            .from('insumos')
-            .delete()
-            .eq('clinica_id', state.clinicaAtual.id);
-
-        if (deleteError) throw deleteError;
-
-        let totalInserido = 0;
-
-        for (let i = 1; i < linhas.length; i++) {
-            const col = linhas[i];
-            if (col.length < 2 || !col[0]) continue;
-
-            const nome = col[0];
-            const apresentacao = col[1] || 'Geral';
-            
-            let rawCusto = col[2] || '0';
-            if (rawCusto.includes(',') && (!rawCusto.includes('.') || rawCusto.lastIndexOf(',') > rawCusto.lastIndexOf('.'))) {
-                rawCusto = rawCusto.replace(/\./g, '').replace(',', '.');
-            }
-            const custo = parseFloat(rawCusto.replace(/[^0-9.-]+/g, "")) || 0;
-            const unidade = col[3] || 'Unidade';
-
-            const { error: insertError } = await supabaseClient
-                .from('insumos')
-                .insert({
-                    clinica_id: state.clinicaAtual.id,
-                    nome: nome,
-                    apresentacao: apresentacao,
-                    quantidade_apresentacao: 1,
-                    preco_apresentacao: custo,
-                    custo_unitario: custo,
-                    unidade_medida: unidade
-                });
-
-            if (insertError) throw insertError;
-            totalInserido++;
-        }
-
-        alert(`Sincronização concluída com sucesso!\n\n${totalInserido} insumos foram atualizados na base de dados da clínica.`);
-
-        if (typeof apiList === 'function') {
-            apiList('insumos', { clinica_id: state.clinicaAtual.id });
-        }
-
-    } catch (e) {
-        console.error("Erro ao sincronizar insumos:", e);
-        alert("Erro na sincronização: " + (e.message || e));
-    } finally {
-        if (btn) {
-            btn.disabled = false;
-            btn.textContent = originalText;
-        }
-    }
-}
-
-// ============================================================
 // 2B. HUB CLÍNICA - INTEGRAÇÃO COMPLETA DA PLANILHA (TODAS AS ABAS)
 // ============================================================
+// Lê direto do Google Sheets (planilha pública) — sem Edge Function
+const MAPA_ABAS_PLANILHA = {
+    'CUSTOS_INSUMOS_UNID':    { tabela: 'insumos',              mapear: (l) => mapearInsumo(l) },
+    'SERVIÇOS_PROCEDIMENTOS': { tabela: 'servicos',             mapear: (l) => mapearServico(l) },
+    'MAP_INSUMOS_SERVICOS':   { tabela: 'mapa_insumos_servicos', mapear: (l) => mapearMapaConsumo(l) },
+    'CUSTOS_FIXOS_VARIAVEIS': { tabela: 'custos_fixos',         mapear: (l) => mapearCustoFixo(l) },
+    'CONFIG_CONVÊNIO':        { tabela: 'config_precificacao',  mapear: (l) => mapearConfig(l, 'convenio') },
+    'CONFIG_PARTICULAR':      { tabela: 'config_precificacao',  mapear: (l) => mapearConfig(l, 'particular') },
+    'TABELA_FINAL':           { tabela: 'servicos',             mapear: (l) => mapearTabelaFinal(l) }
+};
+
 async function sincronizarTodasAbasPlanilha() {
     const url = state.clinicaAtual?.url_planilha_nap;
     if (!url) { alert('Configure o link da planilha no HUB Clínica.'); return; }
@@ -3460,27 +3354,141 @@ async function sincronizarTodasAbasPlanilha() {
     if (!spreadsheetId) { alert('Link de planilha inválido.'); return; }
     const btn = document.getElementById('btnSincronizarPlanilha');
     if (btn) { btn.disabled = true; btn.textContent = 'Sincronizando todas as abas...'; }
-    try {
-        // Quem lê a planilha agora é o servidor (Supabase Edge Function) — sem CORS
-        const { data, error } = await supabaseClient.functions.invoke('sync-nap', {
-            body: { spreadsheet_id: spreadsheetId, clinica_id: state.clinicaAtual.id }
-        });
-        if (error) throw error;
-        if (!data.ok) throw new Error(JSON.stringify(data.error || data));
-        const porAba = Object.entries(data.totalPorAba || {}).map(([k, v]) => k + ': ' + v).join(', ');
-        const msgFalhas = data.falhas?.length ? '\n\nAbas com falha: ' + data.falhas.join(', ') : '';
-        alert('Integração concluída: ' + data.total + ' registros sincronizados.\n\n' + porAba + msgFalhas);
-        if (typeof renderizarModuloFinanceiroCompleto === 'function') renderizarModuloFinanceiroCompleto();
-    } catch (e) {
-        console.error('[Planilha] Falha na sincronização:', e);
-        alert('Erro ao sincronizar: ' + (e.message || e));
-    } finally {
-        if (btn) { btn.disabled = false; btn.textContent = 'Sincronizar Insumos (Planilha)'; }
+    let total = 0;
+    const porAba = {};
+    const falhas = [];
+    for (const aba of Object.keys(MAPA_ABAS_PLANILHA)) {
+        try {
+            const linhas = await buscarAbaGoogleSheets(spreadsheetId, aba);
+            const config = MAPA_ABAS_PLANILHA[aba];
+            // IMPORTANTE: aguarda as Promises (funções async) resolverem antes de filtrar
+            const registros = (await Promise.all(linhas.map(config.mapear))).filter(Boolean);
+            if (registros.length) await upsertRegistros(config.tabela, registros);
+            porAba[aba] = registros.length;
+            total += registros.length;
+        } catch (e) {
+            falhas.push(aba + ': ' + e.message);
+            console.warn('[Planilha] Falha na aba ' + aba + ':', e.message);
+        }
     }
+    if (typeof renderizarModuloFinanceiroCompleto === 'function') renderizarModuloFinanceiroCompleto();
+    if (btn) { btn.disabled = false; btn.textContent = 'Sincronizar Insumos (Planilha)'; }
+    const resumo = Object.entries(porAba).map(([k, v]) => k + ': ' + v).join(', ');
+    const msgFalhas = falhas.length ? '\n\nAbas com falha: ' + falhas.join('; ') : '';
+    alert('Integração concluída: ' + total + ' registros sincronizados.\n\n' + resumo + msgFalhas);
 }
+
 function extrairIdPlanilha(url) {
     const m = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
     return m ? m[1] : null;
+}
+
+async function buscarAbaGoogleSheets(spreadsheetId, aba) {
+    const url = 'https://docs.google.com/spreadsheets/d/' + spreadsheetId +
+        '/gviz/tq?tqx=out:csv&sheet=' + encodeURIComponent(aba) + '&headers=1';
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const csv = await resp.text();
+    const linhas = csv.trim().split(/\r?\n/).map(l => l.split(','));
+    if (linhas.length < 2) return [];
+    const headers = linhas[0].map(h => h.trim().replace(/^"|"$/g, ''));
+    return linhas.slice(1).map(row => {
+        const obj = {};
+        headers.forEach((h, i) => { obj[h] = (row[i] || '').trim().replace(/^"|"$/g, ''); });
+        return obj;
+    });
+}
+
+// Converte número brasileiro ("1.234,56", "1 000,000", "10%", "22,780") para número
+function num(v) {
+    if (v == null) return 0;
+    return parseFloat(String(v).replace(/\s/g, '').replace(/\./g, '').replace(/%/g, '').replace(',', '.')) || 0;
+}
+
+function mapearInsumo(linha) {
+    if (!linha['ID_Insumo']) return null;
+    return {
+        clinica_id: state.clinicaAtual.id,
+        codigo_externo: String(linha['ID_Insumo']).trim(),
+        nome: linha['Nome_Insumo'],
+        apresentacao: linha['Apresentacao'],
+        quantidade_apresentacao: num(linha['Quantidade']),
+        unidade_medida: linha['Unidade_Medida'],
+        preco_apresentacao: num(linha['A360_CUSTO'])
+    };
+}
+
+function mapearServico(linha) {
+    if (!linha['ID_Servico']) return null;
+    return {
+        clinica_id: state.clinicaAtual.id,
+        codigo_externo: String(linha['ID_Servico']).trim(),
+        nome: linha['Nome_Servico'],
+        categoria: linha['Categoria'],
+        tempo_medio_min: num(linha['Tempo_Medio_Min']),
+        custo_servico_externo: num(linha['Custo_Servico_Externo']),
+        custo_radiografia: num(linha['Custo_Radiografia']),
+        outros_custos_diretos: num(linha['Outros_Custos_Diretos'])
+    };
+}
+
+async function mapearMapaConsumo(linha) {
+    if (!linha['Codigo_Servico'] || !linha['Codigo_Insumo']) return null;
+    const codServ = String(linha['Codigo_Servico']).trim();
+    const codIns = String(linha['Codigo_Insumo']).trim();
+    const { data: srv } = await supabaseClient.from('servicos').select('id')
+        .eq('clinica_id', state.clinicaAtual.id).eq('codigo_externo', codServ).maybeSingle();
+    const { data: ins } = await supabaseClient.from('insumos').select('id')
+        .eq('clinica_id', state.clinicaAtual.id).eq('codigo_externo', codIns).maybeSingle();
+    if (!srv || !ins) return null;
+    return {
+        clinica_id: state.clinicaAtual.id,
+        servico_id: srv.id,
+        insumo_id: ins.id,
+        quantidade_consumida: num(linha['Quantidade'])
+    };
+}
+
+function mapearCustoFixo(linha) {
+    if (!linha['Categoria']) return null;
+    return {
+        clinica_id: state.clinicaAtual.id,
+        nome_item: linha['Categoria'],
+        valor_mensal: num(linha['Valor_Mensal'])
+    };
+}
+
+function mapearConfig(linha, modalidade) {
+    if (!linha['ProLabore']) return null;
+    return {
+        clinica_id: state.clinicaAtual.id,
+        modalidade: modalidade,
+        pro_labore_desejado: num(linha['ProLabore']),
+        horas_dia: num(linha['Horas_Dia']),
+        dias_mes: num(linha['Dias_Mes']),
+        margem_desejada_pct: num(linha['Margem_Minima']),
+        imposto_pct: num(linha['Imposto']),
+        taxa_maquininha_pct: num(linha['Taxa_Maquininha'])
+    };
+}
+
+// FONTE DE VERDADE DE PREÇOS — a última aba (TABELA_FINAL) vence
+function mapearTabelaFinal(linha) {
+    if (!linha['ID_Servico']) return null;
+    return {
+        clinica_id: state.clinicaAtual.id,
+        codigo_externo: String(linha['ID_Servico']).trim(),
+        nome: linha['Nome_Servico'],
+        preco_convenio: num(linha['Preço -CONVÊNIO (IDEAL)']),
+        preco_particular: num(linha['PARTICULAR'])
+    };
+}
+
+async function upsertRegistros(tabela, registros) {
+    if (!registros.length) return;
+    const { data, error } = await supabaseClient.from(tabela).upsert(registros);
+    if (error) throw error;
+    return data;
 }
 window.sincronizarTodasAbasPlanilha = sincronizarTodasAbasPlanilha;
 
