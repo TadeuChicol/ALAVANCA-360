@@ -3342,8 +3342,8 @@ const MAPA_ABAS_PLANILHA = {
     'SERVIÇOS_PROCEDIMENTOS': { tabela: 'servicos',             mapear: (l) => mapearServico(l) },
     'MAP_INSUMOS_SERVICOS':   { tabela: 'mapa_insumos_servicos', mapear: (l) => mapearMapaConsumo(l) },
     'CUSTOS_FIXOS_VARIAVEIS': { tabela: 'custos_fixos',         mapear: (l) => mapearCustoFixo(l) },
-    'CONFIG_CONVÊNIO':        { tabela: 'config_precificacao',  onConflict: 'clinica_id,modalidade', mapear: (l) => mapearConfig(l, 'convenio') },
-    'CONFIG_PARTICULAR':      { tabela: 'config_precificacao',  onConflict: 'clinica_id,modalidade', mapear: (l) => mapearConfig(l, 'particular') },
+    'CONFIG_CONVÊNIO':        { tabela: 'config_precificacao',  mapear: (l) => mapearConfig(l, 'convenio') },
+    'CONFIG_PARTICULAR':      { tabela: 'config_precificacao',  mapear: (l) => mapearConfig(l, 'particular') },
     'TABELA_FINAL':           { tabela: 'servicos',             mapear: (l) => mapearTabelaFinal(l) }
 };
 
@@ -3357,22 +3357,19 @@ async function sincronizarTodasAbasPlanilha() {
     let total = 0;
     const porAba = {};
     const falhas = [];
-        for (const aba of Object.keys(MAPA_ABAS_PLANILHA)) {
+    for (const aba of Object.keys(MAPA_ABAS_PLANILHA)) {
         try {
             const linhas = await buscarAbaGoogleSheets(spreadsheetId, aba);
             const config = MAPA_ABAS_PLANILHA[aba];
-            // IMPORTANTE: aguarda as Promises (funções async) resolverem antes de filtrar
             const registros = (await Promise.all(linhas.map(config.mapear))).filter(Boolean);
             if (registros.length) {
                 if (config.tabela === 'config_precificacao') {
-                    // CONFIG: apaga as linhas da clínica e insere de novo (evita conflito de chave)
+                    // CONFIG: apaga a linha da clínica/modalidade e insere de novo (evita conflito de chave)
                     await supabaseClient.from('config_precificacao')
-                        .delete()
-                        .eq('clinica_id', state.clinicaAtual.id)
-                        .eq('modalidade', registros[0].modalidade);
+                        .delete().eq('clinica_id', state.clinicaAtual.id).eq('modalidade', registros[0].modalidade);
                     await supabaseClient.from('config_precificacao').insert(registros);
                 } else {
-                    await upsertRegistros(config.tabela, registros, config.onConflict);
+                    await upsertRegistros(config.tabela, registros);
                 }
             }
             porAba[aba] = registros.length;
@@ -3410,7 +3407,6 @@ async function buscarAbaGoogleSheets(spreadsheetId, aba) {
     });
 }
 
-// Converte número brasileiro ("1.234,56", "1 000,000", "10%", "22,780") para número
 function num(v) {
     if (v == null) return 0;
     return parseFloat(String(v).replace(/\s/g, '').replace(/\./g, '').replace(/%/g, '').replace(',', '.')) || 0;
@@ -3418,29 +3414,18 @@ function num(v) {
 
 function mapearInsumo(linha) {
     if (!linha['ID_Insumo']) return null;
-    return {
-        clinica_id: state.clinicaAtual.id,
-        codigo_externo: String(linha['ID_Insumo']).trim(),
-        nome: linha['Nome_Insumo'],
-        apresentacao: linha['Apresentacao'],
-        quantidade_apresentacao: num(linha['Quantidade']),
-        unidade_medida: linha['Unidade_Medida'],
-        preco_apresentacao: num(linha['A360_CUSTO'])
-    };
+    return { clinica_id: state.clinicaAtual.id, codigo_externo: String(linha['ID_Insumo']).trim(),
+        nome: linha['Nome_Insumo'], apresentacao: linha['Apresentacao'],
+        quantidade_apresentacao: num(linha['Quantidade']), unidade_medida: linha['Unidade_Medida'],
+        preco_apresentacao: num(linha['A360_CUSTO']) };
 }
 
 function mapearServico(linha) {
     if (!linha['ID_Servico']) return null;
-    return {
-        clinica_id: state.clinicaAtual.id,
-        codigo_externo: String(linha['ID_Servico']).trim(),
-        nome: linha['Nome_Servico'],
-        categoria: linha['Categoria'],
-        tempo_medio_min: num(linha['Tempo_Medio_Min']),
-        custo_servico_externo: num(linha['Custo_Servico_Externo']),
-        custo_radiografia: num(linha['Custo_Radiografia']),
-        outros_custos_diretos: num(linha['Outros_Custos_Diretos'])
-    };
+    return { clinica_id: state.clinicaAtual.id, codigo_externo: String(linha['ID_Servico']).trim(),
+        nome: linha['Nome_Servico'], categoria: linha['Categoria'],
+        tempo_medio_min: num(linha['Tempo_Medio_Min']), custo_servico_externo: num(linha['Custo_Servico_Externo']),
+        custo_radiografia: num(linha['Custo_Radiografia']), outros_custos_diretos: num(linha['Outros_Custos_Diretos']) };
 }
 
 async function mapearMapaConsumo(linha) {
@@ -3452,59 +3437,75 @@ async function mapearMapaConsumo(linha) {
     const { data: ins } = await supabaseClient.from('insumos').select('id')
         .eq('clinica_id', state.clinicaAtual.id).eq('codigo_externo', codIns).maybeSingle();
     if (!srv || !ins) return null;
-    return {
-        clinica_id: state.clinicaAtual.id,
-        servico_id: srv.id,
-        insumo_id: ins.id,
-        quantidade_consumida: num(linha['Quantidade'])
-    };
+    return { clinica_id: state.clinicaAtual.id, servico_id: srv.id, insumo_id: ins.id,
+        quantidade_consumida: num(linha['Quantidade']) };
 }
 
 function mapearCustoFixo(linha) {
     if (!linha['Categoria']) return null;
-    return {
-        clinica_id: state.clinicaAtual.id,
-        nome_item: linha['Categoria'],
-        valor_mensal: num(linha['Valor_Mensal'])
-    };
+    return { clinica_id: state.clinicaAtual.id, nome_item: linha['Categoria'], valor_mensal: num(linha['Valor_Mensal']) };
 }
 
 function mapearConfig(linha, modalidade) {
     if (!linha['ProLabore']) return null;
-    return {
-        clinica_id: state.clinicaAtual.id,
-        modalidade: modalidade,
-        pro_labore_desejado: num(linha['ProLabore']),
-        horas_dia: num(linha['Horas_Dia']),
-        dias_mes: num(linha['Dias_Mes']),
-        margem_desejada_pct: num(linha['Margem_Minima']),
-        imposto_pct: num(linha['Imposto']),
-        taxa_maquininha_pct: num(linha['Taxa_Maquininha'])
-    };
+    return { clinica_id: state.clinicaAtual.id, modalidade: modalidade,
+        pro_labore_desejado: num(linha['ProLabore']), horas_dia: num(linha['Horas_Dia']),
+        dias_mes: num(linha['Dias_Mes']), margem_desejada_pct: num(linha['Margem_Minima']),
+        imposto_pct: num(linha['Imposto']), taxa_maquininha_pct: num(linha['Taxa_Maquininha']) };
 }
 
 // FONTE DE VERDADE DE PREÇOS — a última aba (TABELA_FINAL) vence
 function mapearTabelaFinal(linha) {
     if (!linha['ID_Servico']) return null;
-    return {
-        clinica_id: state.clinicaAtual.id,
-        codigo_externo: String(linha['ID_Servico']).trim(),
+    return { clinica_id: state.clinicaAtual.id, codigo_externo: String(linha['ID_Servico']).trim(),
         nome: linha['Nome_Servico'],
-        preco_convenio: num(linha['Preço -CONVÊNIO (IDEAL)']),
-        preco_particular: num(linha['PARTICULAR'])
-    };
+        preco_convenio: num(linha['Preço -CONVÊNIO (IDEAL)']), preco_particular: num(linha['PARTICULAR']) };
 }
 
-async function upsertRegistros(tabela, registros, onConflict) {
+async function upsertRegistros(tabela, registros) {
     if (!registros.length) return;
-    // Passa o onConflict DENTRO do upsert (jeito correto do Supabase)
-    const opts = onConflict ? { onConflict: onConflict } : {};
-    const { data, error } = await supabaseClient.from(tabela).upsert(registros, opts);
+    const { data, error } = await supabaseClient.from(tabela).upsert(registros);
     if (error) throw error;
     return data;
 }
 
+// ===== FUNÇÕES DE IMPORTAÇÃO INDIVIDUAL (usadas pelos cards do M8 no index) =====
+// Cada uma lê uma aba específica e grava na tabela correspondente
+async function importarAba(aba, tabela) {
+    const url = state.clinicaAtual?.url_planilha_nap;
+    if (!url) { alert('Configure o link da planilha no HUB Clínica.'); return; }
+    const spreadsheetId = extrairIdPlanilha(url);
+    if (!spreadsheetId) { alert('Link de planilha inválido.'); return; }
+    const linhas = await buscarAbaGoogleSheets(spreadsheetId, aba);
+    const config = MAPA_ABAS_PLANILHA[aba];
+    const registros = (await Promise.all(linhas.map(config.mapear))).filter(Boolean);
+    if (registros.length) {
+        if (tabela === 'config_precificacao') {
+            await supabaseClient.from('config_precificacao')
+                .delete().eq('clinica_id', state.clinicaAtual.id).eq('modalidade', registros[0].modalidade);
+            await supabaseClient.from('config_precificacao').insert(registros);
+        } else {
+            await upsertRegistros(tabela, registros);
+        }
+    }
+    alert('Importação ' + aba + ' concluída: ' + registros.length + ' registros.');
+    if (typeof renderizarModuloFinanceiroCompleto === 'function') renderizarModuloFinanceiroCompleto();
+}
+async function importarInsumosCsv() { await importarAba('CUSTOS_INSUMOS_UNID', 'insumos'); }
+async function importarServicosCsv() { await importarAba('SERVIÇOS_PROCEDIMENTOS', 'servicos'); }
+async function importarMapaInsumosServicosCsv() { await importarAba('MAP_INSUMOS_SERVICOS', 'mapa_insumos_servicos'); }
+async function importarCustosFixosCsv() { await importarAba('CUSTOS_FIXOS_VARIAVEIS', 'custos_fixos'); }
+async function importarConfigCsv(modalidade) {
+    const aba = modalidade === 'particular' ? 'CONFIG_PARTICULAR' : 'CONFIG_CONVÊNIO';
+    await importarAba(aba, 'config_precificacao');
+}
+
 window.sincronizarTodasAbasPlanilha = sincronizarTodasAbasPlanilha;
+window.importarInsumosCsv = importarInsumosCsv;
+window.importarServicosCsv = importarServicosCsv;
+window.importarMapaInsumosServicosCsv = importarMapaInsumosServicosCsv;
+window.importarCustosFixosCsv = importarCustosFixosCsv;
+window.importarConfigCsv = importarConfigCsv;
 
 // ============================================================
 // 3. RENDERIZADOR DE LOGOS E NOME DA CLÍNICA NO HEADER
