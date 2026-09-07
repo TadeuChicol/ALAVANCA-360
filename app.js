@@ -3432,6 +3432,8 @@ function mapearServico(linha) {
         custo_radiografia: num(linha['Custo_Radiografia']), outros_custos_diretos: num(linha['Outros_Custos_Diretos']) };
 }
 
+let ultimoCodigoServico = '';   // <-- NOVO: declara a variável no escopo do módulo
+
 async function mapearMapaConsumo(linha) {
     if (!linha['Codigo_Insumo']) return null;
     // A aba usa célula mesclada: Codigo_Servico só vem na 1ª linha de cada serviço.
