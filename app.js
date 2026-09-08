@@ -1077,18 +1077,20 @@ function coletarDadosFormularioPaciente() {
         renda: parseFloat(document.getElementById('formRenda').value) || 0,
         modalidade: document.getElementById('formModalidade').value,
         momento_vida: document.getElementById('formMomentoVida').value,
-        comparecimento: document.getElementById('formScoreComparecer').value,
+        comparecimento_score: document.getElementById('formScoreComparecer').value,
         engajamento_whatsapp: document.getElementById('formScoreWhats').value,
-        score_decisao: document.getElementById('formScoreDecisao').value,
-        adesao_tratamento: document.getElementById('formScoreConfianca').value,
+        perfil_decisao: document.getElementById('formScoreDecisao').value,
+        adesao: document.getElementById('formScoreConfianca').value,
+        nivel_confianca: parseFloat(document.getElementById('formScoreConfianca').value) || null,
         categoria_principal: document.getElementById('formCategoriaClinica').value,
         ltv,
         riscos: document.getElementById('formRiscos').value,
         necessidades_futuras: document.getElementById('formNecessidades').value,
         motivacao: document.getElementById('formMotivacao').value,
-        queixa: document.getElementById('formQueixa').value,
+        queixa_principal: document.getElementById('formQueixa').value,
         objetivo: document.getElementById('formObjetivo').value,
         ciclo_relacionamento: document.getElementById('formCicloRelacionamento').value,
+        autoestima_score: f4,
         idx_fotos: f1, idx_boca: f2, idx_representa: f3, idx_autoestima: f4,
         score_reconexao: scoreReconexao,
         opportunity_score: opportunity
@@ -1150,10 +1152,10 @@ function prepararEdicaoM5(id) {
     document.getElementById('formRenda').value = p.renda || '';
     document.getElementById('formModalidade').value = p.modalidade || 'Particular';
     document.getElementById('formMomentoVida').value = p.momento_vida || 'Mulher 35+';
-    document.getElementById('formScoreComparecer').value = p.comparecimento || 'Comparece sempre';
+    document.getElementById('formScoreComparecer').value = p.comparecimento_score || 'Comparece sempre';
     document.getElementById('formScoreWhats').value = p.engajamento_whatsapp || 'Responde WhatsApp';
-    document.getElementById('formScoreDecisao').value = p.score_decisao || 'Decide rápido';
-    document.getElementById('formScoreConfianca').value = p.adesao_tratamento || 'Alta Adesão';
+    document.getElementById('formScoreDecisao').value = p.perfil_decisao || 'Decide rápido';
+    document.getElementById('formScoreConfianca').value = p.adesao || 'Alta Adesão';
     document.getElementById('formCategoriaClinica').value = p.categoria_principal || 'implantes';
     document.getElementById('formLtvInput').value = p.ltv || 0;
     document.getElementById('formRiscos').value = p.riscos || 'Nenhum relevante';
@@ -1165,8 +1167,7 @@ function prepararEdicaoM5(id) {
     document.getElementById('idxFotos').value = p.idx_fotos || 0;
     document.getElementById('idxBoca').value = p.idx_boca || 0;
     document.getElementById('idxRepresenta').value = p.idx_representa || 0;
-    document.getElementById('idxAutoestima').value = p.idx_autoestima || 0;
-
+    document.getElementById('idxAutoestima').value = p.autoestima_score || p.idx_autoestima || 0;
     document.getElementById('lblTituloFormM5').textContent = 'Editando Cadastro de: ' + p.nome;
     document.getElementById('btnCancelarEdicao').classList.remove('hidden');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1282,15 +1283,75 @@ async function editarLinhaProntuario(linhaId, pacienteId) {
     renderizarLinhasProntuario(pacienteId);
 }
 
-async function removerLinhaProntuario(linhaId, pacienteId) {
-    if (!confirm('Deseja realmente remover este registro de consulta?')) return;
-    try {
-        await apiDelete('prontuario_evolutivo', linhaId);
-        state.prontuario = state.prontuario.filter(l => l.id !== linhaId);
-        renderizarLinhasProntuario(pacienteId);
-    } catch (e) {
-        alert('Não foi possível remover (registro pode estar travado/oficial).');
+async function removerLinhaProntuario(prontuarioId) {
+    const linha = state.prontuarioAtual.find(l => l.id === prontuarioId);
+    const motivo = prompt('Motivo da EXCLUSÃO deste registro (obrigatório):');
+    if (!motivo || !motivo.trim()) { alert('Motivo obrigatório para excluir.'); return; }
+    const { error } = await supabaseClient.from('prontuario_evolutivo')
+        .delete().eq('id', prontuarioId).eq('clinica_id', state.clinicaAtual.id);
+    if (!error) {
+        await registrarAuditoriaProntuario({ prontuario_id: prontuarioId, paciente_id: state.pacienteSelecionado.id, acao: 'excluir', antigo: JSON.stringify(linha || {}), motivo });
+        await carregarProntuario(state.pacienteSelecionado.id);
+    } else alert('Erro ao excluir: ' + error.message);
+}
+
+function popularFormularioPaciente(p) {
+    limparFormularioCompleto();               // ZERA TUDO primeiro (mata o "fantasma")
+    if (!p) { renderizarBotoesAutoestima(0); return; }
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val ?? ''; };
+    set('pacNome', p.nome); set('pacNascimento', p.data_nascimento); set('pacSexo', p.sexo);
+    set('pacEstadoCivil', p.estado_civil); set('pacTelefone', p.telefone); set('pacEmail', p.email);
+    set('pacEndereco', p.endereco); set('pacCidade', p.cidade); set('pacBairro', p.bairro);
+    set('pacCep', p.cep); set('pacProfissao', p.profissao); set('pacRenda', p.renda);
+    set('pacModalidade', p.modalidade); set('pacMomentoVida', p.momento_vida);
+    set('pacCategoria', p.categoria_principal); set('pacQueixa', p.queixa_principal);
+    set('pacObjetivo', p.objetivo); set('pacObservacoes', p.observacoes);
+    set('pacCiclo', p.ciclo_relacionamento); set('pacWhatsapp', p.engajamento_whatsapp);
+    set('pacDecisao', p.perfil_decisao); set('pacAdesao', p.adesao);
+    set('pacComparecimento', p.comparecimento_score); set('pacConfianca', p.nivel_confianca);
+    renderizarBotoesAutoestima(p.autoestima_score || 0);   // painel reage ao paciente carregado
+    renderizarFichaPaciente(p);                            // "Localidade / Profissão / Renda / Plano"
+    carregarProntuario(p.id);                              // timeline individualizada
+}
+
+async function buscarPacientePeloNome(nomeDigitado) {
+    const nome = nomeDigitado.trim();
+    if (!nome) { popularFormularioPaciente(null); return; }
+    const { data } = await supabaseClient.from('pacientes')
+        .select('*').eq('clinica_id', state.clinicaAtual.id).ilike('nome', `%${nome}%`);
+    if (data?.length === 1) { state.pacienteSelecionado = data[0]; popularFormularioPaciente(data[0]); }
+    else if (data?.length > 1) { /* lista para escolher */ }
+    else { popularFormularioPaciente(null); alert('Paciente não encontrado.'); }
+}
+
+function novoPaciente() { state.pacienteSelecionado = null; limparFormularioCompleto(); renderizarBotoesAutoestima(0); }
+
+async function salvarOuAtualizarPaciente() {
+    const dados = coletarDadosFormularioPaciente();
+    if (!dados.nome) { alert('Nome é obrigatório.'); return; }
+    if (state.pacienteSelecionado) {
+        const { error } = await supabaseClient.from('pacientes')
+            .update(dados).eq('id', state.pacienteSelecionado.id).eq('clinica_id', state.clinicaAtual.id);
+        if (error) return alert('Erro ao atualizar: ' + error.message);
+    } else {
+        const { error } = await supabaseClient.from('pacientes')
+            .insert({ ...dados, clinica_id: state.clinicaAtual.id });
+        if (error) return alert('Erro ao cadastrar: ' + error.message);
     }
+    await carregarPacientes(); await buscarPacientePeloNome(dados.nome);
+}
+
+async function excluirPacienteAtual() {
+    const p = state.pacienteSelecionado; if (!p) { alert('Selecione um paciente.'); return; }
+    const motivo = prompt(`Motivo da EXCLUSÃO de ${p.nome} (obrigatório):`);
+    if (!motivo || !motivo.trim()) { alert('Motivo obrigatório.'); return; }
+    if (!confirm('Excluir o paciente e TODOS os vínculos (prontuário, documentos, agenda)?')) return;
+    await supabaseClient.from('prontuario_evolutivo').delete().eq('paciente_id', p.id).eq('clinica_id', state.clinicaAtual.id);
+    await supabaseClient.from('agendamentos').delete().eq('paciente_id', p.id).eq('clinica_id', state.clinicaAtual.id);
+    await supabaseClient.from('documentos_emitidos').delete().eq('paciente_id', p.id).eq('clinica_id', state.clinicaAtual.id);
+    await supabaseClient.from('pacientes').delete().eq('id', p.id).eq('clinica_id', state.clinicaAtual.id);
+    await registrarAuditoriaProntuario({ paciente_id: p.id, acao: 'excluir', antigo: JSON.stringify(p), motivo });
+    limparFormularioCompleto(); state.pacienteSelecionado = null; await carregarPacientes();
 }
 
 // ============================================================
