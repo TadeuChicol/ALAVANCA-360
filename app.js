@@ -3476,8 +3476,20 @@ function mapearTabelaFinal(linha) {
 
 async function upsertRegistros(tabela, registros, onConflict) {
     if (!registros.length) return;
+    let lista = registros;
+    if (onConflict) {
+        // ON CONFLICT DO UPDATE não aceita a mesma linha 2x no mesmo lote:
+        // remove duplicados pela chave de conflito ANTES do upsert (a última vence)
+        const colunas = onConflict.split(',').map(s => s.trim());
+        const mapa = new Map();
+        for (const r of lista) {
+            const chave = colunas.map(c => String(r[c] ?? '')).join('|');
+            mapa.set(chave, r);
+        }
+        lista = [...mapa.values()];
+    }
     const opts = onConflict ? { onConflict: onConflict } : {};
-    const { data, error } = await supabaseClient.from(tabela).upsert(registros, opts);
+    const { data, error } = await supabaseClient.from(tabela).upsert(lista, opts);
     if (error) throw error;
     return data;
 }
