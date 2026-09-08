@@ -3338,13 +3338,13 @@ async function salvarHubClinicaBasico() {
 // ============================================================
 // Lê direto do Google Sheets (planilha pública) — sem Edge Function
 const MAPA_ABAS_PLANILHA = {
-    'CUSTOS_INSUMOS_UNID':    { tabela: 'insumos',              mapear: (l) => mapearInsumo(l) },
-    'SERVIÇOS_PROCEDIMENTOS': { tabela: 'servicos',             mapear: (l) => mapearServico(l) },
-    'MAP_INSUMOS_SERVICOS':   { tabela: 'mapa_insumos_servicos', mapear: (l) => mapearMapaConsumo(l) },
-    'CUSTOS_FIXOS_VARIAVEIS': { tabela: 'custos_fixos',         mapear: (l) => mapearCustoFixo(l) },
+    'CUSTOS_INSUMOS_UNID':    { tabela: 'insumos',              onConflict: 'clinica_id,codigo_externo', mapear: (l) => mapearInsumo(l) },
+    'SERVIÇOS_PROCEDIMENTOS': { tabela: 'servicos',             onConflict: 'clinica_id,codigo_externo', mapear: (l) => mapearServico(l) },
+    'MAP_INSUMOS_SERVICOS':   { tabela: 'mapa_insumos_servicos', mapear: (l) => mapearMapaConsumo(l) },   // SEM onConflict
+    'CUSTOS_FIXOS_VARIAVEIS': { tabela: 'custos_fixos',         mapear: (l) => mapearCustoFixo(l) },       // SEM onConflict
     'CONFIG_CONVÊNIO':        { tabela: 'config_precificacao',  mapear: (l) => mapearConfig(l, 'convenio') },
     'CONFIG_PARTICULAR':      { tabela: 'config_precificacao',  mapear: (l) => mapearConfig(l, 'particular') },
-    'TABELA_FINAL':           { tabela: 'servicos',             mapear: (l) => mapearTabelaFinal(l) }
+    'TABELA_FINAL':           { tabela: 'servicos',             onConflict: 'clinica_id,codigo_externo', mapear: (l) => mapearTabelaFinal(l) }
 };
 
 async function sincronizarTodasAbasPlanilha() {
@@ -3370,7 +3370,7 @@ async function sincronizarTodasAbasPlanilha() {
                         .delete().eq('clinica_id', state.clinicaAtual.id).eq('modalidade', unico[0].modalidade);
                     await supabaseClient.from('config_precificacao').insert(unico);
                 } else {
-                    await upsertRegistros(config.tabela, registros);
+                    await upsertRegistros(config.tabela, registros, config.onConflict);
                 }
             }
             porAba[aba] = registros.length;
@@ -3474,10 +3474,10 @@ function mapearTabelaFinal(linha) {
         preco_convenio: num(linha['Preço -CONVÊNIO (IDEAL)']), preco_particular: num(linha['PARTICULAR']) };
 }
 
-async function upsertRegistros(tabela, registros) {
+async function upsertRegistros(tabela, registros, onConflict) {
     if (!registros.length) return;
-    const { data, error } = await supabaseClient.from(tabela)
-        .upsert(registros, { onConflict: 'codigo_externo' });
+    const opts = onConflict ? { onConflict: onConflict } : {};
+    const { data, error } = await supabaseClient.from(tabela).upsert(registros, opts);
     if (error) throw error;
     return data;
 }
