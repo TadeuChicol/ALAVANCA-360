@@ -1053,10 +1053,11 @@ function coletarDadosFormularioPaciente() {
     const nome = document.getElementById('formNome').value.trim();
     const ltv = parseFloat(document.getElementById('formLtvInput').value) || 0;
 
-    const f1 = parseInt(document.getElementById('idxFotos').value) || 0;
-    const f2 = parseInt(document.getElementById('idxBoca').value) || 0;
-    const f3 = parseInt(document.getElementById('idxRepresenta').value) || 0;
-    const f4 = parseInt(document.getElementById('idxAutoestima').value) || 0;
+    const valIdx = (id) => { const el = document.getElementById(id); return el ? parseInt(el.value) || 0 : 0; };
+    const f1 = valIdx('idxFotos');
+    const f2 = valIdx('idxBoca');
+    const f3 = valIdx('idxRepresenta');
+    const f4 = valIdx('pacienteAutoestima') || valIdx('idxAutoestima');
     const scoreReconexao = f1 + f2 + f3 + f4;
 
     let opportunity = 30 + (ltv > 5000 ? 20 : 0) + (scoreReconexao > 15 ? 30 : 0);
@@ -1162,10 +1163,13 @@ function prepararEdicaoM5(id) {
     document.getElementById('formQueixa').value = p.queixa || 'vergonha ao sorrir';
     document.getElementById('formObjetivo').value = p.objetivo || 'voltar a sorrir';
     document.getElementById('formCicloRelacionamento').value = p.ciclo_relacionamento || 'Novo';
-    document.getElementById('idxFotos').value = p.idx_fotos || 0;
-    document.getElementById('idxBoca').value = p.idx_boca || 0;
-    document.getElementById('idxRepresenta').value = p.idx_representa || 0;
-    document.getElementById('idxAutoestima').value = p.autoestima_score || p.idx_autoestima || 0;
+    
+    const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v ?? 0; };
+    setVal('idxFotos', p.idx_fotos || 0);
+    setVal('idxBoca', p.idx_boca || 0);
+    setVal('idxRepresenta', p.idx_representa || 0);
+    setVal('idxAutoestima', p.autoestima_score || p.idx_autoestima || 0);
+    setVal('pacienteAutoestima', p.autoestima_score || p.idx_autoestima || 0);
     document.getElementById('lblTituloFormM5').textContent = 'Editando Cadastro de: ' + p.nome;
     document.getElementById('btnCancelarEdicao').classList.remove('hidden');
     window.scrollTo({ top: 0, behavior: 'smooth' });
