@@ -1088,6 +1088,7 @@ function coletarDadosFormularioPaciente() {
         queixa_principal: document.getElementById('formQueixa').value,
         objetivo: document.getElementById('formObjetivo').value,
         ciclo_relacionamento: document.getElementById('formCicloRelacionamento').value,
+        comparecimento: document.getElementById('formScoreComparecer').value,
         autoestima_score: f4,
         idx_fotos: f1, idx_boca: f2, idx_representa: f3, idx_autoestima: f4,
         score_reconexao: scoreReconexao,
@@ -1149,7 +1150,7 @@ function prepararEdicaoM5(id) {
     document.getElementById('formRenda').value = p.renda || '';
     document.getElementById('formModalidade').value = p.modalidade || 'Particular';
     document.getElementById('formMomentoVida').value = p.momento_vida || 'Mulher 35+';
-    document.getElementById('formScoreComparecer').value = p.comparecimento_score || 'Comparece sempre';
+    document.getElementById('formScoreComparecer').value = p.comparecimento || 'Comparece sempre';
     document.getElementById('formScoreWhats').value = p.engajamento_whatsapp || 'Responde WhatsApp';
     document.getElementById('formScoreDecisao').value = p.perfil_decisao || 'Decide rápido';
     document.getElementById('formScoreConfianca').value = p.adesao || 'Alta Adesão';
@@ -1223,7 +1224,7 @@ function filtrarProntuario() {
     const box = document.getElementById('containerFichaPaciente');
     if (busca.length < 3) {
         box.classList.add('hidden');
-        limparEPararEdicao();          // limpa o formulário de cima (mata o dado fantasma)
+        limparEPararEdicao();                    // limpa o formulário de cima (mata o fantasma)
         return;
     }
     const match = state.pacientes.find(p => (p.nome || '').toLowerCase().includes(busca));
@@ -1232,10 +1233,9 @@ function filtrarProntuario() {
         limparEPararEdicao();
         return;
     }
-    // 1) POPULA o formulário superior com TODOS os dados da paciente (fonte de verdade)
+    // 1) Preenche o formulário superior com TODOS os dados da paciente
     prepararEdicaoM5(match.id);
-
-    // 2) CONSOLIDA na ficha do meio
+    // 2) Mostra a ficha consolidada
     box.classList.remove('hidden');
     document.getElementById('lblNomePacienteFicha').textContent = match.nome;
     document.getElementById('lblFichaMomento').textContent = match.momento_vida || '--';
@@ -1243,14 +1243,13 @@ function filtrarProntuario() {
     document.getElementById('vLocal').textContent = `${match.bairro || '-'}, ${match.cidade || '-'}`;
     document.getElementById('vProf').textContent = `${match.profissao || '-'} (${formatarMoeda(match.renda)})`;
     document.getElementById('vPlano').textContent = match.modalidade || '-';
-    document.getElementById('vComp').textContent = match.comparecimento_score || match.comparecimento || '-';
-    document.getElementById('vEng').textContent = `${match.engajamento_whatsapp || '-'} / ${match.perfil_decisao || match.score_decisao || '-'}`;
+    document.getElementById('vComp').textContent = match.comparecimento || '-';
+    document.getElementById('vEng').textContent = `${match.engajamento_whatsapp || '-'} / ${match.perfil_decisao || '-'}`;
     document.getElementById('btnEditarFichaAtiva').onclick = function () {
         prepararEdicaoM5(match.id);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
-
-    // 3) CARREGA o prontuário individualizado
+    // 3) Renderiza o prontuário individualizado
     renderizarLinhasProntuario(match.id);
 }
 
@@ -1312,21 +1311,35 @@ async function adicionarLinhaProntuarioManual() {
     document.getElementById('pntTratado').value = '';
     document.getElementById('pntReceita').value = '';
     renderizarLinhasProntuario(match.id);
+
+        await registrarAuditoriaM5({
+        entidade: 'prontuario', registro_id: novaLinha.id,
+        paciente_nome: match.nome, acao: 'criar',
+        motivo: 'Inclusão de nova evolução/consulta no prontuário',
+        detalhes: novaLinha
+    });
 }
 
 async function editarLinhaProntuario(linhaId, pacienteId) {
     const linha = state.prontuario.find(l => l.id === linhaId);
     if (!linha) return;
-
     const novoTratado = prompt('Editar Tratamento Realizado:', linha.tratamento_realizado);
     if (novoTratado === null) return;
     const novaReceita = prompt('Editar Receituário:', linha.receituario);
-
+    const motivo = prompt('MOTIVO OBRIGATÓRIO desta alteração:');
+    if (!motivo || !motivo.trim()) { alert('Alteração cancelada: motivo é obrigatório.'); return; }
     const atualizado = await apiUpdate('prontuario_evolutivo', linhaId, {
         tratamento_realizado: novoTratado,
         receituario: novaReceita
     });
-
+    const paciente = state.pacientes.find(p => p.id === pacienteId) || {};
+    await registrarAuditoriaM5({
+        entidade: 'prontuario', registro_id: linhaId,
+        paciente_nome: paciente.nome || null, acao: 'editar',
+        campo_alterado: 'tratamento_realizado/receituario',
+        valor_antigo: linha.tratamento_realizado, valor_novo: novoTratado,
+        motivo, detalhes: linha
+    });
     const idx = state.prontuario.findIndex(l => l.id === linhaId);
     if (idx >= 0) state.prontuario[idx] = atualizado;
     renderizarLinhasProntuario(pacienteId);
@@ -1336,79 +1349,24 @@ async function removerLinhaProntuario(linhaId, pacienteId) {
     const linha = state.prontuario.find(l => l.id === linhaId);
     if (!linha) return;
     if (linha.travado) { alert('Registro oficial emitido (M7): não pode ser excluído.'); return; }
-    const motivo = prompt('MOTIVO OBRIGATÓRIO para excluir esta evolução/consulta do prontuário:');
+    const motivo = prompt('MOTIVO OBRIGATÓRIO para excluir esta evolução do prontuário:');
     if (!motivo || !motivo.trim()) { alert('Exclusão cancelada: motivo é obrigatório.'); return; }
     if (!confirm('Confirmar exclusão deste registro do prontuário?')) return;
     try {
         const paciente = state.pacientes.find(p => p.id === pacienteId) || {};
-        await registrarAuditoriaM5({ entidade: 'prontuario', registro_id: linhaId, paciente_nome: paciente.nome || null, acao: 'excluir', motivo, detalhes: linha });
+        await registrarAuditoriaM5({
+            entidade: 'prontuario', registro_id: linhaId,
+            paciente_nome: paciente.nome || null, acao: 'excluir',
+            motivo, detalhes: linha
+        });
         await apiDelete('prontuario_evolutivo', linhaId);
         state.prontuario = state.prontuario.filter(l => l.id !== linhaId);
         renderizarLinhasProntuario(pacienteId);
         alert('Evolução excluída. Justificativa registrada na auditoria.');
     } catch (e) {
         console.error(e);
-        alert('Não foi possível remover. Rode as políticas SQL da Parte 1 (RLS) e tente de novo. Erro: ' + e.message);
+        alert('Não foi possível remover. Verifique se as políticas RLS do prontuário permitem DELETE. Erro: ' + e.message);
     }
-}
-
-function popularFormularioPaciente(p) {
-    limparFormularioCompleto();               // ZERA TUDO primeiro (mata o "fantasma")
-    if (!p) { renderizarBotoesAutoestima(0); return; }
-    const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val ?? ''; };
-    set('pacNome', p.nome); set('pacNascimento', p.data_nascimento); set('pacSexo', p.sexo);
-    set('pacEstadoCivil', p.estado_civil); set('pacTelefone', p.telefone); set('pacEmail', p.email);
-    set('pacEndereco', p.endereco); set('pacCidade', p.cidade); set('pacBairro', p.bairro);
-    set('pacCep', p.cep); set('pacProfissao', p.profissao); set('pacRenda', p.renda);
-    set('pacModalidade', p.modalidade); set('pacMomentoVida', p.momento_vida);
-    set('pacCategoria', p.categoria_principal); set('pacQueixa', p.queixa_principal);
-    set('pacObjetivo', p.objetivo); set('pacObservacoes', p.observacoes);
-    set('pacCiclo', p.ciclo_relacionamento); set('pacWhatsapp', p.engajamento_whatsapp);
-    set('pacDecisao', p.perfil_decisao); set('pacAdesao', p.adesao);
-    set('pacComparecimento', p.comparecimento_score); set('pacConfianca', p.nivel_confianca);
-    renderizarBotoesAutoestima(p.autoestima_score || 0);   // painel reage ao paciente carregado
-    renderizarFichaPaciente(p);                            // "Localidade / Profissão / Renda / Plano"
-    carregarProntuario(p.id);                              // timeline individualizada
-}
-
-async function buscarPacientePeloNome(nomeDigitado) {
-    const nome = nomeDigitado.trim();
-    if (!nome) { popularFormularioPaciente(null); return; }
-    const { data } = await supabaseClient.from('pacientes')
-        .select('*').eq('clinica_id', state.clinicaAtual.id).ilike('nome', `%${nome}%`);
-    if (data?.length === 1) { state.pacienteSelecionado = data[0]; popularFormularioPaciente(data[0]); }
-    else if (data?.length > 1) { /* lista para escolher */ }
-    else { popularFormularioPaciente(null); alert('Paciente não encontrado.'); }
-}
-
-function novoPaciente() { state.pacienteSelecionado = null; limparFormularioCompleto(); renderizarBotoesAutoestima(0); }
-
-async function salvarOuAtualizarPaciente() {
-    const dados = coletarDadosFormularioPaciente();
-    if (!dados.nome) { alert('Nome é obrigatório.'); return; }
-    if (state.pacienteSelecionado) {
-        const { error } = await supabaseClient.from('pacientes')
-            .update(dados).eq('id', state.pacienteSelecionado.id).eq('clinica_id', state.clinicaAtual.id);
-        if (error) return alert('Erro ao atualizar: ' + error.message);
-    } else {
-        const { error } = await supabaseClient.from('pacientes')
-            .insert({ ...dados, clinica_id: state.clinicaAtual.id });
-        if (error) return alert('Erro ao cadastrar: ' + error.message);
-    }
-    await carregarPacientes(); await buscarPacientePeloNome(dados.nome);
-}
-
-async function excluirPacienteAtual() {
-    const p = state.pacienteSelecionado; if (!p) { alert('Selecione um paciente.'); return; }
-    const motivo = prompt(`Motivo da EXCLUSÃO de ${p.nome} (obrigatório):`);
-    if (!motivo || !motivo.trim()) { alert('Motivo obrigatório.'); return; }
-    if (!confirm('Excluir o paciente e TODOS os vínculos (prontuário, documentos, agenda)?')) return;
-    await supabaseClient.from('prontuario_evolutivo').delete().eq('paciente_id', p.id).eq('clinica_id', state.clinicaAtual.id);
-    await supabaseClient.from('agendamentos').delete().eq('paciente_id', p.id).eq('clinica_id', state.clinicaAtual.id);
-    await supabaseClient.from('documentos_emitidos').delete().eq('paciente_id', p.id).eq('clinica_id', state.clinicaAtual.id);
-    await supabaseClient.from('pacientes').delete().eq('id', p.id).eq('clinica_id', state.clinicaAtual.id);
-    await registrarAuditoriaProntuario({ paciente_id: p.id, acao: 'excluir', antigo: JSON.stringify(p), motivo });
-    limparFormularioCompleto(); state.pacienteSelecionado = null; await carregarPacientes();
 }
 
 async function registrarAuditoriaM5({ entidade, registro_id, paciente_nome, acao, motivo, detalhes }) {
