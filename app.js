@@ -1100,31 +1100,30 @@ function coletarDadosFormularioPaciente() {
 async function cadastrarOuAtualizarPaciente() {
     const idAtual = document.getElementById('formIndexEditando').value;
     const dados = coletarDadosFormularioPaciente();
-
     if (!dados.nome) { alert('Nome é obrigatório.'); return; }
-
     const btn = document.getElementById('btnSalvarM5');
     const textoOriginal = btn.textContent;
     btn.textContent = 'Salvando...';
     btn.disabled = true;
-
     try {
         if (idAtual && idAtual !== '-1') {
             const atualizado = await apiUpdate('pacientes', idAtual, dados);
             const idx = state.pacientes.findIndex(p => p.id === idAtual);
             if (idx >= 0) state.pacientes[idx] = atualizado;
             alert('Dados atualizados com sucesso.');
+            await registrarAuditoriaM5({ entidade: 'paciente', registro_id: idAtual, paciente_nome: dados.nome, acao: 'editar', motivo: 'Atualização de cadastro no M5', detalhes: dados });
         } else {
             const criado = await apiCreate('pacientes', dados);
             state.pacientes.push(criado);
             alert('Paciente cadastrado com sucesso.');
+            await registrarAuditoriaM5({ entidade: 'paciente', registro_id: criado.id, paciente_nome: dados.nome, acao: 'criar', motivo: 'Novo cadastro no M5', detalhes: dados });
+            document.getElementById('matchCodeProntuario').value = dados.nome; // já abre a consolidação do novo
         }
-
         limparEPararEdicao();
-        calcularMetricasGerais();
-        calcularMetricasTratamentos();
-        calcularFunilComercial();
-        rebuildSelects();
+        calcularMetricasGerais(); calcularMetricasTratamentos(); calcularFunilComercial(); rebuildSelects();
+        // Refresca a consolidação (ficha + prontuário) se houver nome no search
+        const busca = (document.getElementById('matchCodeProntuario').value || '').trim();
+        if (busca.length >= 3) filtrarProntuario();
     } catch (e) {
         console.error(e);
         alert('Erro ao salvar paciente. Tente novamente.');
@@ -1182,15 +1181,63 @@ function limparEPararEdicao() {
     document.getElementById('btnCancelarEdicao').classList.add('hidden');
 }
 
+function novoPacienteM5() {
+    limparEPararEdicao();
+    document.getElementById('matchCodeProntuario').value = '';
+    const box = document.getElementById('containerFichaPaciente');
+    if (box) box.classList.add('hidden');
+    document.getElementById('tbodyHistoricoProntuario').innerHTML = '';
+    const nome = document.getElementById('formNome');
+    if (nome) nome.focus();
+}
+
+async function excluirPacienteM5() {
+    const idAtual = document.getElementById('formIndexEditando').value;
+    const match = (idAtual && idAtual !== '-1') ? state.pacientes.find(p => p.id === idAtual) : null;
+    if (!match) { alert('Primeiro busque/carregue a paciente que deseja excluir.'); return; }
+    const motivo = prompt(`MOTIVO OBRIGATÓRIO da exclusão de "${match.nome}":`);
+    if (!motivo || !motivo.trim()) { alert('Exclusão cancelada: motivo é obrigatório.'); return; }
+    if (!confirm(`Excluir ${match.nome} e TODO o histórico vinculado (prontuário)?\nMotivo registrado: ${motivo}`)) return;
+    try {
+        // 1) Audita ANTES de apagar (o snapshot fica salvo, permitindo reativar depois)
+        await registrarAuditoriaM5({ entidade: 'paciente', registro_id: match.id, paciente_nome: match.nome, acao: 'excluir', motivo, detalhes: match });
+        // 2) Apaga histórico do prontuário
+        await supabaseClient.from('prontuario_evolutivo').delete().eq('paciente_id', match.id).eq('clinica_id', clinicaId());
+        // 3) Apaga a paciente
+        await supabaseClient.from('pacientes').delete().eq('id', match.id).eq('clinica_id', clinicaId());
+        state.pacientes = state.pacientes.filter(p => p.id !== match.id);
+        state.prontuario = state.prontuario.filter(x => x.paciente_id !== match.id);
+        limparEPararEdicao();
+        document.getElementById('matchCodeProntuario').value = '';
+        const box = document.getElementById('containerFichaPaciente');
+        if (box) box.classList.add('hidden');
+        document.getElementById('tbodyHistoricoProntuario').innerHTML = '';
+        rebuildSelects(); calcularMetricasGerais(); calcularMetricasTratamentos(); calcularFunilComercial();
+        alert(`Cadastro de ${match.nome} excluído. Justificativa registrada na auditoria (m5_auditoria).`);
+    } catch (e) {
+        console.error(e);
+        alert('Erro ao excluir: ' + e.message);
+    }
+}
+
 function filtrarProntuario() {
     const busca = (document.getElementById('matchCodeProntuario').value || '').toLowerCase().trim();
     const box = document.getElementById('containerFichaPaciente');
-
-    if (busca.length < 3) { box.classList.add('hidden'); return; }
-
+    if (busca.length < 3) {
+        box.classList.add('hidden');
+        limparEPararEdicao();          // limpa o formulário de cima (mata o dado fantasma)
+        return;
+    }
     const match = state.pacientes.find(p => (p.nome || '').toLowerCase().includes(busca));
-    if (!match) { box.classList.add('hidden'); return; }
+    if (!match) {
+        box.classList.add('hidden');
+        limparEPararEdicao();
+        return;
+    }
+    // 1) POPULA o formulário superior com TODOS os dados da paciente (fonte de verdade)
+    prepararEdicaoM5(match.id);
 
+    // 2) CONSOLIDA na ficha do meio
     box.classList.remove('hidden');
     document.getElementById('lblNomePacienteFicha').textContent = match.nome;
     document.getElementById('lblFichaMomento').textContent = match.momento_vida || '--';
@@ -1198,10 +1245,14 @@ function filtrarProntuario() {
     document.getElementById('vLocal').textContent = `${match.bairro || '-'}, ${match.cidade || '-'}`;
     document.getElementById('vProf').textContent = `${match.profissao || '-'} (${formatarMoeda(match.renda)})`;
     document.getElementById('vPlano').textContent = match.modalidade || '-';
-    document.getElementById('vComp').textContent = match.comparecimento || '-';
-    document.getElementById('vEng').textContent = `${match.engajamento_whatsapp || '-'} / ${match.score_decisao || '-'}`;
+    document.getElementById('vComp').textContent = match.comparecimento_score || match.comparecimento || '-';
+    document.getElementById('vEng').textContent = `${match.engajamento_whatsapp || '-'} / ${match.perfil_decisao || match.score_decisao || '-'}`;
+    document.getElementById('btnEditarFichaAtiva').onclick = function () {
+        prepararEdicaoM5(match.id);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
 
-    document.getElementById('btnEditarFichaAtiva').onclick = function () { prepararEdicaoM5(match.id); };
+    // 3) CARREGA o prontuário individualizado
     renderizarLinhasProntuario(match.id);
 }
 
@@ -1283,16 +1334,24 @@ async function editarLinhaProntuario(linhaId, pacienteId) {
     renderizarLinhasProntuario(pacienteId);
 }
 
-async function removerLinhaProntuario(prontuarioId) {
-    const linha = state.prontuarioAtual.find(l => l.id === prontuarioId);
-    const motivo = prompt('Motivo da EXCLUSÃO deste registro (obrigatório):');
-    if (!motivo || !motivo.trim()) { alert('Motivo obrigatório para excluir.'); return; }
-    const { error } = await supabaseClient.from('prontuario_evolutivo')
-        .delete().eq('id', prontuarioId).eq('clinica_id', state.clinicaAtual.id);
-    if (!error) {
-        await registrarAuditoriaProntuario({ prontuario_id: prontuarioId, paciente_id: state.pacienteSelecionado.id, acao: 'excluir', antigo: JSON.stringify(linha || {}), motivo });
-        await carregarProntuario(state.pacienteSelecionado.id);
-    } else alert('Erro ao excluir: ' + error.message);
+async function removerLinhaProntuario(linhaId, pacienteId) {
+    const linha = state.prontuario.find(l => l.id === linhaId);
+    if (!linha) return;
+    if (linha.travado) { alert('Registro oficial emitido (M7): não pode ser excluído.'); return; }
+    const motivo = prompt('MOTIVO OBRIGATÓRIO para excluir esta evolução/consulta do prontuário:');
+    if (!motivo || !motivo.trim()) { alert('Exclusão cancelada: motivo é obrigatório.'); return; }
+    if (!confirm('Confirmar exclusão deste registro do prontuário?')) return;
+    try {
+        const paciente = state.pacientes.find(p => p.id === pacienteId) || {};
+        await registrarAuditoriaM5({ entidade: 'prontuario', registro_id: linhaId, paciente_nome: paciente.nome || null, acao: 'excluir', motivo, detalhes: linha });
+        await apiDelete('prontuario_evolutivo', linhaId);
+        state.prontuario = state.prontuario.filter(l => l.id !== linhaId);
+        renderizarLinhasProntuario(pacienteId);
+        alert('Evolução excluída. Justificativa registrada na auditoria.');
+    } catch (e) {
+        console.error(e);
+        alert('Não foi possível remover. Rode as políticas SQL da Parte 1 (RLS) e tente de novo. Erro: ' + e.message);
+    }
 }
 
 function popularFormularioPaciente(p) {
@@ -1352,6 +1411,24 @@ async function excluirPacienteAtual() {
     await supabaseClient.from('pacientes').delete().eq('id', p.id).eq('clinica_id', state.clinicaAtual.id);
     await registrarAuditoriaProntuario({ paciente_id: p.id, acao: 'excluir', antigo: JSON.stringify(p), motivo });
     limparFormularioCompleto(); state.pacienteSelecionado = null; await carregarPacientes();
+}
+
+async function registrarAuditoriaM5({ entidade, registro_id, paciente_nome, acao, motivo, detalhes }) {
+    try {
+        await supabaseClient.from('m5_auditoria').insert({
+            clinica_id: clinicaId(),
+            entidade,
+            registro_id,
+            paciente_nome: paciente_nome || null,
+            acao,
+            motivo,
+            detalhes: detalhes || null,
+            usuario_id: state.usuario?.id || null,
+            usuario_nome: state.usuario?.nome || state.email || null
+        });
+    } catch (e) {
+        console.error('[Auditoria M5]', e.message);
+    }
 }
 
 // ============================================================
