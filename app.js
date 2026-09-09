@@ -1188,7 +1188,7 @@ function novoPacienteM5() {
     limparEPararEdicao();
     document.getElementById('matchCodeProntuario').value = '';
     const box = document.getElementById('containerFichaPaciente');
-    if (box) box.classList.add('hidden');
+    if (box) box.classList.remove('hidden');
     document.getElementById('tbodyHistoricoProntuario').innerHTML = '';
     const nome = document.getElementById('formNome');
     if (nome) nome.focus();
@@ -1213,7 +1213,7 @@ async function excluirPacienteM5() {
         limparEPararEdicao();
         document.getElementById('matchCodeProntuario').value = '';
         const box = document.getElementById('containerFichaPaciente');
-        if (box) box.classList.add('hidden');
+        if (box) box.classList.remove('hidden');
         document.getElementById('tbodyHistoricoProntuario').innerHTML = '';
         rebuildSelects(); calcularMetricasGerais(); calcularMetricasTratamentos(); calcularFunilComercial();
         alert(`Cadastro de ${match.nome} excluído. Justificativa registrada na auditoria (m5_auditoria).`);
@@ -1227,13 +1227,13 @@ function filtrarProntuario() {
     const busca = (document.getElementById('matchCodeProntuario').value || '').toLowerCase().trim();
     const box = document.getElementById('containerFichaPaciente');
     if (busca.length < 3) {
-        box.classList.add('hidden');
-        limparEPararEdicao();                    // limpa o formulário de cima (mata o fantasma)
-        return;
+    box.classList.remove('hidden');
+    limparEPararEdicao();                    // limpa o formulário de cima (mata o fantasma)
+    return;
     }
     const match = state.pacientes.find(p => (p.nome || '').toLowerCase().includes(busca));
     if (!match) {
-        box.classList.add('hidden');
+        box.classList.remove('hidden');
         limparEPararEdicao();
         return;
     }
