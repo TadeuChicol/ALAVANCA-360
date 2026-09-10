@@ -551,7 +551,14 @@ async function carregarProfissionais() {
 }
 
 async function carregarPacientes() {
-    state.pacientes = await apiList('pacientes', { clinica_id: clinicaId(), status: 'ativo' });
+    try {
+        const todos = await apiList('pacientes', { clinica_id: clinicaId() });
+        state.pacientes = (todos || []).filter(p => !p.status || p.status === 'ativo');
+        console.log('[M5] Pacientes carregados:', state.pacientes.length);
+    } catch (e) {
+        console.error('[M5] Falha ao carregar pacientes:', e);
+        state.pacientes = state.pacientes || [];
+    }
 }
 
 async function carregarAgendamentos() {
@@ -1119,9 +1126,10 @@ async function cadastrarOuAtualizarPaciente() {
             await registrarAuditoriaM5({ entidade: 'paciente', registro_id: criado.id, paciente_nome: dados.nome, acao: 'criar', motivo: 'Novo cadastro no M5', detalhes: dados });
             document.getElementById('matchCodeProntuario').value = dados.nome; // já abre a consolidação do novo
         }
-        limparEPararEdicao();
+        const idFinal = (idAtual && idAtual !== '-1') ? idAtual : (typeof criado !== 'undefined' ? criado.id : null);
+        await carregarPacientes();
+        if (idFinal) prepararEdicaoM5(idFinal);
         calcularMetricasGerais(); calcularMetricasTratamentos(); calcularFunilComercial(); rebuildSelects();
-        // Refresca a consolidação (ficha + prontuário) se houver nome no search
         const busca = (document.getElementById('matchCodeProntuario').value || '').trim();
         if (busca.length >= 3) filtrarProntuario();
     } catch (e) {
@@ -1173,6 +1181,8 @@ function prepararEdicaoM5(id) {
     document.getElementById('lblTituloFormM5').textContent = 'Editando Cadastro de: ' + p.nome;
     document.getElementById('btnCancelarEdicao').classList.remove('hidden');
     window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    selecionarNotaAutoestima(p.autoestima_score || p.idx_autoestima || 0);
 }
 
 function limparEPararEdicao() {
@@ -1265,7 +1275,7 @@ function filtrarProntuario() {
     limparEPararEdicao();                    // limpa o formulário de cima (mata o fantasma)
     return;
     }
-    const match = state.pacientes.find(p => (p.nome || '').toLowerCase().includes(busca));
+    const match = (state.pacientes || []).find(p => (p?.nome || '').toLowerCase().includes(busca));
     if (!match) {
         box.classList.remove('hidden');
         limparEPararEdicao();
@@ -1325,7 +1335,7 @@ function renderizarLinhasProntuario(pacienteId) {
 
 async function adicionarLinhaProntuarioManual() {
     const busca = (document.getElementById('matchCodeProntuario').value || '').toLowerCase().trim();
-    const match = state.pacientes.find(p => (p.nome || '').toLowerCase().includes(busca));
+    const match = (state.pacientes || []).find(p => (p?.nome || '').toLowerCase().includes(busca));
     if (!match) return;
 
     const data = document.getElementById('pntData').value || new Date().toLocaleDateString('pt-BR');
@@ -1395,26 +1405,38 @@ async function editarLinhaProntuario(linhaId, pacienteId) {
 }
 
 async function removerLinhaProntuario(linhaId, pacienteId) {
-    const linha = state.prontuario.find(l => l.id === linhaId);
-    if (!linha) return;
+    const linha = (state.prontuario || []).find(l => l.id === linhaId);
+    if (!linha) { alert('Registro não encontrado no prontuário (recarregue a página).'); return; }
     if (linha.travado) { alert('Registro oficial emitido (M7): não pode ser excluído.'); return; }
+
     const motivo = prompt('MOTIVO OBRIGATÓRIO para excluir esta evolução do prontuário:');
     if (!motivo || !motivo.trim()) { alert('Exclusão cancelada: motivo é obrigatório.'); return; }
+    const responsavel = (state.usuario?.nome || state.email || '').trim()
+        || prompt('Quem está realizando esta exclusão? (obrigatório):');
+    if (!responsavel || !responsavel.trim()) { alert('Exclusão cancelada: responsável é obrigatório.'); return; }
     if (!confirm('Confirmar exclusão deste registro do prontuário?')) return;
+
     try {
-        const paciente = state.pacientes.find(p => p.id === pacienteId) || {};
+        const cid = clinicaId() || state.clinicaAtual?.id || null;
+
+        // 1) Auditoria (não bloqueia se falhar)
         await registrarAuditoriaM5({
             entidade: 'prontuario', registro_id: linhaId,
-            paciente_nome: paciente.nome || null, acao: 'excluir',
-            motivo, detalhes: linha
+            paciente_nome: (state.pacientes || []).find(p => p.id === pacienteId)?.nome || null,
+            acao: 'excluir', motivo, detalhes: linha, responsavel
         });
-        await apiDelete('prontuario_evolutivo', linhaId);
-        state.prontuario = state.prontuario.filter(l => l.id !== linhaId);
+
+        // 2) DELETE direto, com erro real exposto
+        let q = supabaseClient.from('prontuario_evolutivo').delete().eq('id', linhaId);
+        if (cid) q = q.eq('clinica_id', cid);
+        const { error } = await q;
+        if (error) { alert('ERRO REAL DO BANCO:\nCódigo: ' + error.code + '\nMensagem: ' + error.message + '\nDetalhe: ' + (error.details || '-')); return; }
+
+        state.prontuario = (state.prontuario || []).filter(l => l.id !== linhaId);
         renderizarLinhasProntuario(pacienteId);
         alert('Evolução excluída. Justificativa registrada na auditoria.');
     } catch (e) {
-        console.error(e);
-        alert('Não foi possível remover. Verifique se as políticas RLS do prontuário permitem DELETE. Erro: ' + e.message);
+        alert('Erro ao excluir: ' + (e?.message || JSON.stringify(e)));
     }
 }
 
@@ -1434,6 +1456,18 @@ async function registrarAuditoriaM5({ entidade, registro_id, paciente_nome, acao
     } catch (e) {
         console.error('[Auditoria M5]', e.message);
     }
+}
+
+function selecionarNotaAutoestima(nota) {
+    const input = document.getElementById('pacienteAutoestima');
+    if (input) input.value = nota;
+    document.querySelectorAll('.btn-nota-autoestima').forEach(btn => {
+        const ativo = parseInt(btn.dataset.nota) === nota;
+        btn.classList.toggle('bg-emerald-500', ativo);
+        btn.classList.toggle('text-slate-950', ativo);
+        btn.classList.toggle('bg-slate-800', !ativo);
+        btn.classList.toggle('text-slate-300', !ativo);
+    });
 }
 
 // ============================================================
