@@ -1377,16 +1377,17 @@ async function editarLinhaProntuario(linhaId, pacienteId) {
         receituario: novaReceita
     });
     const paciente = state.pacientes.find(p => p.id === pacienteId) || {};
-    await registrarAuditoriaM5({
     const responsavel = (state.usuario?.nome || state.email || '').trim()
         || prompt('Quem está realizando esta alteração? (obrigatório):');
+    await registrarAuditoriaM5({
         entidade: 'prontuario', registro_id: linhaId,
         paciente_nome: paciente.nome || null, acao: 'editar',
         campo_alterado: 'tratamento_realizado/receituario',
         valor_antigo: JSON.stringify({ tratamento: linha.tratamento_realizado, receituario: linha.receituario }),
         valor_novo: JSON.stringify({ tratamento: novoTratado, receituario: novaReceita }),
         motivo: motivo,
-        detalhes: 'Edição de linha de prontuário'
+        detalhes: 'Edição de linha de prontuário',
+        responsavel: responsavel
     });
     const idx = state.prontuario.findIndex(l => l.id === linhaId);
     if (idx >= 0) state.prontuario[idx] = atualizado;
