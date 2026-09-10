@@ -551,7 +551,7 @@ async function carregarProfissionais() {
 }
 
 async function carregarPacientes() {
-    state.pacientes = await apiList('pacientes');
+    state.pacientes = await apiList('pacientes', { clinica_id: clinicaId(), status: 'ativo' });
 }
 
 async function carregarAgendamentos() {
@@ -1198,29 +1198,63 @@ async function excluirPacienteM5() {
     const idAtual = document.getElementById('formIndexEditando').value;
     const match = (idAtual && idAtual !== '-1') ? state.pacientes.find(p => p.id === idAtual) : null;
     if (!match) { alert('Primeiro busque/carregue a paciente que deseja excluir.'); return; }
-    const motivo = prompt(`MOTIVO OBRIGATÓRIO da exclusão de "${match.nome}":`);
-    if (!motivo || !motivo.trim()) { alert('Exclusão cancelada: motivo é obrigatório.'); return; }
-    if (!confirm(`Excluir ${match.nome} e TODO o histórico vinculado (prontuário)?\nMotivo registrado: ${motivo}`)) return;
+
+    // QUEM: identifica o responsável (do usuário logado ou pergunta)
+    const responsavel = (state.usuario?.nome || state.email || '').trim();
+    const quem = responsavel || prompt('Identifique-se (nome de quem está realizando a exclusão):');
+    if (!quem || !quem.trim()) { alert('Exclusão cancelada: identifique-se (obrigatório).'); return; }
+
+    // POR QUÊ: justificativa obrigatória
+    const motivo = prompt(`MOTIVO OBRIGATÓRIO para ARQUIVAR o cadastro de "${match.nome}":`);
+    if (!motivo || !motivo.trim()) { alert('Exclusão cancelada: justificativa é obrigatória.'); return; }
+
+    if (!confirm(`Arquivar ${match.nome} (ficará em standby, sem apagar o histórico)?\nResponsável: ${quem}\nMotivo: ${motivo}`)) return;
+
     try {
-        // 1) Audita ANTES de apagar (o snapshot fica salvo, permitindo reativar depois)
-        await registrarAuditoriaM5({ entidade: 'paciente', registro_id: match.id, paciente_nome: match.nome, acao: 'excluir', motivo, detalhes: match });
-        // 2) Apaga histórico do prontuário
-        await supabaseClient.from('prontuario_evolutivo').delete().eq('paciente_id', match.id).eq('clinica_id', clinicaId());
-        // 3) Apaga a paciente
-        await supabaseClient.from('pacientes').delete().eq('id', match.id).eq('clinica_id', clinicaId());
+        // 1) Audita ANTES (snapshot completo fica salvo para reativar depois)
+        await registrarAuditoriaM5({
+            entidade: 'paciente', registro_id: match.id,
+            paciente_nome: match.nome, acao: 'arquivar',
+            motivo, detalhes: match, responsavel: quem
+        });
+        // 2) SOFT DELETE: só muda o status, NÃO apaga
+        await supabaseClient.from('pacientes')
+            .update({ status: 'arquivado' })
+            .eq('id', match.id).eq('clinica_id', clinicaId());
+        // 3) Remove da lista ativa em memória
         state.pacientes = state.pacientes.filter(p => p.id !== match.id);
-        state.prontuario = state.prontuario.filter(x => x.paciente_id !== match.id);
         limparEPararEdicao();
         document.getElementById('matchCodeProntuario').value = '';
         const box = document.getElementById('containerFichaPaciente');
         if (box) box.classList.remove('hidden');
         document.getElementById('tbodyHistoricoProntuario').innerHTML = '';
         rebuildSelects(); calcularMetricasGerais(); calcularMetricasTratamentos(); calcularFunilComercial();
-        alert(`Cadastro de ${match.nome} excluído. Justificativa registrada na auditoria (m5_auditoria).`);
+        alert(`Cadastro de ${match.nome} ARQUIVADO (standby). Justificativa e responsável registrados na auditoria.`);
     } catch (e) {
         console.error(e);
-        alert('Erro ao excluir: ' + e.message);
+        alert('Erro ao arquivar: ' + e.message);
     }
+}
+
+async function reativarPacienteM5(id) {
+    const responsavel = (state.usuario?.nome || state.email || '').trim();
+    const quem = responsavel || prompt('Identifique-se (nome de quem está reativando):');
+    const motivo = prompt('MOTIVO OBRIGATÓRIO para REATIVAR este cadastro:');
+    if (!quem || !quem.trim() || !motivo || !motivo.trim()) {
+        alert('Reativação cancelada: responsável e justificativa são obrigatórios.'); return;
+    }
+    try {
+        await registrarAuditoriaM5({
+            entidade: 'paciente', registro_id: id,
+            paciente_nome: null, acao: 'reativar',
+            motivo, detalhes: { id }, responsavel: quem
+        });
+        await supabaseClient.from('pacientes')
+            .update({ status: 'ativo' })
+            .eq('id', id).eq('clinica_id', clinicaId());
+        await carregarPacientes();
+        alert('Cadastro reativado. O histórico foi preservado.');
+    } catch (e) { console.error(e); alert('Erro ao reativar: ' + e.message); }
 }
 
 function filtrarProntuario() {
@@ -1316,11 +1350,17 @@ async function adicionarLinhaProntuarioManual() {
     document.getElementById('pntReceita').value = '';
     renderizarLinhasProntuario(match.id);
 
-        await registrarAuditoriaM5({
-        entidade: 'prontuario', registro_id: novaLinha.id,
-        paciente_nome: match.nome, acao: 'criar',
-        motivo: 'Inclusão de nova evolução/consulta no prontuário',
-        detalhes: novaLinha
+    await registrarAuditoriaM5({
+        entidade: 'prontuario',
+        registro_id: linhaId,
+        paciente_nome: paciente.nome || null,
+        acao: 'editar',
+        campo_alterado: 'tratamento_realizado/receituario',
+        valor_antigo: JSON.stringify({ tratamento: linha.tratamento_realizado, receituario: linha.receituario }),
+        valor_novo: JSON.stringify({ tratamento: novoTratado, receituario: novaReceita }),
+        motivo: motivo,
+        detalhes: 'Edição de linha de prontuário',
+        responsavel: responsavel
     });
 }
 
@@ -1338,11 +1378,15 @@ async function editarLinhaProntuario(linhaId, pacienteId) {
     });
     const paciente = state.pacientes.find(p => p.id === pacienteId) || {};
     await registrarAuditoriaM5({
+    const responsavel = (state.usuario?.nome || state.email || '').trim()
+        || prompt('Quem está realizando esta alteração? (obrigatório):');
         entidade: 'prontuario', registro_id: linhaId,
         paciente_nome: paciente.nome || null, acao: 'editar',
         campo_alterado: 'tratamento_realizado/receituario',
-        valor_antigo: linha.tratamento_realizado, valor_novo: novoTratado,
-        motivo, detalhes: linha
+        valor_antigo: JSON.stringify({ tratamento: linha.tratamento_realizado, receituario: linha.receituario }),
+        valor_novo: JSON.stringify({ tratamento: novoTratado, receituario: novaReceita }),
+        motivo: motivo,
+        detalhes: 'Edição de linha de prontuário'
     });
     const idx = state.prontuario.findIndex(l => l.id === linhaId);
     if (idx >= 0) state.prontuario[idx] = atualizado;
@@ -1373,7 +1417,7 @@ async function removerLinhaProntuario(linhaId, pacienteId) {
     }
 }
 
-async function registrarAuditoriaM5({ entidade, registro_id, paciente_nome, acao, motivo, detalhes }) {
+async function registrarAuditoriaM5({ entidade, registro_id, paciente_nome, acao, motivo, detalhes, responsavel }) {
     try {
         await supabaseClient.from('m5_auditoria').insert({
             clinica_id: clinicaId(),
@@ -1384,7 +1428,7 @@ async function registrarAuditoriaM5({ entidade, registro_id, paciente_nome, acao
             motivo,
             detalhes: detalhes || null,
             usuario_id: state.usuario?.id || null,
-            usuario_nome: state.usuario?.nome || state.email || null
+            usuario_nome: responsavel || state.usuario?.nome || state.email || null
         });
     } catch (e) {
         console.error('[Auditoria M5]', e.message);
