@@ -1146,7 +1146,7 @@ async function cadastrarOuAtualizarPaciente() {
 }
 
 function prepararEdicaoM5(id) {
-    const p = state.pacientes.find(x => x.id === id);
+    const p = (state.pacientes || []).filter(Boolean).find(x => x?.id === id);
     if (!p) return;
 
     document.getElementById('formIndexEditando').value = p.id;
@@ -1172,7 +1172,7 @@ function prepararEdicaoM5(id) {
     document.getElementById('formRiscos').value = p.riscos || 'Nenhum relevante';
     document.getElementById('formNecessidades').value = p.necessidades_futuras || '';
     document.getElementById('formMotivacao').value = p.motivacao || 'Estética';
-    document.getElementById('formQueixa').value = p.queixa || 'vergonha ao sorrir';
+    document.getElementById('formQueixa').value = p.queixa_principal || p.queixa || 'vergonha ao sorrir';
     document.getElementById('formObjetivo').value = p.objetivo || 'voltar a sorrir';
     document.getElementById('formCicloRelacionamento').value = p.ciclo_relacionamento || 'Novo';
     
@@ -1307,7 +1307,7 @@ function filtrarProntuario() {
 
 function renderizarLinhasProntuario(pacienteId) {
     const tbody = document.getElementById('tbodyHistoricoProntuario');
-    const linhas = state.prontuario
+    const linhas = (state.prontuario || []).filter(Boolean)
         .filter(l => l.paciente_id === pacienteId)
         .sort((a, b) => (a.data_registro || '').localeCompare(b.data_registro || ''));
 
@@ -1339,7 +1339,7 @@ function renderizarLinhasProntuario(pacienteId) {
 
 async function adicionarLinhaProntuarioManual() {
     const busca = (document.getElementById('matchCodeProntuario').value || '').toLowerCase().trim();
-    const match = (state.pacientes || []).find(p => (p?.nome || '').toLowerCase().includes(busca));
+    const match = (state.pacientes || []).filter(Boolean).find(p => (p?.nome || '').toLowerCase().includes(busca));
     if (!match) return;
 
     const data = document.getElementById('pntData').value || new Date().toLocaleDateString('pt-BR');
@@ -1364,17 +1364,14 @@ async function adicionarLinhaProntuarioManual() {
     document.getElementById('pntReceita').value = '';
     renderizarLinhasProntuario(match.id);
 
-    await registrarAuditoriaM5({
+        await registrarAuditoriaM5({
         entidade: 'prontuario',
-        registro_id: linhaId,
-        paciente_nome: paciente.nome || null,
-        acao: 'editar',
-        campo_alterado: 'tratamento_realizado/receituario',
-        valor_antigo: JSON.stringify({ tratamento: linha.tratamento_realizado, receituario: linha.receituario }),
-        valor_novo: JSON.stringify({ tratamento: novoTratado, receituario: novaReceita }),
-        motivo: motivo,
-        detalhes: 'Edição de linha de prontuário',
-        responsavel: responsavel
+        registro_id: novaLinha?.id || null,
+        paciente_nome: match.nome || null,
+        acao: 'criar',
+        detalhes: 'Consulta inserida manualmente: ' + tratado,
+        motivo: 'Inserção manual de evolução no prontuário',
+        responsavel: (state.usuario?.nome || state.email || '').trim()
     });
 }
 
@@ -1472,6 +1469,53 @@ function selecionarNotaAutoestima(nota) {
         btn.classList.toggle('bg-slate-800', !ativo);
         btn.classList.toggle('text-slate-300', !ativo);
     });
+}
+
+async function abrirHistoricoCompleto() {
+    const busca = (document.getElementById('matchCodeProntuario').value || '').toLowerCase().trim();
+    const match = (state.pacientes || []).filter(Boolean).find(p => (p?.nome || '').toLowerCase().includes(busca));
+    if (!match) { alert('Busque um paciente para ver o histórico completo.'); return; }
+    document.getElementById('lblHistoricoNome').textContent = match.nome;
+    document.getElementById('modalHistoricoPaciente').classList.remove('hidden');
+    const tbody = document.getElementById('tbodyHistoricoCompleto');
+    tbody.innerHTML = '<tr><td colspan="6" class="p-3 text-center text-slate-500">Carregando histórico...</td></tr>';
+    try {
+        const { data, error } = await supabaseClient
+            .from('m5_auditoria')
+            .select('*')
+            .eq('clinica_id', clinicaId())
+            .order('created_at', { ascending: false })
+            .limit(200);
+        if (error) { tbody.innerHTML = '<tr><td colspan="6" class="p-3 text-center text-rose-400">Erro: ' + error.message + '</td></tr>'; return; }
+        const nomeLower = (match.nome || '').toLowerCase();
+        const linhas = (data || []).filter(a => a.paciente_nome && a.paciente_nome.toLowerCase() === nomeLower);
+        if (linhas.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="p-3 text-center text-slate-500">Nenhum evento registrado no histórico deste paciente.</td></tr>';
+            return;
+        }
+        const traduz = { criar: '➕ Inserção', editar: '✏️ Edição', excluir: '🗑️ Exclusão', arquivar: '📦 Arquivamento', reativar: '♻️ Reativação' };
+        tbody.innerHTML = linhas.map(a => {
+            const detalhe = a.detalhes ? (typeof a.detalhes === 'string' ? a.detalhes : JSON.stringify(a.detalhes)) : '';
+            const antigoNovo = (a.valor_antigo || a.valor_novo)
+                ? 'Antes: ' + (a.valor_antigo || '-') + ' | Depois: ' + (a.valor_novo || '-')
+                : detalhe;
+            return `<tr class="border-b border-slate-800/60 align-top">
+                <td class="p-2 font-mono text-slate-400">${a.created_at ? new Date(a.created_at).toLocaleString('pt-BR') : '-'}</td>
+                <td class="p-2"><span class="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-200">${traduz[a.acao] || a.acao}</span></td>
+                <td class="p-2 text-slate-400">${a.entidade || '-'}</td>
+                <td class="p-2 text-slate-200">${a.usuario_nome || '-'}</td>
+                <td class="p-2 italic text-slate-400">${a.motivo || '-'}</td>
+                <td class="p-2 text-slate-300">${antigoNovo}</td>
+            </tr>`;
+        }).join('');
+    } catch (e) {
+        tbody.innerHTML = '<tr><td colspan="6" class="p-3 text-center text-rose-400">Erro ao carregar: ' + (e.message || e) + '</td></tr>';
+    }
+}
+
+function fecharHistorico() {
+    const m = document.getElementById('modalHistoricoPaciente');
+    if (m) m.classList.add('hidden');
 }
 
 // ============================================================
@@ -3996,7 +4040,7 @@ function dispararDocumentoCliente(meio) {
         window.open(`https://wa.me/${numClean}?text=${msg}`, '_blank');
     } else if (meio === 'email') {
         const emailPac = paciente?.email || prompt('Digite o e-mail do cliente:');
-        if (!emailPac) return;
+        if (!emailPac) return
         const assunto = encodeURIComponent(`${docNome} - ${nomeClinica}`);
         const corpo = encodeURIComponent(`Olá ${pacName},\n\nAnexo/Segue a via do seu ${docNome} emitido por ${nomeClinica}.\n\nAtenciosamente,\n${nomeClinica}\n${enderecoClinica}`);
         window.open(`mailto:${emailPac}?subject=${assunto}&body=${corpo}`, '_blank');
