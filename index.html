@@ -455,6 +455,7 @@
             </div>
             <div class="flex items-center gap-4">
                 <button id="btnEditarFichaAtiva" class="bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs px-4 py-2 rounded-xl transition flex items-center gap-1"><i data-lucide="edit-3" class="w-3.5 h-3.5"></i> Editar Dados do Cliente</button>
+                <button onclick="abrirHistoricoCompleto()" class="bg-sky-600 hover:bg-sky-500 text-white text-[11px] font-bold px-3 py-1.5 rounded-lg transition">📜 Histórico Completo</button>
                 <div class="text-right">
                     <span class="text-[10px] uppercase text-slate-500 font-mono">Opportunity Score</span>
                     <div class="text-2xl font-black text-emerald-400" id="lblFichaOpportunity">0/100</div>
@@ -518,6 +519,31 @@
             </div>
         </div>
     </div> <!-- FECHAMENTO CORRETO: #containerFichaPaciente -->
+
+    <!-- MODAL: HISTÓRICO COMPLETO DO PACIENTE -->
+    <div id="modalHistoricoPaciente" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-4xl max-h-[85vh] flex flex-col">
+            <div class="flex justify-between items-center p-4 border-b border-slate-800">
+                <h3 class="text-sm font-bold text-slate-100">Histórico Completo — <span id="lblHistoricoNome">--</span></h3>
+                <button onclick="fecharHistorico()" class="text-slate-400 hover:text-white text-lg font-bold">✕</button>
+            </div>
+            <div class="overflow-y-auto p-4">
+                <table class="w-full text-left text-xs text-slate-300">
+                    <thead class="bg-slate-950 text-slate-400 text-[10px] uppercase sticky top-0">
+                        <tr>
+                            <th class="p-2">Data/Hora</th>
+                            <th class="p-2">Ação</th>
+                            <th class="p-2">Entidade</th>
+                            <th class="p-2">Responsável</th>
+                            <th class="p-2">Motivo</th>
+                            <th class="p-2">O que mudou</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbodyHistoricoCompleto" class="divide-y divide-slate-800/40"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 </div> <!-- FECHAMENTO CORRETO: #tab-pacientes (Módulo 5 completo) -->
 
 <!-- MÓDULO 6: AGENDA INTERNA DA CLÍNICA -->
