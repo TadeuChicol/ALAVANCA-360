@@ -122,17 +122,19 @@ async function apiCreate(table, data) {
 
 async function apiUpdate(table, id, data) {
     try {
-        const { data: row, error } = await supabaseClient
-            .from(table)
-            .update(data)
-            .eq('id', id)
-            .select()
-            .single();
-
-        if (error) throw error;
-        return row;
+        const { data: retorno, error } = await supabaseClient
+            .from(table).update(data).eq('id', id).select('*');
+        if (error) {
+            console.error('Erro ao atualizar a tabela ' + table + ':', error);
+            alert('⚠️ ERRO REAL DO BANCO:\nCódigo: ' + (error.code || '?')
+                + '\nMensagem: ' + (error.message || '?')
+                + '\nDetalhe: ' + (error.details || '-'));
+            return null;
+        }
+        return retorno && retorno[0] ? retorno[0] : null;
     } catch (e) {
-        console.error(`Erro ao atualizar a tabela ${table}:`, e);
+        console.error(e);
+        alert('⚠️ Erro inesperado ao salvar: ' + (e.message || e));
         return null;
     }
 }
@@ -584,6 +586,7 @@ async function carregarAgendamentos() {
 async function carregarProntuario() {
     try {
         state.prontuario = await apiList('prontuario_evolutivo');
+        state.prontuario = (state.prontuario || []).filter(Boolean);
     } catch (error) {
         console.error('[Alavanca 360] Erro ao carregar prontuario:', error);
     }
@@ -925,7 +928,7 @@ function formatarMoeda(valor) {
 }
 
 function calcularMetricasGerais() {
-    const pacientes = state.pacientes;
+    const pacientes = (state.pacientes || []).filter(Boolean);
     const totalPacientes = pacientes.length;
     const receitaBruta = pacientes.reduce((soma, p) => soma + (Number(p.ltv) || 0), 0);
     const ticketMedio = totalPacientes > 0 ? receitaBruta / totalPacientes : 0;
@@ -1115,6 +1118,7 @@ async function cadastrarOuAtualizarPaciente() {
     try {
         if (idAtual && idAtual !== '-1') {
             const atualizado = await apiUpdate('pacientes', idAtual, dados);
+            if (!atualizado) { btn.textContent = textoOriginal; btn.disabled = false; return; }
             const idx = state.pacientes.findIndex(p => p.id === idAtual);
             if (idx >= 0) state.pacientes[idx] = atualizado;
             alert('Dados atualizados com sucesso.');
@@ -1275,7 +1279,7 @@ function filtrarProntuario() {
     limparEPararEdicao();                    // limpa o formulário de cima (mata o fantasma)
     return;
     }
-    const match = (state.pacientes || []).find(p => (p?.nome || '').toLowerCase().includes(busca));
+    const match = (state.pacientes || []).filter(Boolean).find(p => (p?.nome || '').toLowerCase().includes(busca));
     if (!match) {
         box.classList.remove('hidden');
         limparEPararEdicao();
@@ -1405,7 +1409,7 @@ async function editarLinhaProntuario(linhaId, pacienteId) {
 }
 
 async function removerLinhaProntuario(linhaId, pacienteId) {
-    const linha = (state.prontuario || []).find(l => l.id === linhaId);
+    const linha = (state.prontuario || []).filter(Boolean).find(l => l?.id === linhaId);
     if (!linha) { alert('Registro não encontrado no prontuário (recarregue a página).'); return; }
     if (linha.travado) { alert('Registro oficial emitido (M7): não pode ser excluído.'); return; }
 
