@@ -1798,6 +1798,25 @@ async function removerDentista(id) {
     renderizarListaDentistas();
 }
 
+async function editarDentista(id) {
+    const d = (state.dentistas || []).find(x => String(x.id) === String(id));
+    if (!d) return;
+    const novoNome = prompt('Nome do dentista (atual: "' + (d.nome || '') + '"):', d.nome || '');
+    if (novoNome === null) return;
+    const novaEsp = prompt('Especialidade (atual: "' + (d.especialidade || '') + '"):', d.especialidade || '');
+    if (novaEsp === null) return;
+    const justificativa = prompt('Justificativa para a modificação (obrigatória):');
+    if (!justificativa || !justificativa.trim()) { alert('Justificativa obrigatória para modificar.'); return; }
+    if (!novoNome.trim()) { alert('O nome não pode ficar vazio.'); return; }
+    const atualizado = await apiUpdate('dentistas', id, { nome: novoNome.trim(), especialidade: novaEsp.trim() });
+    if (!atualizado) { alert('Não foi possível editar o dentista.'); return; }
+    const idx = state.dentistas.findIndex(x => String(x.id) === String(id));
+    if (idx >= 0) state.dentistas[idx] = atualizado;
+    popularSelectDentistas();
+    renderizarListaDentistas();
+    alert('Dentista atualizado: ' + novoNome.trim());
+}
+
 function renderizarListaDentistas() {
     const box = document.getElementById('listaDentistas');
     if (!box) return;
@@ -1812,7 +1831,10 @@ function renderizarListaDentistas() {
                 <p class="text-xs text-slate-200 truncate">${d.nome || ''}</p>
                 <p class="text-[10px] text-slate-500 truncate">${d.especialidade || '—'}</p>
             </div>
-            <button onclick="removerDentista('${d.id}')" class="text-rose-400 hover:text-rose-300 text-[11px] font-medium transition ml-2 shrink-0">Excluir</button>
+            <div class="flex items-center gap-2 shrink-0 ml-2">
+                <button onclick="editarDentista('${d.id}')" class="text-sky-400 hover:text-sky-300 text-[11px] font-medium transition">Editar</button>
+                <button onclick="removerDentista('${d.id}')" class="text-rose-400 hover:text-rose-300 text-[11px] font-medium transition">Excluir</button>
+            </div>
         </div>
     `).join('');
 }
