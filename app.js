@@ -1529,6 +1529,38 @@ function fecharHistorico() {
 // 10. MÓDULO 6 — AGENDA INTERNA E QUADRO DE RECURSOS
 // ============================================================
 
+async function carregarAgendamentos() {
+    let locais = [];
+    try {
+        const dados = await apiList('agendamentos');
+        locais = Array.isArray(dados) ? dados : [];
+    } catch (e) {
+        console.error('[M6] Erro ao carregar agendamentos locais:', e);
+    }
+
+    let doCalcom = [];
+    try {
+        const resp = await fetch('https://gtcybiuxdpxixdjnshty.supabase.co/functions/v1/calcom-bookings');
+        const j = await resp.json();
+        if (j.ok) doCalcom = j.bookings || [];
+    } catch (e) {
+        console.error('[M6] Falha ao buscar Cal.com:', e);
+    }
+
+    // Manuais vêm do Supabase; os do Cal.com vêm da agenda real (com id sintético)
+    const manuais = locais.filter(a => a.origem !== 'calcom');
+    const doCalcomComId = doCalcom.map(b => ({
+        ...b,
+        id: 'cal_' + (b.calcom_booking_uid || Math.random().toString(36).slice(2)),
+        origem: 'calcom'
+    }));
+
+    state.agendamentos = [...manuais, ...doCalcomComId];
+    console.log('[M6] Agenda — manuais:', manuais.length, '| Cal.com:', doCalcomComId.length);
+    renderizarAgendaLocal();
+    carregarDentistas();
+}
+
 async function adicionarOuEditarAgendaLocal() {
     const idAtual = document.getElementById('agendaIndexEditando').value;
     const paciente_nome = document.getElementById('agPaciente').value.trim();
@@ -1654,7 +1686,9 @@ function limparAgendaForm() {
     document.getElementById('agendaIndexEditando').value = '-1';
     document.getElementById('agPaciente').value = '';
     document.getElementById('agData').value = '';
-    document.getElementById('agCadeira').value = '';
+    const sD = document.getElementById('agDentista'); if (sD) sD.selectedIndex = 0;
+    const sC = document.getElementById('agCadeira'); if (sC) sC.selectedIndex = 0;
+    const sS = document.getElementById('agSala'); if (sS) sS.selectedIndex = 0;
     document.getElementById('agProcedimento').value = '';
     document.getElementById('lblTituloAgendaForm').textContent = 'Reservar Horário Operacional';
     document.getElementById('btnLimparAgendaForm').classList.add('hidden');
@@ -1663,20 +1697,23 @@ function limparAgendaForm() {
 async function removerAgenda(id) {
     const item = (state.agendamentos || []).find(a => String(a.id) === String(id));
     if (!item) return;
-    const aviso = item.origem === 'calcom' && item.calcom_booking_uid
-        ? 'Excluir este compromisso? Ele também será CANCELADO no Cal.com.'
-        : 'Excluir este compromisso da agenda?';
-    if (!confirm(aviso)) return;
 
-    if (item.origem === 'calcom' && item.calcom_booking_uid) {
+    if (item.origem === 'calcom') {
+        if (!confirm('Excluir este compromisso do Cal.com? O horário será liberado na agenda pública.')) return;
         try {
             const r = await fetch('https://gtcybiuxdpxixdjnshty.supabase.co/functions/v1/calcom-cancel?uid=' + encodeURIComponent(item.calcom_booking_uid));
             const j = await r.json().catch(() => ({}));
-            if (!j.ok) console.warn('[M6] Cancelamento no Cal.com retornou:', j);
-        } catch (e) { console.error('[M6] Falha ao cancelar no Cal.com:', e); }
+            if (!j.ok) { alert('Não foi possível cancelar no Cal.com: ' + (j.erro || j.status || 'erro')); return; }
+        } catch (e) {
+            alert('Falha de conexão ao cancelar no Cal.com.');
+            console.error('[M6]', e);
+            return;
+        }
+    } else {
+        if (!confirm('Excluir este compromisso da agenda?')) return;
+        await apiDelete('agendamentos', item.id);
     }
 
-    await apiDelete('agendamentos', id);
     state.agendamentos = state.agendamentos.filter(a => String(a.id) !== String(id));
     renderizarAgendaLocal();
 }
@@ -1690,12 +1727,38 @@ function filtrarPeriodoAgenda(periodo) {
 
 async function carregarDentistas() {
     try {
-        state.dentistas = await apiList('dentistas');
-        state.dentistas = (state.dentistas || []).filter(Boolean);
+        const lista = await apiList('dentistas');
+        const vistos = new Set();
+        state.dentistas = (Array.isArray(lista) ? lista : []).filter(d => {
+            const chave = (d.nome || '').trim().toLowerCase();
+            if (!chave || vistos.has(chave)) return false;
+            vistos.add(chave);
+            return true;
+        });
         popularSelectDentistas();
+        renderizarListaDentistas();
     } catch (e) {
         console.error('[M6] Erro ao carregar dentistas:', e);
+        state.dentistas = [];
     }
+}
+
+function prepararEdicaoAgenda(id) {
+    const a = state.agendamentos.find(x => String(x.id) === String(id));
+    if (!a) return;
+    if (a.origem === 'calcom') {
+        alert('Este compromisso veio do Cal.com e não pode ser editado aqui. Exclua-o (isso cancela no Cal.com) e crie um novo, se precisar.');
+        return;
+    }
+    document.getElementById('agendaIndexEditando').value = a.id;
+    document.getElementById('agPaciente').value = a.paciente_nome || '';
+    document.getElementById('agData').value = a.data_hora || '';
+    document.getElementById('agDentista').value = a.dentista || '';
+    document.getElementById('agCadeira').value = a.cadeira_sala || '';
+    document.getElementById('agSala').value = a.sala || '';
+    document.getElementById('agProcedimento').value = a.procedimento || '';
+    document.getElementById('lblTituloAgendaForm').textContent = 'Modificar Agendamento';
+    document.getElementById('btnLimparAgendaForm').classList.remove('hidden');
 }
 
 function popularSelectDentistas() {
@@ -1719,14 +1782,39 @@ async function adicionarDentista() {
     document.getElementById('dentNome').value = '';
     document.getElementById('dentEspecialidade').value = '';
     popularSelectDentistas();
+    renderizarListaDentistas();   // ← ADICIONE
     alert('Dentista cadastrado: ' + nome);
 }
 
 async function removerDentista(id) {
-    if (!confirm('Remover este dentista do quadro?')) return;
+    const d = (state.dentistas || []).find(x => String(x.id) === String(id));
+    if (!d) return;
+    const justificativa = prompt('Justificativa para excluir o dentista "' + (d.nome || '') + '":');
+    if (!justificativa || !justificativa.trim()) { alert('Justificativa obrigatória para excluir.'); return; }
+    if (!confirm('Excluir o dentista "' + (d.nome || '') + '" do quadro?')) return;
     await apiDelete('dentistas', id);
-    state.dentistas = (state.dentistas || []).filter(d => d.id !== id);
+    state.dentistas = (state.dentistas || []).filter(x => String(x.id) !== String(id));
     popularSelectDentistas();
+    renderizarListaDentistas();
+}
+
+function renderizarListaDentistas() {
+    const box = document.getElementById('listaDentistas');
+    if (!box) return;
+    const lista = (state.dentistas || []).filter(Boolean);
+    if (lista.length === 0) {
+        box.innerHTML = '<p class="text-[11px] text-slate-500">Nenhum dentista cadastrado.</p>';
+        return;
+    }
+    box.innerHTML = lista.map(d => `
+        <div class="flex items-center justify-between bg-slate-950 border border-slate-800 rounded px-2 py-1.5">
+            <div class="min-w-0">
+                <p class="text-xs text-slate-200 truncate">${d.nome || ''}</p>
+                <p class="text-[10px] text-slate-500 truncate">${d.especialidade || '—'}</p>
+            </div>
+            <button onclick="removerDentista('${d.id}')" class="text-rose-400 hover:text-rose-300 text-[11px] font-medium transition ml-2 shrink-0">Excluir</button>
+        </div>
+    `).join('');
 }
 
 // ============================================================
