@@ -575,9 +575,10 @@
 
     <!-- Filtros de visualização de calendário -->
     <div class="flex bg-slate-900 p-1.5 rounded-xl border border-slate-800 w-fit gap-1 text-xs">
-        <button onclick="filtrarPeriodoAgenda('dia')" id="btnFilterdia" class="px-4 py-1.5 rounded-lg bg-sky-600 text-white font-medium transition">Visão Dia</button>
+        <button onclick="filtrarPeriodoAgenda('dia')" id="btnFilterdia" class="px-4 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition">Visão Dia</button>
         <button onclick="filtrarPeriodoAgenda('semana')" id="btnFiltersemana" class="px-4 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition">Visão Semana</button>
         <button onclick="filtrarPeriodoAgenda('mes')" id="btnFiltermes" class="px-4 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition">Visão Mês</button>
+        <button onclick="filtrarPeriodoAgenda('todos')" id="btnFiltertodos" class="px-4 py-1.5 rounded-lg bg-sky-600 text-white font-medium transition">Visão Todos</button>
     </div>
 
     <!-- Grid Principal (Formulário + Tabela) -->
@@ -669,23 +670,26 @@
         </div>
     </div>
 
-        <!-- Listagem Geral da Agenda -->
-        <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 lg:col-span-2 shadow-lg min-h-[400px]">
-            <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-4">Compromissos do Quadro Técnico Ativo</h3>
-            <div class="overflow-x-auto custom-scrollbar">
+                <!-- Listagem Geral da Agenda -->
+        <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 lg:col-span-3 shadow-lg min-h-[600px]">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider">Compromissos do Quadro Técnico Ativo</h3>
+                <span id="lblContagemAgenda" class="text-[11px] text-slate-400"></span>
+            </div>
+            <div class="overflow-x-auto custom-scrollbar max-h-[70vh] overflow-y-auto">
                 <table class="w-full text-left text-xs text-slate-300">
-                    <thead class="bg-slate-950 text-slate-400 uppercase text-[10px]">
+                    <thead class="bg-slate-950 text-slate-400 uppercase text-[10px] sticky top-0">
                         <tr>
                             <th class="p-3">Paciente</th>
                             <th class="p-3">Data/Hora</th>
                             <th class="p-3">Dentista</th>
                             <th class="p-3">Cadeira</th>
                             <th class="p-3">Procedimento</th>
+                            <th class="p-3">Origem</th>
                             <th class="p-3 text-right">Ações</th>
                         </tr>
                     </thead>
                     <tbody id="tbodyAgendaLocal" class="divide-y divide-slate-800/60">
-                        <!-- Preenchido via JavaScript -->
                     </tbody>
                 </table>
             </div>
