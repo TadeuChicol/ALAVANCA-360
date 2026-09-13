@@ -581,14 +581,11 @@
         <button onclick="filtrarPeriodoAgenda('todos')" id="btnFiltertodos" class="px-4 py-1.5 rounded-lg bg-sky-600 text-white font-medium transition">Visão Todos</button>
     </div>
 
-    <!-- Grid Principal (Formulário + Tabela) -->
+    <!-- Linha 1: Formulário de Agendamento + Cadastro de Dentista -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full">
-        
-        <!-- Formulário de Agendamento -->
         <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-4 h-fit shadow-lg">
             <h3 id="lblTituloAgendaForm" class="text-xs font-bold text-emerald-400 uppercase tracking-wider">Reservar Horário Operacional</h3>
             <input type="hidden" id="agendaIndexEditando" value="-1">
-            
             <div class="space-y-3 text-xs">
                 <div>
                     <label class="block text-slate-400 mb-1">Paciente</label>
@@ -651,7 +648,9 @@
                     <button id="btnLimparAgendaForm" onclick="limparAgendaForm()" class="hidden w-1/3 bg-slate-800 hover:bg-slate-700 text-slate-300 p-2 rounded font-bold transition">Cancelar</button>
                     <button id="btnSalvarAgenda" onclick="adicionarOuEditarAgendaLocal()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 font-bold p-2.5 rounded text-white transition">Salvar na Agenda</button>
                 </div>
-                <!-- Cadastro Rápido de Dentista -->
+            </div>
+        </div>
+
         <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-3 h-fit shadow-lg">
             <h3 class="text-xs font-bold text-sky-400 uppercase tracking-wider">Cadastro de Dentista</h3>
             <div class="space-y-3 text-xs">
@@ -670,31 +669,29 @@
         </div>
     </div>
 
-        <!-- Listagem Geral da Agenda -->
-        <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 lg:col-span-3 shadow-lg min-h-[600px]">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider">Compromissos do Quadro Técnico Ativo</h3>
-                <span id="lblContagemAgenda" class="text-[11px] text-slate-400"></span>
-            </div>
-            <div class="overflow-x-auto custom-scrollbar max-h-[70vh] overflow-y-auto">
-                <table class="w-full text-left text-xs text-slate-300">
-                    <thead class="bg-slate-950 text-slate-400 uppercase text-[10px] sticky top-0">
-                        <tr>
-                            <th class="p-3">Paciente</th>
-                            <th class="p-3">Data/Hora</th>
-                            <th class="p-3">Dentista</th>
-                            <th class="p-3">Cadeira</th>
-                            <th class="p-3">Procedimento</th>
-                            <th class="p-3">Origem</th>
-                            <th class="p-3 text-right">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tbodyAgendaLocal" class="divide-y divide-slate-800/60">
-                    </tbody>
-                </table>
-            </div>
+    <!-- Linha 2: Agenda Completa (largura e altura totais) -->
+    <div id="cardAgendaLista" class="bg-slate-900 p-5 rounded-xl border border-slate-800 w-full shadow-lg min-h-[600px]">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider">Compromissos do Quadro Técnico Ativo</h3>
+            <span id="lblContagemAgenda" class="text-[11px] text-slate-400"></span>
         </div>
-
+        <div class="overflow-x-auto custom-scrollbar max-h-[70vh] overflow-y-auto">
+            <table class="w-full text-left text-xs text-slate-300">
+                <thead class="bg-slate-950 text-slate-400 uppercase text-[10px] sticky top-0">
+                    <tr>
+                        <th class="p-3">Paciente</th>
+                        <th class="p-3">Data/Hora</th>
+                        <th class="p-3">Dentista</th>
+                        <th class="p-3">Cadeira</th>
+                        <th class="p-3">Procedimento</th>
+                        <th class="p-3">Origem</th>
+                        <th class="p-3 text-right">Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="tbodyAgendaLocal" class="divide-y divide-slate-800/60">
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 
