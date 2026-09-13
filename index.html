@@ -558,11 +558,6 @@
             </h2>
             <p class="text-xs text-slate-400">Gerenciamento interno síncrono integrado às agendas digitais externas.</p>
         </div>
-        <div class="flex gap-2">
-            <a id="lnkCalCom" href="#" target="_blank" rel="noopener" class="bg-slate-900 border border-slate-700 text-slate-300 text-xs px-3 py-1.5 rounded-lg flex items-center gap-1 hover:bg-slate-800 transition">
-                <i data-lucide="external-link" class="w-3.5 h-3.5 text-sky-400"></i> Abrir no Cal.com
-            </a>
-        </div>
     </div>
 
     <!-- M6 - Agenda de Escassez via Cal.com (fonte da verdade) -->
@@ -570,15 +565,12 @@
         <div class="flex items-center justify-between gap-3 flex-wrap">
             <h3 class="text-sm font-bold text-emerald-400 uppercase tracking-wider">Agenda de Escassez</h3>
             <div class="flex items-center gap-2">
-                <button onclick="enviarLinkAgendamentoWhatsApp()" class="flex items-center gap-2 px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg transition">
-                    <i data-lucide="message-circle" class="w-4 h-4"></i> Enviar link via WhatsApp
-                </button>
-                <a id="lnkAbrirCalCom" href="#" target="_blank" rel="noopener" class="flex items-center gap-2 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-lg transition">
+                <a id="lnkAbrirCalCom" href="https://cal.com/rebeca-gomes-da-silva-zara-sorriso-real-suzano-rkq95x/consulta-odontologica-nap" target="_blank" rel="noopener" class="flex items-center gap-2 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-lg transition">
                     <i data-lucide="external-link" class="w-4 h-4"></i> Abrir no Cal.com
                 </a>
             </div>
         </div>
-        <iframe id="iframeCalCom" src="" class="w-full h-[600px] rounded-xl border border-slate-800 bg-slate-950" frameborder="0" allow="fullscreen"></iframe>
+        <iframe id="iframeCalCom" src="https://cal.com/rebeca-gomes-da-silva-zara-sorriso-real-suzano-rkq95x/consulta-odontologica-nap?embed=true" class="w-full h-[600px] rounded-xl border border-slate-800 bg-slate-950" frameborder="0" allow="fullscreen"></iframe>
     </div>
 
     <!-- Filtros de visualização de calendário -->
@@ -608,13 +600,47 @@
                 <div>
                     <label class="block text-slate-400 mb-1">Dentista Responsável</label>
                     <select id="agDentista" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-200 rounded focus:border-emerald-500 focus:outline-none">
-                        <option value="Dra. Rebeca Moura">Dra. Rebeca Moura</option>
-                        <option value="Dr. Carlos Eduardo">Dr. Carlos Eduardo</option>
+                        <option value="">Nenhum dentista cadastrado</option>
                     </select>
                 </div>
-                <div>
-                    <label class="block text-slate-400 mb-1">Cadeira / Sala</label>
-                    <input type="text" id="agCadeira" placeholder="Ex: Cadeira 02" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-200 rounded focus:border-emerald-500 focus:outline-none">
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-slate-400 mb-1">Cadeira</label>
+                        <select id="agCadeira" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-200 rounded focus:border-emerald-500 focus:outline-none">
+                            <option value="">Selecione</option>
+                            <option value="Cadeira 01">Cadeira 01</option>
+                            <option value="Cadeira 02">Cadeira 02</option>
+                            <option value="Cadeira 03">Cadeira 03</option>
+                            <option value="Cadeira 04">Cadeira 04</option>
+                            <option value="Cadeira 05">Cadeira 05</option>
+                            <option value="Cadeira 06">Cadeira 06</option>
+                            <option value="Cadeira 07">Cadeira 07</option>
+                            <option value="Cadeira 08">Cadeira 08</option>
+                            <option value="Cadeira 09">Cadeira 09</option>
+                            <option value="Cadeira 10">Cadeira 10</option>
+                            <option value="Cadeira 11">Cadeira 11</option>
+                            <option value="Cadeira 12">Cadeira 12</option>
+                            <option value="Cadeira 13">Cadeira 13</option>
+                            <option value="Cadeira 14">Cadeira 14</option>
+                            <option value="Cadeira 15">Cadeira 15</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 mb-1">Sala</label>
+                        <select id="agSala" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-200 rounded focus:border-emerald-500 focus:outline-none">
+                            <option value="">Selecione</option>
+                            <option value="Sala 01">Sala 01</option>
+                            <option value="Sala 02">Sala 02</option>
+                            <option value="Sala 03">Sala 03</option>
+                            <option value="Sala 04">Sala 04</option>
+                            <option value="Sala 05">Sala 05</option>
+                            <option value="Sala 06">Sala 06</option>
+                            <option value="Sala 07">Sala 07</option>
+                            <option value="Sala 08">Sala 08</option>
+                            <option value="Sala 09">Sala 09</option>
+                            <option value="Sala 10">Sala 10</option>
+                        </select>
+                    </div>
                 </div>
                 <div>
                     <label class="block text-slate-400 mb-1">Procedimento</label>
@@ -624,8 +650,24 @@
                     <button id="btnLimparAgendaForm" onclick="limparAgendaForm()" class="hidden w-1/3 bg-slate-800 hover:bg-slate-700 text-slate-300 p-2 rounded font-bold transition">Cancelar</button>
                     <button id="btnSalvarAgenda" onclick="adicionarOuEditarAgendaLocal()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 font-bold p-2.5 rounded text-white transition">Salvar na Agenda</button>
                 </div>
+                <!-- Cadastro Rápido de Dentista -->
+        <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-3 h-fit shadow-lg">
+            <h3 class="text-xs font-bold text-sky-400 uppercase tracking-wider">Cadastro de Dentista</h3>
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="block text-slate-400 mb-1">Nome do Dentista</label>
+                    <input type="text" id="dentNome" placeholder="Ex: Dr. Henrique Alves" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-200 rounded focus:border-sky-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-slate-400 mb-1">Especialidade</label>
+                    <input type="text" id="dentEspecialidade" placeholder="Ex: Ortodontia / Implantodontia" class="w-full bg-slate-950 border border-slate-800 p-2 text-slate-200 rounded focus:border-sky-500 focus:outline-none">
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="adicionarDentista()" class="flex-1 bg-sky-600 hover:bg-sky-500 font-bold p-2.5 rounded text-white transition">Cadastrar Dentista</button>
+                </div>
             </div>
         </div>
+    </div>
 
         <!-- Listagem Geral da Agenda -->
         <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 lg:col-span-2 shadow-lg min-h-[400px]">
