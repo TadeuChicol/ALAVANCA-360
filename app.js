@@ -565,17 +565,11 @@ async function carregarPacientes() {
 
 async function carregarAgendamentos() {
     try {
-        // 1. Busca os dados da tabela no Supabase
+        // A tabela local já contém os bookings do Cal.com (via webhook) + os manuais
         const dados = await apiList('agendamentos');
-        
-        // 2. Atualiza o estado global com os agendamentos recebidos (ou array vazio)
         state.agendamentos = Array.isArray(dados) ? dados : [];
-        
-        console.log('[Alavanca 360] Agendamentos carregados via API. Registros:', state.agendamentos.length);
-
-        // 3. O PONTO CHAVE QUE FALTAVA: Renderiza imediatamente o HTML na tela
+        console.log('[Alavanca 360] Agenda carregada. Registros:', state.agendamentos.length);
         renderizarAgendaLocal();
-
     } catch (error) {
         console.error('[Alavanca 360] Erro ao carregar agendamentos:', error);
         state.agendamentos = [];
@@ -1572,54 +1566,62 @@ function pertenceAoFiltro(dataHoraStr, filtro) {
 }
 
 function renderizarAgendaLocal() {
-    // 1. Renderização da Tabela Interna
     const tbody = document.getElementById('tbodyAgendaLocal');
-    if (tbody) {
-        const totalRegistros = state.agendamentos?.length || 0;
-        const listaGeral = Array.isArray(state.agendamentos) ? state.agendamentos : [];
-        const filtrados = listaGeral
-            .filter(a => {
-                if (!a.data_hora) return true;
-                if (typeof pertenceAoFiltro === 'function' && state.filtroAgendaAtivo) {
-                    try { return pertenceAoFiltro(a.data_hora, state.filtroAgendaAtivo); } catch (e) { return true; }
-                }
-                return true;
-            })
-            .sort((a, b) => new Date(a.data_hora || 0) - new Date(b.data_hora || 0));
+    if (!tbody) return;
 
-        if (filtrados.length === 0) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="6" class="p-8 text-center text-slate-400 bg-slate-900/50 rounded-lg">
-                        <p class="text-sm font-semibold text-slate-300">Nenhum agendamento encontrado para este período.</p>
-                        <p class="text-xs text-slate-500">Total no banco: ${totalRegistros}.</p>
-                    </td>
-                </tr>`;
-        } else {
-            tbody.innerHTML = filtrados.map(a => {
-                let dataFormatada = '--';
-                if (a.data_hora) {
-                    const d = new Date(a.data_hora);
-                    dataFormatada = isNaN(d.getTime()) ? a.data_hora : d.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
-                }
-                return `
-                    <tr class="hover:bg-slate-800/60 text-xs transition border-b border-slate-800/40">
-                        <td class="p-3 text-slate-200 font-semibold">${a.paciente_nome || 'Paciente não informado'}</td>
-                        <td class="p-3 text-sky-400 font-medium">${dataFormatada}</td>
-                        <td class="p-3 text-slate-300">${a.dentista || 'Não atribuído'}</td>
-                        <td class="p-3"><span class="bg-slate-950 px-2 py-0.5 rounded border border-slate-800 text-[11px] text-amber-400 font-mono">${a.cadeira_sala || 'Geral'}</span></td>
-                        <td class="p-3 text-slate-400">${a.procedimento || 'Avaliação'}</td>
-                        <td class="p-3 text-right space-x-2">
-                            <button onclick="prepararEdicaoAgenda('${a.id}')" class="text-sky-400 hover:text-sky-300 font-medium transition">Editar</button>
-                            <span class="text-slate-700">|</span>
-                            <button onclick="removerAgenda('${a.id}')" class="text-rose-400 hover:text-rose-300 font-medium transition">Excluir</button>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
-        }
+    const listaGeral = Array.isArray(state.agendamentos) ? state.agendamentos : [];
+    const totalRegistros = listaGeral.length;
+    const filtro = state.filtroAgendaAtivo || 'todos';
+
+    const filtrados = listaGeral
+        .filter(a => {
+            if (!a.data_hora) return true;
+            if (filtro !== 'todos' && typeof pertenceAoFiltro === 'function') {
+                try { return pertenceAoFiltro(a.data_hora, filtro); } catch (e) { return true; }
+            }
+            return true;
+        })
+        .sort((a, b) => new Date(a.data_hora || 0) - new Date(b.data_hora || 0));
+
+    const lbl = document.getElementById('lblContagemAgenda');
+    if (lbl) lbl.textContent = `Exibindo ${filtrados.length} de ${totalRegistros} registro(s) · filtro: ${filtro}`;
+
+    if (filtrados.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" class="p-8 text-center text-slate-400 bg-slate-900/50 rounded-lg">
+                    <p class="text-sm font-semibold text-slate-300">Nenhum agendamento encontrado para este período.</p>
+                    <p class="text-xs text-slate-500">Total no banco: ${totalRegistros}. Use "Visão Todos" para ver tudo.</p>
+                </td>
+            </tr>`;
+        return;
     }
-} 
+
+    tbody.innerHTML = filtrados.map(a => {
+        let dataFormatada = '--';
+        if (a.data_hora) {
+            const d = new Date(a.data_hora);
+            dataFormatada = isNaN(d.getTime()) ? a.data_hora : d.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+        }
+        const origem = a.origem === 'calcom'
+            ? '<span class="bg-sky-950 px-2 py-0.5 rounded border border-sky-800 text-[11px] text-sky-400 font-mono">Cal.com</span>'
+            : '<span class="bg-slate-950 px-2 py-0.5 rounded border border-slate-800 text-[11px] text-slate-400 font-mono">Manual</span>';
+        return `
+            <tr class="hover:bg-slate-800/60 text-xs transition border-b border-slate-800/40">
+                <td class="p-3 text-slate-200 font-semibold">${a.paciente_nome || 'Paciente não informado'}</td>
+                <td class="p-3 text-sky-400 font-medium">${dataFormatada}</td>
+                <td class="p-3 text-slate-300">${a.dentista || 'Não atribuído'}</td>
+                <td class="p-3"><span class="bg-slate-950 px-2 py-0.5 rounded border border-slate-800 text-[11px] text-amber-400 font-mono">${a.cadeira_sala || 'Geral'}</span></td>
+                <td class="p-3 text-slate-400">${a.procedimento || 'Avaliação'}</td>
+                <td class="p-3">${origem}</td>
+                <td class="p-3 text-right space-x-2">
+                    <button onclick="prepararEdicaoAgenda('${a.id}')" class="text-sky-400 hover:text-sky-300 font-medium transition">Editar</button>
+                    <span class="text-slate-700">|</span>
+                    <button onclick="removerAgenda('${a.id}')" class="text-rose-400 hover:text-rose-300 font-medium transition">Excluir</button>
+                </td>
+            </tr>`;
+    }).join('');
+}
 
 function prepararEdicaoAgenda(id) {
     const a = state.agendamentos.find(x => x.id === id);
@@ -1647,9 +1649,23 @@ function limparAgendaForm() {
 }
 
 async function removerAgenda(id) {
-    if (!confirm('Remover este compromisso da cadeira clínica?')) return;
+    const item = (state.agendamentos || []).find(a => String(a.id) === String(id));
+    if (!item) return;
+    const aviso = item.origem === 'calcom' && item.calcom_booking_uid
+        ? 'Excluir este compromisso? Ele também será CANCELADO no Cal.com.'
+        : 'Excluir este compromisso da agenda?';
+    if (!confirm(aviso)) return;
+
+    if (item.origem === 'calcom' && item.calcom_booking_uid) {
+        try {
+            const r = await fetch('https://gtcybiuxdpxixdjnshty.supabase.co/functions/v1/calcom-cancel?uid=' + encodeURIComponent(item.calcom_booking_uid));
+            const j = await r.json().catch(() => ({}));
+            if (!j.ok) console.warn('[M6] Cancelamento no Cal.com retornou:', j);
+        } catch (e) { console.error('[M6] Falha ao cancelar no Cal.com:', e); }
+    }
+
     await apiDelete('agendamentos', id);
-    state.agendamentos = state.agendamentos.filter(a => a.id !== id);
+    state.agendamentos = state.agendamentos.filter(a => String(a.id) !== String(id));
     renderizarAgendaLocal();
 }
 
