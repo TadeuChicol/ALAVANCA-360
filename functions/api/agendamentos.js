@@ -1,16 +1,21 @@
 export async function onRequestGet(context) {
   const { env } = context;
-  const dados = await calcomFetch('bookings?limit=100', env);
-  return json((dados.bookings || []).map(b => ({
-    calcom_booking_uid: b.uid,
-    paciente_nome: (b.attendees && b.attendees[0] && b.attendees[0].name) || '—',
-    paciente_email: (b.attendees && b.attendees[0] && b.attendees[0].email) || '',
-    data_hora: b.startTime,
-    dentista: (b.user && b.user.name) || '—',
-    cadeira_sala: 'Cal.com',
-    procedimento: b.title || 'Consulta',
-    origem: 'calcom'
-  })));
+  try {
+    const dados = await calcomFetch('bookings?limit=100', env);
+    return json((dados.bookings || []).map(b => ({
+      calcom_booking_uid: b.uid,
+      paciente_nome: (b.attendees && b.attendees[0] && b.attendees[0].name) || '—',
+      paciente_email: (b.attendees && b.attendees[0] && b.attendees[0].email) || '',
+      data_hora: b.startTime,
+      dentista: (b.user && b.user.name) || '—',
+      cadeira_sala: 'Cal.com',
+      procedimento: b.title || 'Consulta',
+      origem: 'calcom'
+    })));
+  } catch (e) {
+    console.error('[M6] Erro ao buscar Cal.com no endpoint:', e.message);
+    return json({ ok: false, erro: e.message, bookings: [] });
+  }
 }
 
 export async function onRequestPost(context) {
