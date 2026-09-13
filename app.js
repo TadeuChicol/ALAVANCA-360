@@ -565,10 +565,22 @@ async function carregarPacientes() {
 
 async function carregarAgendamentos() {
     try {
-        // A tabela local já contém os bookings do Cal.com (via webhook) + os manuais
         const dados = await apiList('agendamentos');
-        state.agendamentos = Array.isArray(dados) ? dados : [];
-        console.log('[Alavanca 360] Agenda carregada. Registros:', state.agendamentos.length);
+        const locais = Array.isArray(dados) ? dados : [];
+
+        // Busca os bookings REAIS do Cal.com (validação em tempo real)
+        let doCalcom = [];
+        try {
+            const resp = await fetch('https://gtcybiuxdpxixdjnshty.supabase.co/functions/v1/calcom-bookings');
+            const j = await resp.json().catch(() => ({}));
+            if (j.ok) doCalcom = j.bookings || [];
+        } catch (e) { console.error('[M6] Falha ao buscar Cal.com:', e); }
+
+        // Remove calcom duplicados da lista local e usa os reais do Cal.com
+        const semCalcom = locais.filter(a => a.origem !== 'calcom');
+        state.agendamentos = [...semCalcom, ...doCalcom].filter(Boolean);
+
+        console.log('[Alavanca 360] Agenda: locais', semCalcom.length, '+ Cal.com', doCalcom.length);
         renderizarAgendaLocal();
     } catch (error) {
         console.error('[Alavanca 360] Erro ao carregar agendamentos:', error);
