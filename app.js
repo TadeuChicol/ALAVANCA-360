@@ -581,6 +581,7 @@ async function carregarAgendamentos() {
         state.agendamentos = [];
         renderizarAgendaLocal();
     }
+    carregarDentistas();
 }
 
 async function carregarProntuario() {
@@ -1528,11 +1529,12 @@ async function adicionarOuEditarAgendaLocal() {
     const data_hora = document.getElementById('agData').value;
     const dentista = document.getElementById('agDentista').value;
     const cadeira_sala = document.getElementById('agCadeira').value.trim();
+    const sala = document.getElementById('agSala') ? document.getElementById('agSala').value.trim() : '';
     const procedimento = document.getElementById('agProcedimento').value.trim();
 
     if (!paciente_nome || !data_hora) { alert('Paciente e Data são obrigatórios.'); return; }
 
-    const item = { clinica_id: clinicaId(), paciente_nome, data_hora, dentista, cadeira_sala, procedimento };
+    const item = { clinica_id: clinicaId(), paciente_nome, data_hora, dentista, cadeira_sala, sala, procedimento };
 
     if (idAtual && idAtual !== '-1') {
         const atualizado = await apiUpdate('agendamentos', idAtual, item);
@@ -1656,6 +1658,47 @@ function filtrarPeriodoAgenda(periodo) {
     document.querySelectorAll("[id^='btnFilter']").forEach(b => b.classList.remove('bg-sky-600', 'text-white'));
     document.getElementById('btnFilter' + periodo).classList.add('bg-sky-600', 'text-white');
     renderizarAgendaLocal();
+}
+
+async function carregarDentistas() {
+    try {
+        state.dentistas = await apiList('dentistas');
+        state.dentistas = (state.dentistas || []).filter(Boolean);
+        popularSelectDentistas();
+    } catch (e) {
+        console.error('[M6] Erro ao carregar dentistas:', e);
+    }
+}
+
+function popularSelectDentistas() {
+    const sel = document.getElementById('agDentista');
+    if (!sel) return;
+    const atual = sel.value;
+    const lista = (state.dentistas || []).filter(Boolean);
+    sel.innerHTML = lista.length
+        ? lista.map(d => `<option value="${d.nome}">${d.nome}${d.especialidade ? ' — ' + d.especialidade : ''}</option>`).join('')
+        : '<option value="">Nenhum dentista cadastrado</option>';
+    if (atual) sel.value = atual;
+}
+
+async function adicionarDentista() {
+    const nome = document.getElementById('dentNome').value.trim();
+    const especialidade = document.getElementById('dentEspecialidade').value.trim();
+    if (!nome) { alert('Informe o nome do dentista.'); return; }
+    const criado = await apiCreate('dentistas', { clinica_id: clinicaId(), nome, especialidade });
+    if (!criado) { alert('Não foi possível cadastrar o dentista.'); return; }
+    state.dentistas.push(criado);
+    document.getElementById('dentNome').value = '';
+    document.getElementById('dentEspecialidade').value = '';
+    popularSelectDentistas();
+    alert('Dentista cadastrado: ' + nome);
+}
+
+async function removerDentista(id) {
+    if (!confirm('Remover este dentista do quadro?')) return;
+    await apiDelete('dentistas', id);
+    state.dentistas = (state.dentistas || []).filter(d => d.id !== id);
+    popularSelectDentistas();
 }
 
 // ============================================================
