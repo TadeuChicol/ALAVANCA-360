@@ -1843,9 +1843,49 @@ function renderizarListaDentistas() {
 // 11. MÓDULO 7 — ESTAÇÃO DE DOCUMENTOS LEGAIS
 // ============================================================
 
+// ===== M7 — MEDICAÇÃO ESTRUTURADA =====
+let medicamentosM7 = [];
+
+function adicionarLinhaMedicamento(med = {}) {
+    medicamentosM7.push(med);
+    renderizarMedicamentosM7();
+}
+
+function renderizarMedicamentosM7() {
+    const box = document.getElementById('listaMedicamentos');
+    if (!box) return;
+    if (medicamentosM7.length === 0) { box.innerHTML = ''; return; }
+    box.innerHTML = medicamentosM7.map((m, i) => `
+        <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 items-end bg-slate-950 border border-slate-800 rounded p-2">
+            <div>
+                <label class="block text-slate-400 mb-1 text-[10px]">Medicamento</label>
+                <input type="text" value="${m.medicamento || ''}" onchange="atualizarMedM7(${i},'medicamento',this.value)" placeholder="Ex: Amoxicilina 500mg" class="w-full bg-slate-900 border border-slate-800 p-1.5 text-slate-200 rounded text-xs focus:border-emerald-500 focus:outline-none">
+            </div>
+            <div>
+                <label class="block text-slate-400 mb-1 text-[10px]">Dose / Quantidade</label>
+                <input type="text" value="${m.dose || ''}" onchange="atualizarMedM7(${i},'dose',this.value)" placeholder="Ex: 1 comprimido" class="w-full bg-slate-900 border border-slate-800 p-1.5 text-slate-200 rounded text-xs focus:border-emerald-500 focus:outline-none">
+            </div>
+            <div>
+                <label class="block text-slate-400 mb-1 text-[10px]">Frequência</label>
+                <input type="text" value="${m.frequencia || ''}" onchange="atualizarMedM7(${i},'frequencia',this.value)" placeholder="Ex: 3x ao dia por 7 dias" class="w-full bg-slate-900 border border-slate-800 p-1.5 text-slate-200 rounded text-xs focus:border-emerald-500 focus:outline-none">
+            </div>
+            <div class="flex items-center gap-2">
+                <input type="text" value="${m.obs || ''}" onchange="atualizarMedM7(${i},'obs',this.value)" placeholder="Observações" class="w-full bg-slate-900 border border-slate-800 p-1.5 text-slate-200 rounded text-xs focus:border-emerald-500 focus:outline-none">
+                <button onclick="removerLinhaMedicamento(${i})" class="text-rose-400 hover:text-rose-300 text-lg shrink-0">×</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function atualizarMedM7(i, campo, valor) { if (medicamentosM7[i]) medicamentosM7[i][campo] = valor; }
+function removerLinhaMedicamento(i) { medicamentosM7.splice(i, 1); renderizarMedicamentosM7(); }
+
 async function emitirEDarComoProntoDocumento() {
     const pacName = document.getElementById('selectDocPaciente').value;
-    const dentName = document.getElementById('selectDocDentista').value;
+    const selDent = document.getElementById('selectDocDentista');
+    const dentistaSel = (state.dentistas || []).find(d => String(d.id) === String(selDent.value));
+    const dentName = dentistaSel ? dentistaSel.nome : selDent.value;
+    const dentCro = dentistaSel ? dentistaSel.cro : '';
     const tipo = document.getElementById('selectTipoDoc').value;
 
     const paciente = state.pacientes.find(p => p.nome === pacName);
@@ -1904,8 +1944,10 @@ function atualizarTemplateDocumento() {
     const tipo = selTipo.value;
     const clinica = (state.clinicaAtual && state.clinicaAtual.nome_clinica) || 'Clínica';
     const endereco = (state.clinicaAtual && state.clinicaAtual.endereco) || '';
-    const profissional = state.profissionais.find(p => p.nome === dentName);
-    const cro = profissional ? profissional.cro : '';
+    const dentista = (state.dentistas || []).find(d => String(d.id) === String(selDent.value));
+    const cro = dentista ? dentista.cro : '';
+    const especialidade = dentista ? dentista.especialidade : '';
+    const whatsapp = dentista ? dentista.whatsapp : '';
     const logoClinica = state.clinicaAtual && state.clinicaAtual.logo_clinica_url;
     const logoHtml = logoClinica
         ? `<img src="${logoClinica}" alt="Logo" class="h-10 object-contain mb-1">`
@@ -1921,6 +1963,7 @@ function atualizarTemplateDocumento() {
             <div class="text-right">
                 <p class="text-xs font-bold text-slate-200">${dentName}</p>
                 <p class="text-[10px] text-slate-400">${cro}</p>
+                <p class="text-[10px] text-slate-400">${cro}${especialidade ? ' · ' + especialidade : ''}</p>
             </div>
         </div>
     `;
@@ -1946,12 +1989,32 @@ function atualizarTemplateDocumento() {
             <div class="border p-3 my-4 text-xs bg-gray-50 rounded">Proposta clínica personalizada gerada através das réguas estéticas Alavanca 360®.</div>
             ${assinaturaValidador}
         `;
-    } else {
+        } else {
+        const linhasMed = medicamentosM7.filter(m => m.medicamento).map(m =>
+            `<tr class="border-b border-gray-200">
+                <td class="py-1 px-2">${m.medicamento}</td>
+                <td class="py-1 px-2">${m.dose || '—'}</td>
+                <td class="py-1 px-2">${m.frequencia || '—'}</td>
+                <td class="py-1 px-2">${m.obs || ''}</td>
+            </tr>`
+        ).join('') || '<tr><td colspan="4" class="py-2 text-gray-400 text-center">Nenhum medicamento informado.</td></tr>';
+
+        const tabelaMed = `
+            <table class="w-full text-xs border border-gray-300 mt-2">
+                <thead><tr class="bg-gray-100">
+                    <th class="py-1 px-2 text-left">Medicamento</th>
+                    <th class="py-1 px-2 text-left">Dose</th>
+                    <th class="py-1 px-2 text-left">Frequência</th>
+                    <th class="py-1 px-2 text-left">Observações</th>
+                </tr></thead>
+                <tbody>${linhasMed}</tbody>
+            </table>`;
+
         preview.innerHTML = `
             ${cabecalho}
             <h2 class="text-center font-bold text-xs uppercase tracking-wider my-2">Receituário / Prescrição Clínica</h2>
             <p class="text-xs"><strong>Paciente:</strong> ${pacName}</p>
-            <div class="my-6 border-l-4 border-emerald-500 pl-4 text-xs italic h-20 text-gray-500">[Inserção livre de medicamentos controlados ou analgésicos...]</div>
+            ${tabelaMed}
             ${assinaturaValidador}
         `;
     }
@@ -1976,6 +2039,11 @@ function imprimirDocumentoPDF() {
     janelaImpressao.document.close();
 }
 
+function visualizarDocumentoPDF() {
+    atualizarTemplateDocumento();
+    imprimirDocumentoPDF();
+}
+
 // ============================================================
 // 12. SELECTS DINÂMICOS
 // ============================================================
@@ -1987,7 +2055,10 @@ function rebuildSelects() {
         : state.pacientes.map(p => `<option value="${p.nome}">${p.nome}</option>`).join('');
 
     const selDen = document.getElementById('selectDocDentista');
-    selDen.innerHTML = state.profissionais.map(p => `<option value="${p.nome}">${p.nome}</option>`).join('');
+    const dentistas = (state.dentistas || []).filter(Boolean);
+    selDen.innerHTML = dentistas.length === 0
+        ? '<option value="">Nenhum dentista cadastrado (cadastre no HUB Clínica)</option>'
+        : dentistas.map(d => `<option value="${d.id}">${d.nome || ''}${d.cro ? ' — ' + d.cro : ''}</option>`).join('');
 
     const agDentista = document.getElementById('agDentista');
     if (agDentista) {
@@ -3970,6 +4041,89 @@ function atualizarLogosVisuais() {
         imgLogoMetodo.src = (cfgGlobal && cfgGlobal.logo_metodo_url) || logoMetodoPadrao;
         imgLogoMetodo.classList.remove('hidden');
     }
+}
+
+// ===== HUB CLÍNICA — DENTISTAS DA CLÍNICA =====
+async function carregarDentistasHub() {
+    try {
+        const lista = await apiList('dentistas');
+        state.dentistas = (Array.isArray(lista) ? lista : []).filter(Boolean);
+        renderizarListaDentistasHub();
+        popularSelectDentistasM7();
+    } catch (e) {
+        console.error('[HUB] Erro ao carregar dentistas:', e);
+        state.dentistas = [];
+    }
+}
+
+async function adicionarDentistaHub() {
+    const nome = document.getElementById('hubDentNome').value.trim();
+    const cro = document.getElementById('hubDentCro').value.trim();
+    const especialidade = document.getElementById('hubDentEspecialidade').value.trim();
+    const whatsapp = document.getElementById('hubDentWhatsapp') ? document.getElementById('hubDentWhatsapp').value.trim() : '';
+    if (!nome) { alert('Informe o nome do dentista.'); return; }
+    const criado = await apiCreate('dentistas', { clinica_id: clinicaId(), nome, cro, especialidade, whatsapp });
+    if (!criado) { alert('Não foi possível cadastrar o dentista.'); return; }
+    state.dentistas.push(criado);
+    document.getElementById('hubDentNome').value = '';
+    document.getElementById('hubDentCro').value = '';
+    document.getElementById('hubDentEspecialidade').value = '';
+    if (document.getElementById('hubDentWhatsapp')) document.getElementById('hubDentWhatsapp').value = '';
+    renderizarListaDentistasHub();
+    popularSelectDentistasM7();
+    alert('Dentista cadastrado: ' + nome);
+}
+
+function renderizarListaDentistasHub() {
+    const box = document.getElementById('listaDentistasHub');
+    if (!box) return;
+    const lista = (state.dentistas || []).filter(Boolean);
+    if (lista.length === 0) { box.innerHTML = '<p class="text-[11px] text-slate-500">Nenhum dentista cadastrado.</p>'; return; }
+    box.innerHTML = lista.map(d => `
+        <div class="flex items-center justify-between bg-slate-950 border border-slate-800 rounded px-2 py-1.5">
+            <div class="min-w-0">
+                <p class="text-xs text-slate-200 truncate">${d.nome || ''} <span class="text-sky-400">${d.cro || ''}</span></p>
+                <p class="text-[10px] text-slate-500 truncate">${d.especialidade || '—'}</p>
+            </div>
+            <div class="flex items-center gap-2 shrink-0 ml-2">
+                <button onclick="editarDentistaHub('${d.id}')" class="text-sky-400 hover:text-sky-300 text-[11px] font-medium transition">Editar</button>
+                <button onclick="removerDentistaHub('${d.id}')" class="text-rose-400 hover:text-rose-300 text-[11px] font-medium transition">Excluir</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+async function editarDentistaHub(id) {
+    const d = (state.dentistas || []).find(x => String(x.id) === String(id));
+    if (!d) return;
+    const novoNome = prompt('Nome (atual: "' + (d.nome || '') + '"):', d.nome || '');
+    if (novoNome === null) return;
+    const novoCro = prompt('CRO (atual: "' + (d.cro || '') + '"):', d.cro || '');
+    if (novoCro === null) return;
+    const novaEsp = prompt('Especialidade (atual: "' + (d.especialidade || '') + '"):', d.especialidade || '');
+    if (novaEsp === null) return;
+    const justificativa = prompt('Justificativa para a modificação (obrigatória):');
+    if (!justificativa || !justificativa.trim()) { alert('Justificativa obrigatória.'); return; }
+    if (!novoNome.trim()) { alert('O nome não pode ficar vazio.'); return; }
+    const atualizado = await apiUpdate('dentistas', id, { nome: novoNome.trim(), cro: novoCro.trim(), especialidade: novaEsp.trim() });
+    if (!atualizado) { alert('Não foi possível editar.'); return; }
+    const idx = state.dentistas.findIndex(x => String(x.id) === String(id));
+    if (idx >= 0) state.dentistas[idx] = atualizado;
+    renderizarListaDentistasHub();
+    popularSelectDentistasM7();
+    alert('Dentista atualizado.');
+}
+
+async function removerDentistaHub(id) {
+    const d = (state.dentistas || []).find(x => String(x.id) === String(id));
+    if (!d) return;
+    const justificativa = prompt('Justificativa para excluir "' + (d.nome || '') + '":');
+    if (!justificativa || !justificativa.trim()) { alert('Justificativa obrigatória.'); return; }
+    if (!confirm('Excluir o dentista "' + (d.nome || '') + '"?')) return;
+    await apiDelete('dentistas', id);
+    state.dentistas = (state.dentistas || []).filter(x => String(x.id) !== String(id));
+    renderizarListaDentistasHub();
+    popularSelectDentistasM7();
 }
 
 // ============================================================
