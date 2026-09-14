@@ -1478,6 +1478,16 @@ function selecionarNotaAutoestima(nota) {
     });
 }
 
+function exigirAuditoria(tipoAcao) {
+    const responsavel = prompt('Responsável pela ' + tipoAcao + ' (obrigatório):');
+    if (!responsavel || !responsavel.trim()) { alert('Responsável obrigatório.'); return null; }
+    const motivo = prompt('Motivo da ' + tipoAcao + ' (obrigatório):');
+    if (!motivo || !motivo.trim()) { alert('Motivo obrigatório.'); return null; }
+    const mudanca = prompt('Tipo de mudança (ex: correção, cancelamento, atualização):');
+    if (!mudanca || !mudanca.trim()) { alert('Tipo de mudança obrigatório.'); return null; }
+    return { responsavel: responsavel.trim(), motivo: motivo.trim(), mudanca: mudanca.trim(), data: new Date().toISOString() };
+}
+
 async function abrirHistoricoCompleto() {
     const busca = (document.getElementById('matchCodeProntuario').value || '').toLowerCase().trim();
     const match = (state.pacientes || []).filter(Boolean).find(p => (p?.nome || '').toLowerCase().includes(busca));
@@ -1913,7 +1923,8 @@ async function emitirEDarComoProntoDocumento() {
             tipo: 'Presencial',
             tratamento_realizado: desc,
             receituario: tipo === 'receita' ? 'Prescrição Clínica Autenticada' : 'Orçamento Base',
-            travado: true
+            origem: 'M7',
+            travado: false   // <-- permite excluir/modificar com auditoria
         });
         state.prontuario.push(novaLinha);
 
@@ -1968,11 +1979,15 @@ function atualizarTemplateDocumento() {
         </div>
     `;
 
+    const assinaturaUrl = dentista && dentista.assinatura_url ? dentista.assinatura_url : '';
     const assinaturaValidador = `
         <div class="mt-8 pt-6 border-t border-gray-200 flex justify-between items-end text-xs text-gray-700">
             <div>
                 <p class="font-bold">${dentName}</p>
                 <p class="text-[11px] text-gray-500">${cro}</p>
+                ${assinaturaUrl
+                    ? `<img src="${assinaturaUrl}" alt="Assinatura" style="max-height:60px;margin-top:6px;">`
+                    : `<p class="text-[10px] text-gray-400 italic">[Assinatura eletrônica não cadastrada]</p>`}
                 <p class="text-[10px] text-emerald-600 mt-1 font-mono">✓ Assinatura Eletrônica Validada</p>
             </div>
             <div class="text-right border border-dashed border-gray-300 p-2 rounded bg-gray-50 font-mono text-[9px] text-gray-400">
@@ -4061,14 +4076,12 @@ async function adicionarDentistaHub() {
     const cro = document.getElementById('hubDentCro').value.trim();
     const especialidade = document.getElementById('hubDentEspecialidade').value.trim();
     const whatsapp = document.getElementById('hubDentWhatsapp') ? document.getElementById('hubDentWhatsapp').value.trim() : '';
+    const assinatura = document.getElementById('hubDentAssinatura') ? document.getElementById('hubDentAssinatura').value.trim() : '';
     if (!nome) { alert('Informe o nome do dentista.'); return; }
-    const criado = await apiCreate('dentistas', { clinica_id: clinicaId(), nome, cro, especialidade, whatsapp });
+    const criado = await apiCreate('dentistas', { clinica_id: clinicaId(), nome, cro, especialidade, whatsapp, assinatura_url: assinatura });
     if (!criado) { alert('Não foi possível cadastrar o dentista.'); return; }
     state.dentistas.push(criado);
-    document.getElementById('hubDentNome').value = '';
-    document.getElementById('hubDentCro').value = '';
-    document.getElementById('hubDentEspecialidade').value = '';
-    if (document.getElementById('hubDentWhatsapp')) document.getElementById('hubDentWhatsapp').value = '';
+    ['hubDentNome','hubDentCro','hubDentEspecialidade','hubDentWhatsapp','hubDentAssinatura'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
     renderizarListaDentistasHub();
     popularSelectDentistasM7();
     alert('Dentista cadastrado: ' + nome);
@@ -4119,6 +4132,47 @@ async function removerDentistaHub(id) {
     if (!d) return;
     const justificativa = prompt('Justificativa para excluir "' + (d.nome || '') + '":');
     if (!justificativa || !justificativa.trim()) { alert('Justificativa obrigatória.'); return; }
+    if (!confirm('Excluir o dentista "' + (d.nome || '') + '"?')) return;
+    await apiDelete('dentistas', id);
+    state.dentistas = (state.dentistas || []).filter(x => String(x.id) !== String(id));
+    renderizarListaDentistasHub();
+    popularSelectDentistasM7();
+}
+
+async function editarDentistaHub(id) {
+    const d = (state.dentistas || []).find(x => String(x.id) === String(id));
+    if (!d) return;
+    const responsavel = prompt('Responsável pela modificação (obrigatório):');
+    if (!responsavel || !responsavel.trim()) { alert('Responsável obrigatório.'); return; }
+    const motivo = prompt('Motivo da modificação (obrigatório):');
+    if (!motivo || !motivo.trim()) { alert('Motivo obrigatório.'); return; }
+    const novoNome = prompt('Nome (atual: "' + (d.nome || '') + '"):', d.nome || '');
+    if (novoNome === null) return;
+    const novoCro = prompt('CRO (atual: "' + (d.cro || '') + '"):', d.cro || '');
+    if (novoCro === null) return;
+    const novaEsp = prompt('Especialidade (atual: "' + (d.especialidade || '') + '"):', d.especialidade || '');
+    if (novaEsp === null) return;
+    const novaAss = prompt('Assinatura (URL) — deixe vazio para manter:', d.assinatura_url || '');
+    if (novaAss === null) return;
+    const atualizado = await apiUpdate('dentistas', id, {
+        nome: novoNome.trim(), cro: novoCro.trim(), especialidade: novaEsp.trim(),
+        assinatura_url: novaAss.trim(), responsavel_alteracao: responsavel.trim(), motivo_alteracao: motivo.trim()
+    });
+    if (!atualizado) { alert('Não foi possível editar.'); return; }
+    const idx = state.dentistas.findIndex(x => String(x.id) === String(id));
+    if (idx >= 0) state.dentistas[idx] = atualizado;
+    renderizarListaDentistasHub();
+    popularSelectDentistasM7();
+    alert('Dentista atualizado.');
+}
+
+async function removerDentistaHub(id) {
+    const d = (state.dentistas || []).find(x => String(x.id) === String(id));
+    if (!d) return;
+    const responsavel = prompt('Responsável pela exclusão (obrigatório):');
+    if (!responsavel || !responsavel.trim()) { alert('Responsável obrigatório.'); return; }
+    const motivo = prompt('Motivo da exclusão (obrigatório):');
+    if (!motivo || !motivo.trim()) { alert('Motivo obrigatório.'); return; }
     if (!confirm('Excluir o dentista "' + (d.nome || '') + '"?')) return;
     await apiDelete('dentistas', id);
     state.dentistas = (state.dentistas || []).filter(x => String(x.id) !== String(id));
