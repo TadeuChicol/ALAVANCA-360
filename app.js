@@ -1324,13 +1324,13 @@ function renderizarLinhasProntuario(pacienteId) {
     }
 
     tbody.innerHTML = linhas.map(line => {
-        const acaoDeletar = line.travado
-            ? `<span class="text-[10px] text-slate-500 bg-slate-950 px-2 py-0.5 rounded border border-slate-800">Oficial Emitido (M7)</span>`
-            : `<button onclick="removerLinhaProntuario('${line.id}', '${pacienteId}')" class="text-rose-400 hover:underline">Eliminar</button>`;
+        const acaoDeletar = `<button onclick="removerLinhaProntuario('${line.id}', '${pacienteId}')" class="text-rose-400 hover:underline">Eliminar</button>`;
 
-        const acaoEditar = line.travado
-            ? ''
-            : `<button onclick="editarLinhaProntuario('${line.id}', '${pacienteId}')" class="text-sky-400 hover:underline">Editar</button>`;
+        const acaoEditar = `<button onclick="editarLinhaProntuario('${line.id}', '${pacienteId}')" class="text-sky-400 hover:underline">Editar</button>`;
+
+        const seloOficial = line.travado
+            ? `<span class="text-[10px] text-slate-500 bg-slate-950 px-2 py-0.5 rounded border border-slate-800">Oficial Emitido (M7)</span>`
+            : '';
 
         return `
             <tr class="border-b border-slate-800/60 hover:bg-slate-900/40 text-xs">
@@ -1338,7 +1338,7 @@ function renderizarLinhasProntuario(pacienteId) {
                 <td class="p-2"><span class="px-2 py-0.5 rounded text-[10px] ${line.tipo === 'Online' ? 'bg-purple-950 text-purple-300' : 'bg-sky-950 text-sky-300'}">${line.tipo}</span></td>
                 <td class="p-2 text-slate-200">${line.tratamento_realizado || ''}</td>
                 <td class="p-2 italic text-slate-400">${line.receituario || 'Nenhuma'}</td>
-                <td class="p-2 text-right space-x-2">${acaoEditar} ${acaoDeletar}</td>
+                <td class="p-2 text-right space-x-2">${acaoEditar} ${acaoDeletar} ${seloOficial}</td>
             </tr>
         `;
     }).join('');
@@ -1383,6 +1383,8 @@ async function adicionarLinhaProntuarioManual() {
 }
 
 async function editarLinhaProntuario(linhaId, pacienteId) {
+    const auditoria = exigirAuditoria('edição');   // ou 'exclusão' na eliminar
+    if (!auditoria) return;
     const linha = state.prontuario.find(l => l.id === linhaId);
     if (!linha) return;
     const novoTratado = prompt('Editar Tratamento Realizado:', linha.tratamento_realizado);
@@ -1413,6 +1415,8 @@ async function editarLinhaProntuario(linhaId, pacienteId) {
 }
 
 async function removerLinhaProntuario(linhaId, pacienteId) {
+    const auditoria = exigirAuditoria('edição');   // ou 'exclusão' na eliminar
+    if (!auditoria) return;
     const linha = (state.prontuario || []).filter(Boolean).find(l => l?.id === linhaId);
     if (!linha) { alert('Registro não encontrado no prontuário (recarregue a página).'); return; }
     if (linha.travado) { alert('Registro oficial emitido (M7): não pode ser excluído.'); return; }
@@ -1924,7 +1928,8 @@ async function emitirEDarComoProntoDocumento() {
             tratamento_realizado: desc,
             receituario: tipo === 'receita' ? 'Prescrição Clínica Autenticada' : 'Orçamento Base',
             origem: 'M7',
-            travado: false   // <-- permite excluir/modificar com auditoria
+            travado: false,
+            origem: 'M7'
         });
         state.prontuario.push(novaLinha);
 
@@ -1951,11 +1956,12 @@ function atualizarTemplateDocumento() {
     if (!selPac || !selDent || !selTipo || !preview) return;
     
     const pacName = selPac.value || 'Paciente';
-    const dentName = selDent.value || 'Profissional Responsável';
+    const dentistaSel = (state.dentistas || []).find(d => String(d.id) === String(selDent.value));
+    const dentName = dentistaSel ? dentistaSel.nome : (selDent.value || 'Profissional Responsável');
     const tipo = selTipo.value;
     const clinica = (state.clinicaAtual && state.clinicaAtual.nome_clinica) || 'Clínica';
     const endereco = (state.clinicaAtual && state.clinicaAtual.endereco) || '';
-    const dentista = (state.dentistas || []).find(d => String(d.id) === String(selDent.value));
+    const dentista = dentistaSel;
     const cro = dentista ? dentista.cro : '';
     const especialidade = dentista ? dentista.especialidade : '';
     const whatsapp = dentista ? dentista.whatsapp : '';
