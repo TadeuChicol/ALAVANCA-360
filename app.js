@@ -4076,6 +4076,7 @@ async function adicionarDentistaHub() {
     if (!criado) { alert('Não foi possível cadastrar o dentista.'); return; }
     state.dentistas.push(criado);
     ['hubDentNome','hubDentCro','hubDentEspecialidade','hubDentWhatsapp','hubDentAssinatura'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    limparAssinaturaHub();
     renderizarListaDentistasHub();
     popularSelectDentistasM7();
     alert('Dentista cadastrado: ' + nome);
@@ -4139,6 +4140,27 @@ async function removerDentistaHub(id) {
     state.dentistas = (state.dentistas || []).filter(x => String(x.id) !== String(id));
     renderizarListaDentistasHub();
     popularSelectDentistasM7();
+}
+
+function converterAssinaturaParaBase64(event) {
+    const arquivo = event.target.files && event.target.files[0];
+    if (!arquivo) return;
+    const leitor = new FileReader();
+    leitor.onload = function (e) {
+        const base64 = e.target.result;
+        document.getElementById('hubDentAssinatura').value = base64;
+        document.getElementById('imgPreviewAssinatura').src = base64;
+        document.getElementById('previewAssinaturaContainer').classList.remove('hidden');
+        document.getElementById('nomeArquivoAssinatura').textContent = arquivo.name;
+    };
+    leitor.readAsDataURL(arquivo);
+}
+
+function limparAssinaturaHub() {
+    const file = document.getElementById('hubDentAssinaturaFile');
+    if (file) file.value = '';
+    document.getElementById('hubDentAssinatura').value = '';
+    document.getElementById('previewAssinaturaContainer').classList.add('hidden');
 }
 
 // ============================================================
