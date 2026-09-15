@@ -1898,15 +1898,16 @@ async function emitirEDarComoProntoDocumento() {
     const conteudoHtml = document.getElementById('areaPreviewDocumento').innerHTML;
 
     try {
-        await apiCreate('documentos_emitidos', {
+        await apiCreate('prontuario_evolutivo', {
             clinica_id: clinicaId(),
             paciente_id: paciente.id,
-            paciente_nome: pacName,
-            dentista_nome: dentName,
-            tipo_documento: tipo,
-            conteudo_html: conteudoHtml,
-            data_emissao: hoje
-        });
+            data_registro: hoje,
+            tipo: 'Presencial',
+            tratamento_realizado: desc,
+            receituario: ...,
+            origem: 'M7',      // ← coluna que NÃO existe na tabela
+            travado: false     // ← provavelmente também não existe
+    });
 
         const novaLinha = await apiCreate('prontuario_evolutivo', {
             clinica_id: clinicaId(),
