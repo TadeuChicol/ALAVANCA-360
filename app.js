@@ -499,7 +499,8 @@ async function init() {
             carregarPacientes(),
             carregarAgendamentos(),
             carregarProntuario(),
-            carregarDadosFinanceiros()
+            carregarDadosFinanceiros(),
+            carregarDentistasHub()
         ]);
 
         await carregarConfiguracoesGlobais();
@@ -1414,41 +1415,28 @@ async function editarLinhaProntuario(linhaId, pacienteId) {
     renderizarLinhasProntuario(pacienteId);
 }
 
-async function removerLinhaProntuario(linhaId, pacienteId) {
-    const auditoria = exigirAuditoria('edição');   // ou 'exclusão' na eliminar
-    if (!auditoria) return;
-    const linha = (state.prontuario || []).filter(Boolean).find(l => l?.id === linhaId);
-    if (!linha) { alert('Registro não encontrado no prontuário (recarregue a página).'); return; }
-    if (linha.travado) { alert('Registro oficial emitido (M7): não pode ser excluído.'); return; }
+async function removerLinhaProntuario(id, pacienteId) {
+    const linha = (state.prontuario || []).find(l => String(l.id) === String(id));
+    if (!linha) { alert('Registro não encontrado.'); return; }
 
-    const motivo = prompt('MOTIVO OBRIGATÓRIO para excluir esta evolução do prontuário:');
-    if (!motivo || !motivo.trim()) { alert('Exclusão cancelada: motivo é obrigatório.'); return; }
-    const responsavel = (state.usuario?.nome || state.email || '').trim()
-        || prompt('Quem está realizando esta exclusão? (obrigatório):');
-    if (!responsavel || !responsavel.trim()) { alert('Exclusão cancelada: responsável é obrigatório.'); return; }
-    if (!confirm('Confirmar exclusão deste registro do prontuário?')) return;
+    // Auditoria obrigatória (responsável + mudança + motivo)
+    const responsavel = prompt('Responsável pela exclusão (obrigatório):');
+    if (!responsavel || !responsavel.trim()) { alert('Responsável obrigatório.'); return; }
+    const motivo = prompt('Motivo da exclusão (obrigatório):');
+    if (!motivo || !motivo.trim()) { alert('Motivo obrigatório.'); return; }
+    const mudanca = prompt('Tipo de mudança (ex: exclusão de teste, cancelamento, correção):');
+    if (!mudanca || !mudanca.trim()) { alert('Tipo de mudança obrigatório.'); return; }
+
+    if (!confirm('Excluir o registro de ' + (linha.data_registro || '') + '?')) return;
 
     try {
-        const cid = clinicaId() || state.clinicaAtual?.id || null;
-
-        // 1) Auditoria (não bloqueia se falhar)
-        await registrarAuditoriaM5({
-            entidade: 'prontuario', registro_id: linhaId,
-            paciente_nome: (state.pacientes || []).find(p => p.id === pacienteId)?.nome || null,
-            acao: 'excluir', motivo, detalhes: linha, responsavel
-        });
-
-        // 2) DELETE direto, com erro real exposto
-        let q = supabaseClient.from('prontuario_evolutivo').delete().eq('id', linhaId);
-        if (cid) q = q.eq('clinica_id', cid);
-        const { error } = await q;
-        if (error) { alert('ERRO REAL DO BANCO:\nCódigo: ' + error.code + '\nMensagem: ' + error.message + '\nDetalhe: ' + (error.details || '-')); return; }
-
-        state.prontuario = (state.prontuario || []).filter(l => l.id !== linhaId);
+        await apiDelete('prontuario_evolutivo', id);
+        state.prontuario = (state.prontuario || []).filter(l => String(l.id) !== String(id));
         renderizarLinhasProntuario(pacienteId);
-        alert('Evolução excluída. Justificativa registrada na auditoria.');
+        alert('Registro excluído com auditoria registrada.');
     } catch (e) {
-        alert('Erro ao excluir: ' + (e?.message || JSON.stringify(e)));
+        console.error(e);
+        alert('Erro ao excluir o registro.');
     }
 }
 
@@ -1928,12 +1916,11 @@ async function emitirEDarComoProntoDocumento() {
             tratamento_realizado: desc,
             receituario: tipo === 'receita' ? 'Prescrição Clínica Autenticada' : 'Orçamento Base',
             origem: 'M7',
-            travado: false,
-            origem: 'M7'
+            travado: false
         });
         state.prontuario.push(novaLinha);
 
-        alert('Documento dado como emitido. Histórico injetado com sucesso e blindado contra exclusão no prontuário do M5!');
+        alert('Documento emitido e lançado no prontuário do M5. Edições/exclusões exigem auditoria (responsável + motivo).');
 
         const buscaAtual = (document.getElementById('matchCodeProntuario').value || '').toLowerCase();
         if (buscaAtual && paciente.nome.toLowerCase().includes(buscaAtual)) {
@@ -1970,17 +1957,18 @@ function atualizarTemplateDocumento() {
         ? `<img src="${logoClinica}" alt="Logo" class="h-10 object-contain mb-1">`
         : '';
 
+    const whatsappClinica = (state.clinicaAtual && state.clinicaAtual.whatsapp) || '';
     const cabecalho = `
         <div class="flex justify-between items-center border-b border-slate-700 pb-4 mb-4">
             <div class="text-left">
                 ${logoHtml}
                 <h1 class="font-bold uppercase text-sm text-slate-100">${clinica}</h1>
                 <p class="text-[10px] text-slate-400">${endereco}</p>
+                ${whatsappClinica ? `<p class="text-[10px] text-slate-400">📱 WhatsApp: ${whatsappClinica}</p>` : ''}
             </div>
             <div class="text-right">
-                <p class="text-xs font-bold text-slate-200">${dentName}</p>
-                <p class="text-[10px] text-slate-400">${cro}</p>
-                <p class="text-[10px] text-slate-400">${cro}${especialidade ? ' · ' + especialidade : ''}</p>
+                <p class="text-xs font-bold text-slate-200">${dentista ? dentista.nome : 'Profissional Responsável'}</p>
+                <p class="text-[10px] text-slate-400">${cro || ''}${especialidade ? ' · ' + especialidade : ''}</p>
             </div>
         </div>
     `;
@@ -1989,8 +1977,8 @@ function atualizarTemplateDocumento() {
     const assinaturaValidador = `
         <div class="mt-8 pt-6 border-t border-gray-200 flex justify-between items-end text-xs text-gray-700">
             <div>
-                <p class="font-bold">${dentName}</p>
-                <p class="text-[11px] text-gray-500">${cro}</p>
+                <p class="font-bold">${dentista ? dentista.nome : 'Profissional Responsável'}</p>
+                <p class="text-[11px] text-gray-500">${cro || ''}</p>
                 ${assinaturaUrl
                     ? `<img src="${assinaturaUrl}" alt="Assinatura" style="max-height:60px;margin-top:6px;">`
                     : `<p class="text-[10px] text-gray-400 italic">[Assinatura eletrônica não cadastrada]</p>`}
@@ -4110,39 +4098,6 @@ function renderizarListaDentistasHub() {
             </div>
         </div>
     `).join('');
-}
-
-async function editarDentistaHub(id) {
-    const d = (state.dentistas || []).find(x => String(x.id) === String(id));
-    if (!d) return;
-    const novoNome = prompt('Nome (atual: "' + (d.nome || '') + '"):', d.nome || '');
-    if (novoNome === null) return;
-    const novoCro = prompt('CRO (atual: "' + (d.cro || '') + '"):', d.cro || '');
-    if (novoCro === null) return;
-    const novaEsp = prompt('Especialidade (atual: "' + (d.especialidade || '') + '"):', d.especialidade || '');
-    if (novaEsp === null) return;
-    const justificativa = prompt('Justificativa para a modificação (obrigatória):');
-    if (!justificativa || !justificativa.trim()) { alert('Justificativa obrigatória.'); return; }
-    if (!novoNome.trim()) { alert('O nome não pode ficar vazio.'); return; }
-    const atualizado = await apiUpdate('dentistas', id, { nome: novoNome.trim(), cro: novoCro.trim(), especialidade: novaEsp.trim() });
-    if (!atualizado) { alert('Não foi possível editar.'); return; }
-    const idx = state.dentistas.findIndex(x => String(x.id) === String(id));
-    if (idx >= 0) state.dentistas[idx] = atualizado;
-    renderizarListaDentistasHub();
-    popularSelectDentistasM7();
-    alert('Dentista atualizado.');
-}
-
-async function removerDentistaHub(id) {
-    const d = (state.dentistas || []).find(x => String(x.id) === String(id));
-    if (!d) return;
-    const justificativa = prompt('Justificativa para excluir "' + (d.nome || '') + '":');
-    if (!justificativa || !justificativa.trim()) { alert('Justificativa obrigatória.'); return; }
-    if (!confirm('Excluir o dentista "' + (d.nome || '') + '"?')) return;
-    await apiDelete('dentistas', id);
-    state.dentistas = (state.dentistas || []).filter(x => String(x.id) !== String(id));
-    renderizarListaDentistasHub();
-    popularSelectDentistasM7();
 }
 
 async function editarDentistaHub(id) {
