@@ -2038,7 +2038,6 @@ async function emitirEDarComoProntoDocumento() {
             documento_html: conteudoHtml
         });
         state.prontuario.push(novaLinha);
-        ...
 
         alert('Documento emitido e lançado no prontuário do M5. Edições e exclusões exigem auditoria (responsável + motivo).');
 
