@@ -1325,9 +1325,11 @@ function renderizarLinhasProntuario(pacienteId) {
     }
 
     tbody.innerHTML = linhas.map(line => {
-        const acaoDeletar = `<button onclick="removerLinhaProntuario('${line.id}', '${pacienteId}')" class="text-rose-400 hover:underline">Eliminar</button>`;
+        const acaoVer = `<button onclick="visualizarDocumentoProntuario('${line.id}')" class="text-emerald-400 hover:underline">Visualizar</button>`;
 
         const acaoEditar = `<button onclick="editarLinhaProntuario('${line.id}', '${pacienteId}')" class="text-sky-400 hover:underline">Editar</button>`;
+
+        const acaoDeletar = `<button onclick="removerLinhaProntuario('${line.id}', '${pacienteId}')" class="text-rose-400 hover:underline">Eliminar</button>`;
 
         const seloOficial = line.travado
             ? `<span class="text-[10px] text-slate-500 bg-slate-950 px-2 py-0.5 rounded border border-slate-800">Oficial Emitido (M7)</span>`
@@ -1339,7 +1341,7 @@ function renderizarLinhasProntuario(pacienteId) {
                 <td class="p-2"><span class="px-2 py-0.5 rounded text-[10px] ${line.tipo === 'Online' ? 'bg-purple-950 text-purple-300' : 'bg-sky-950 text-sky-300'}">${line.tipo}</span></td>
                 <td class="p-2 text-slate-200">${line.tratamento_realizado || ''}</td>
                 <td class="p-2 italic text-slate-400">${line.receituario || 'Nenhuma'}</td>
-                <td class="p-2 text-right space-x-2">${acaoEditar} ${acaoDeletar} ${seloOficial}</td>
+                <td class="p-2 text-right space-x-2">${acaoVer} ${acaoEditar} ${acaoDeletar} ${seloOficial}</td>
             </tr>
         `;
     }).join('');
@@ -1525,6 +1527,121 @@ async function abrirHistoricoCompleto() {
 function fecharHistorico() {
     const m = document.getElementById('modalHistoricoPaciente');
     if (m) m.classList.add('hidden');
+}
+
+// ===== M5 — VISUALIZAR E EDITAR O DOCUMENTO DO PRONTUÁRIO =====
+function abrirModalDocumento({ html, modo, aoSalvar }) {
+    const anterior = document.getElementById('modalDocumentoWrapper');
+    if (anterior) anterior.remove();
+
+    const wrapper = document.createElement('div');
+    wrapper.id = 'modalDocumentoWrapper';
+    wrapper.className = 'fixed inset-0 bg-black/70 z-[9999] flex items-center justify-center p-4';
+    wrapper.innerHTML = `
+        <div class="bg-slate-900 border border-slate-700 rounded-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+            <div class="flex items-center justify-between px-4 py-3 border-b border-slate-800">
+                <h3 class="text-sm font-bold text-slate-100">${modo === 'editar' ? 'Editar documento do prontuário' : 'Documento do prontuário'}</h3>
+                <button id="btnFecharModalDocX" class="text-slate-400 hover:text-slate-200 text-xl leading-none">×</button>
+            </div>
+            <div class="overflow-auto p-4 bg-white text-slate-900 flex-1" id="corpoModalDoc"></div>
+            <div class="flex justify-end gap-2 px-4 py-3 border-t border-slate-800">
+                ${modo === 'editar' ? '<button id="btnSalvarModalDoc" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded-lg transition">Salvar alterações</button>' : ''}
+                <button id="btnFecharModalDoc" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold px-4 py-2 rounded-lg transition">Fechar</button>
+            </div>
+        </div>`;
+    document.body.appendChild(wrapper);
+
+    const corpo = document.getElementById('corpoModalDoc');
+    corpo.innerHTML = html || '<p style="color:#666;">Sem conteúdo armazenado.</p>';
+    if (modo === 'editar') {
+        corpo.setAttribute('contenteditable', 'true');
+        corpo.style.outline = 'none';
+        corpo.focus();
+    }
+
+    const fechar = () => wrapper.remove();
+    document.getElementById('btnFecharModalDocX').onclick = fechar;
+    document.getElementById('btnFecharModalDoc').onclick = fechar;
+    if (modo === 'editar' && aoSalvar) {
+        document.getElementById('btnSalvarModalDoc').onclick = () => aoSalvar(corpo.innerHTML);
+    }
+}
+
+async function buscarHtmlDocumento(linha) {
+    if (linha.documento_html) return linha.documento_html;
+    if (!linha.documento_id) return '';
+    const doc = await apiGet('documentos_emitidos', linha.documento_id);
+    return doc && doc.conteudo_html ? doc.conteudo_html : '';
+}
+
+async function visualizarDocumentoProntuario(id) {
+    const linha = (state.prontuario || []).find(l => String(l.id) === String(id));
+    if (!linha) { alert('Registro não encontrado.'); return; }
+    const html = await buscarHtmlDocumento(linha);
+    if (!html) {
+        alert('Este registro foi emitido antes da atualização e não guardou o documento. Use Editar para escrever o conteúdo correto.');
+        return;
+    }
+    abrirModalDocumento({ html, modo: 'visualizar' });
+}
+
+async function editarLinhaProntuario(id, pacienteId) {
+    const linha = (state.prontuario || []).find(l => String(l.id) === String(id));
+    if (!linha) { alert('Registro não encontrado.'); return; }
+
+    const responsavel = ((state.usuario && state.usuario.nome) || '').trim() || (prompt('Responsável pela modificação (obrigatório):') || '');
+    if (!responsavel.trim()) { alert('Responsável obrigatório.'); return; }
+    const motivo = prompt('Motivo da modificação (obrigatório):');
+    if (!motivo || !motivo.trim()) { alert('Motivo obrigatório.'); return; }
+    const mudanca = prompt('O que será alterado (obrigatório):');
+    if (!mudanca || !mudanca.trim()) { alert('Descrição da mudança obrigatória.'); return; }
+
+    let htmlAtual = await buscarHtmlDocumento(linha);
+    if (!htmlAtual) {
+        htmlAtual = '<p style="font-family:Arial;font-size:12px;color:#666;">[Documento sem conteúdo armazenado. Escreva abaixo o conteúdo correto.]</p>';
+    }
+    const docId = linha.documento_id || null;
+
+    abrirModalDocumento({
+        html: htmlAtual,
+        modo: 'editar',
+        aoSalvar: async (htmlNovo) => {
+            if (htmlNovo === htmlAtual) { alert('Nenhuma alteração detectada.'); return; }
+            try {
+                if (docId) await apiUpdate('documentos_emitidos', docId, { conteudo_html: htmlNovo });
+                await apiUpdate('prontuario_evolutivo', id, { documento_html: htmlNovo });
+                if (typeof registrarAuditoriaM5 === 'function') {
+                    await registrarAuditoriaM5({
+                        entidade: 'documento',
+                        registro_id: id,
+                        paciente_nome: linha.paciente_nome || null,
+                        acao: 'editar_documento',
+                        motivo: motivo.trim(),
+                        responsavel: responsavel.trim(),
+                        detalhes: {
+                            mudanca_declarada: mudanca.trim(),
+                            documento_id: docId,
+                            conteudo_anterior: htmlAtual,
+                            conteudo_novo: htmlNovo,
+                            editado_em: new Date().toISOString()
+                        }
+                    });
+                }
+                const idx = state.prontuario.findIndex(l => String(l.id) === String(id));
+                if (idx >= 0) {
+                    state.prontuario[idx].documento_html = htmlNovo;
+                    state.prontuario[idx].documento_id = docId;
+                }
+                const m = document.getElementById('modalDocumentoWrapper');
+                if (m) m.remove();
+                renderizarLinhasProntuario(pacienteId);
+                alert('Documento atualizado. Alteração registrada na auditoria com conteúdo anterior e novo.');
+            } catch (e) {
+                console.error(e);
+                alert('Erro ao salvar a alteração: ' + e.message);
+            }
+        }
+    });
 }
 
 // ============================================================
@@ -1898,7 +2015,7 @@ async function emitirEDarComoProntoDocumento() {
     const conteudoHtml = document.getElementById('areaPreviewDocumento').innerHTML;
 
     try {
-        await apiCreate('documentos_emitidos', {
+        const docCriado = await apiCreate('documentos_emitidos', {
             clinica_id: clinicaId(),
             paciente_id: paciente.id,
             paciente_nome: pacName,
@@ -1916,9 +2033,12 @@ async function emitirEDarComoProntoDocumento() {
             tratamento_realizado: desc,
             receituario: tipo === 'receita' ? 'Prescrição Clínica Autenticada' : 'Orçamento Base',
             origem: 'M7',
-            travado: false
+            travado: false,
+            documento_id: docCriado ? docCriado.id : null,
+            documento_html: conteudoHtml
         });
         state.prontuario.push(novaLinha);
+        ...
 
         alert('Documento emitido e lançado no prontuário do M5. Edições e exclusões exigem auditoria (responsável + motivo).');
 
