@@ -1898,16 +1898,15 @@ async function emitirEDarComoProntoDocumento() {
     const conteudoHtml = document.getElementById('areaPreviewDocumento').innerHTML;
 
     try {
-        await apiCreate('prontuario_evolutivo', {
+        await apiCreate('documentos_emitidos', {
             clinica_id: clinicaId(),
             paciente_id: paciente.id,
-            data_registro: hoje,
-            tipo: 'Presencial',
-            tratamento_realizado: desc,
-            receituario: ...,
-            origem: 'M7',      // ← coluna que NÃO existe na tabela
-            travado: false     // ← provavelmente também não existe
-    });
+            paciente_nome: pacName,
+            dentista_nome: dentName,
+            tipo_documento: tipo,
+            conteudo_html: conteudoHtml,
+            data_emissao: hoje
+        });
 
         const novaLinha = await apiCreate('prontuario_evolutivo', {
             clinica_id: clinicaId(),
@@ -1921,7 +1920,7 @@ async function emitirEDarComoProntoDocumento() {
         });
         state.prontuario.push(novaLinha);
 
-        alert('Documento emitido e lançado no prontuário do M5. Edições/exclusões exigem auditoria (responsável + motivo).');
+        alert('Documento emitido e lançado no prontuário do M5. Edições e exclusões exigem auditoria (responsável + motivo).');
 
         const buscaAtual = (document.getElementById('matchCodeProntuario').value || '').toLowerCase();
         if (buscaAtual && paciente.nome.toLowerCase().includes(buscaAtual)) {
@@ -1929,7 +1928,7 @@ async function emitirEDarComoProntoDocumento() {
         }
     } catch (e) {
         console.error(e);
-        alert('Erro ao emitir documento. Tente novamente.');
+        alert('Erro ao emitir documento: ' + e.message);
     }
 
     imprimirDocumentoPDF();
