@@ -1089,6 +1089,7 @@ function coletarDadosFormularioPaciente() {
         estado_civil: document.getElementById('formEstadoCivil').value,
         filhos: document.getElementById('formFilhos').value,
         cidade: document.getElementById('formCidade').value,
+        whatsapp: document.getElementById('formWhatsapp') ? document.getElementById('formWhatsapp').value.trim() : '',
         bairro: document.getElementById('formBairro').value,
         cep: document.getElementById('formCep').value,
         profissao: document.getElementById('formProfissao').value,
@@ -1164,6 +1165,8 @@ function prepararEdicaoM5(id) {
     document.getElementById('formEstadoCivil').value = p.estado_civil || '';
     document.getElementById('formFilhos').value = p.filhos || '';
     document.getElementById('formCidade').value = p.cidade || '';
+    const elWhats = document.getElementById('formWhatsapp');
+    if (elWhats) elWhats.value = (p.whatsapp || '');
     document.getElementById('formBairro').value = p.bairro || '';
     document.getElementById('formCep').value = p.cep || '';
     document.getElementById('formProfissao').value = p.profissao || '';
