@@ -2917,67 +2917,64 @@ function importarInsumosCsv() {
     const status = document.getElementById('lblImportStatus');
     processarArquivoCsv(input, status, async (linhas) => {
         const headers = linhas[0];
-        const idxCodigo = 0; // 1ª coluna da planilha (rótulo vazio ou "ID_Insumo"), guarda o código ex.: INS001
+        const idxCodigo = 0; // 1ª coluna = ID_Insumo
         const idxNome = encontrarIndice(headers, ['Nome_Insumo', 'Nome do Insumo', 'Nome']);
         const idxApresentacao = encontrarIndice(headers, ['Apresentação', 'Apresentacao']);
         const idxQuantidade = encontrarIndice(headers, ['Quantidade']);
         const idxUnidade = encontrarIndice(headers, ['Unidade_Medida', 'Unidade de Medida', 'Unidade']);
-        const idxPreco = encontrarIndice(headers, ['Preço_Apresentação', 'Preco_Apresentacao', 'Preço', 'Preco']);
+        const idxPreco = encontrarIndice(headers, ['A360_CUSTO', 'A360 Custo', 'Preço_Apresentação', 'Preco_Apresentacao', 'Preço', 'Preco']);
+        const idxCustoUnit = encontrarIndice(headers, ['Custo_Unitario', 'Custo Unitario', 'Custo Unitário']);
         const idxObs = encontrarIndice(headers, ['Observacao', 'Observação']);
-
-        if (idxNome === -1) throw new Error('Coluna "Nome_Insumo" não encontrada. Exporte a aba de Insumos da planilha.');
-
+        if (idxNome === -1) throw new Error('Coluna "Nome_Insumo" não encontrada.');
         let criados = 0, atualizados = 0;
         for (let i = 1; i < linhas.length; i++) {
             const row = linhas[i];
             const nome = (row[idxNome] || '').trim();
             if (!nome) continue;
             const codigo_externo = (row[idxCodigo] || '').trim() || null;
-
+            const preco_apresentacao = idxPreco !== -1 ? parseNumeroBR(row[idxPreco]) : 0;
+            const quantidade = idxQuantidade !== -1 ? (parseNumeroBR(row[idxQuantidade]) || 1) : 1;
+            // Usa o Custo_Unitario da planilha (já considera vida útil).
+            // Se não vier, calcula preco/qtd como fallback.
+            const custo_unitario = idxCustoUnit !== -1
+                ? parseNumeroBR(row[idxCustoUnit])
+                : (quantidade > 0 ? preco_apresentacao / quantidade : 0);
             const dados = {
-                clinica_id: clinicaId(),
-                nome,
+                clinica_id: clinicaId(), nome,
                 apresentacao: idxApresentacao !== -1 ? (row[idxApresentacao] || '').trim() : '',
-                quantidade_apresentacao: idxQuantidade !== -1 ? (parseNumeroBR(row[idxQuantidade]) || 1) : 1,
+                quantidade_apresentacao: quantidade,
                 unidade_medida: idxUnidade !== -1 ? (row[idxUnidade] || '').trim() : '',
-                preco_apresentacao: idxPreco !== -1 ? parseNumeroBR(row[idxPreco]) : 0,
+                preco_apresentacao,
+                custo_unitario,
                 observacao: idxObs !== -1 ? (row[idxObs] || '').trim() : '',
                 codigo_externo
             };
-
             const existente = state.insumos.find(x =>
                 (codigo_externo && x.codigo_externo === codigo_externo) ||
                 (!x.codigo_externo && (x.nome || '').trim().toLowerCase() === nome.toLowerCase())
             );
-
             try {
                 if (existente) {
                     const atualizado = await apiUpdate('insumos', existente.id, dados);
                     const idx = state.insumos.findIndex(x => x.id === existente.id);
-                    state.insumos[idx] = atualizado;
-                    atualizados++;
+                    state.insumos[idx] = atualizado; atualizados++;
                 } else {
                     const criado = await apiCreate('insumos', dados);
-                    state.insumos.push(criado);
-                    criados++;
+                    state.insumos.push(criado); criados++;
                 }
             } catch (e) {
-                // Se a coluna codigo_externo ainda não existir no banco (SQL de migração
-                // não rodado), tenta de novo sem ela para não travar a importação inteira.
                 delete dados.codigo_externo;
                 if (existente) {
                     const atualizado = await apiUpdate('insumos', existente.id, dados);
                     const idx = state.insumos.findIndex(x => x.id === existente.id);
-                    state.insumos[idx] = atualizado;
-                    atualizados++;
+                    state.insumos[idx] = atualizado; atualizados++;
                 } else {
                     const criado = await apiCreate('insumos', dados);
-                    state.insumos.push(criado);
-                    criados++;
+                    state.insumos.push(criado); criados++;
                 }
             }
         }
-        return `${criados} insumo(s) criado(s), ${atualizados} atualizado(s). Pode reimportar este arquivo sempre que a planilha mudar — nada é duplicado.`;
+        return `${criados} insumo(s) criado(s), ${atualizados} atualizado(s) com o custo de aplicação correto (Custo_Unitario da planilha).`;
     });
 }
 
