@@ -702,6 +702,7 @@ function switchTab(tabId) {
             case 'tab-custos':
             case 'tab-atendimentos':
                 if (typeof renderizarModuloFinanceiroCompleto === 'function') renderizarModuloFinanceiroCompleto();
+                if (typeof popularSelectsAtendimento === 'function') popularSelectsAtendimento();
                 break;
             case 'tab-comercial':
                 if (typeof calcularFunilComercial === 'function') calcularFunilComercial();
@@ -3393,6 +3394,103 @@ function renderizarAtendimentos() {
             </tr>
         `;
     }).join('');
+}
+
+// ============================================================
+// 12C-2. MÓDULO 9 — POPULAÇÃO DOS SELECTS E AUTO-PREENCHIMENTO
+// ============================================================
+
+// Popula os selects do M9 com dados reais do banco
+async function popularSelectsAtendimento() {
+    // Pacientes
+    const selPac = document.getElementById('atdPaciente');
+    if (selPac) {
+        selPac.innerHTML = '<option value="">Selecione o paciente</option>' +
+            (state.pacientes || []).map(p => `<option value="${p.id}">${p.nome || ''}</option>`).join('');
+    }
+
+    // Serviços (vêm da planilha via M8)
+    const selServ = document.getElementById('atdServico');
+    if (selServ) {
+        selServ.innerHTML = '<option value="">Selecione o serviço</option>' +
+            (state.servicos || []).map(s => `<option value="${s.id}">${s.nome || ''}</option>`).join('');
+    }
+
+    // Profissionais (DENTISTAS REAIS do Hub Clínica)
+    const selProf = document.getElementById('atdProfissional');
+    if (selProf) {
+        let profissionais = [];
+        try {
+            const { data } = await supabaseClient
+                .from('dentistas')
+                .select('id, nome, especialidade')
+                .eq('clinica_id', clinicaId());
+            profissionais = data || [];
+        } catch (e) {
+            profissionais = state.profissionais || [];
+        }
+        if (!profissionais.length) profissionais = state.profissionais || [];
+        selProf.innerHTML = '<option value="">Selecione o profissional</option>' +
+            profissionais.map(d => `<option value="${d.id}">${d.nome || ''}</option>`).join('');
+    }
+}
+
+// Ao escolher o serviço, preenche os valores e mostra custo/margem
+async function preencherValoresServico() {
+    const servicoId = document.getElementById('atdServico').value;
+    const tipo = document.getElementById('atdTipoPagamento').value;
+    const info = document.getElementById('infoServicoAtendimento');
+    const campoConv = document.getElementById('atdValorConvenio');
+    const campoPart = document.getElementById('atdValorParticular');
+
+    if (!servicoId) {
+        campoConv.value = ''; campoPart.value = '';
+        if (info) info.classList.add('hidden');
+        return;
+    }
+
+    // Preços vindos da planilha (tabela servicos)
+    const servico = (state.servicos || []).find(s => s.id === servicoId);
+    const precoConv = servico ? (Number(servico.preco_convenio) || 0) : 0;
+    const precoPart = servico ? (Number(servico.preco_particular) || 0) : 0;
+
+    // Custo real vindo da view
+    let custoTotal = 0, margemMin = 20;
+    try {
+        const { data: sv } = await supabaseClient
+            .from('vw_custo_servico')
+            .select('custo_total, margem_minima')
+            .eq('id', servicoId)
+            .single();
+        if (sv) { custoTotal = sv.custo_total || 0; margemMin = sv.margem_minima || 20; }
+    } catch (e) { /* usa padrão */ }
+
+    // Preenche conforme o tipo de pagamento
+    if (tipo === 'convenio') {
+        campoConv.value = precoConv || '';
+        campoPart.value = '';
+    } else if (tipo === 'particular') {
+        campoConv.value = '';
+        campoPart.value = precoPart || '';
+    } else {
+        campoConv.value = precoConv || '';
+        campoPart.value = precoPart || '';
+    }
+
+    // Mostra custo, preço e margem para a dentista decidir
+    if (info) {
+        const precoUsado = tipo === 'particular' ? precoPart : (tipo === 'convenio' ? precoConv : precoConv + precoPart);
+        let margemReal = null;
+        if (precoUsado > 0) margemReal = ((precoUsado - custoTotal) / precoUsado) * 100;
+        const cor = margemReal === null ? 'text-slate-400' : (margemReal < margemMin ? 'text-amber-300' : 'text-emerald-300');
+        info.classList.remove('hidden');
+        info.innerHTML = `
+            <div class="flex flex-wrap gap-3">
+                <span>Custo total: <strong>${typeof formatarMoeda === 'function' ? formatarMoeda(custoTotal) : 'R$ ' + custoTotal.toFixed(2)}</strong></span>
+                <span>Preço ${tipo === 'particular' ? 'particular' : (tipo === 'convenio' ? 'convênio' : 'total')}: <strong>${typeof formatarMoeda === 'function' ? formatarMoeda(precoUsado) : 'R$ ' + precoUsado.toFixed(2)}</strong></span>
+                <span class="${cor}">Margem: <strong>${margemReal === null ? '—' : margemReal.toFixed(1) + '%'}</strong> (mín. ${margemMin}%)</span>
+            </div>`;
+    }
 }
 
 // ============================================================
