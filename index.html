@@ -882,9 +882,9 @@
                     <h3 class="text-xs font-bold uppercase text-emerald-400 mb-3">Novo Atendimento</h3>
                     <div class="grid grid-cols-1 md:grid-cols-6 gap-2 text-xs">
                         <select id="atdPaciente" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200"></select>
-                        <select id="atdServico" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200"></select>
+                        <select id="atdServico" onchange="preencherValoresServico()" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200"></select>
                         <select id="atdProfissional" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200"></select>
-                        <select id="atdTipoPagamento" onchange="ajustarCamposValorAtendimento()" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200">
+                        <select id="atdTipoPagamento" onchange="ajustarCamposValorAtendimento(); preencherValoresServico()" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200"></select>
                             <option value="convenio">Convênio</option>
                             <option value="particular">Particular</option>
                             <option value="misto">Misto (Convênio + Particular)</option>
@@ -893,6 +893,8 @@
                         <input type="number" id="atdValorParticular" placeholder="Valor Particular (R$)" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 hidden">
                         <input type="date" id="atdData" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200">
                     </div>
+                    <!-- Info de custo e margem do serviço selecionado -->
+                    <div id="infoServicoAtendimento" class="hidden my-2 p-3 bg-slate-800/60 border border-slate-700 rounded-xl text-slate-300 text-xs"></div>
                     <!-- Container de Alerta Dinâmico de Margem Baixa -->
                     <div id="alertaMargemAtendimento" class="hidden my-3 p-3 bg-amber-950/40 border border-amber-800/80 rounded-xl text-amber-300 text-xs"></div>
 
