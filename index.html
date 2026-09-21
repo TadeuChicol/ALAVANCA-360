@@ -650,7 +650,7 @@
     </div>
 
     <!-- Sub-abas internas do M8 -->
-    <div class="flex flex-wrap bg-slate-900 p-2 rounded-xl border border-slate-800 w-fit gap-1 text-xs">
+    <div class="flex flex-wrap bg-slate-900 p-2 rounded-xl border border-slate-800 w-full gap-1 text-xs"
         <button onclick="mudarSubAbaCustos('insumos')" id="subtabBtn-insumos" class="subtab-btn px-4 py-1.5 rounded-lg bg-emerald-600 text-white font-medium transition">Insumos</button>
         <button onclick="mudarSubAbaCustos('servicos')" id="subtabBtn-servicos" class="subtab-btn px-4 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition">Serviços</button>
         <button onclick="mudarSubAbaCustos('mapa')" id="subtabBtn-mapa" class="subtab-btn px-4 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition">Consumo por Serviço</button>
@@ -664,8 +664,8 @@
     <div id="subtab-insumos" class="subtab-content space-y-4">
         <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
             <h3 class="text-xs font-bold uppercase text-emerald-400 mb-3">Novo Insumo</h3>
-            <div class="grid grid-cols-1 md:grid-cols-6 gap-2 text-xs">
-                <input type="text" id="insNome" placeholder="Nome do insumo (ex: Luva, Ácido Hialurônico)" class="md:col-span-2 bg-slate-950 border border-slate-800 p-2 rounded text-slate-200">
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-3 text-xs">
+                <input type="text" id="insNome" placeholder="Nome do insumo (ex: Luva, Ácido Hialurônico)" class="md:col-span-4 bg-slate-950 border border-slate-800 p-2 rounded text-slate-200">
                 <input type="text" id="insApresentacao" placeholder="Apresentação (Caixa, Frasco...)" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200">
                 <input type="number" id="insQuantidade" placeholder="Qtd. na embalagem" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200">
                 <input type="text" id="insUnidade" placeholder="Unidade (ml, g, unid.)" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200">
@@ -689,8 +689,8 @@
     <div id="subtab-servicos" class="subtab-content hidden space-y-4">
         <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
             <h3 class="text-xs font-bold uppercase text-emerald-400 mb-3">Novo Serviço/Procedimento</h3>
-            <div class="grid grid-cols-1 md:grid-cols-6 gap-2 text-xs">
-                <input type="text" id="servNome" placeholder="Nome do serviço" class="md:col-span-2 bg-slate-950 border border-slate-800 p-2 rounded text-slate-200">
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-3 text-xs"></div>
+                <input type="text" id="servNome" placeholder="Nome do serviço" class="md:col-span-4 bg-slate-950 border border-slate-800 p-2 rounded text-slate-200">
                 <input type="text" id="servCategoria" placeholder="Categoria (ex: Facial, Clínico)" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200">
                 <input type="number" id="servTempo" placeholder="Tempo médio (min)" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200">
                 <input type="number" id="servPrecoConvenio" placeholder="Preço Convênio (R$)" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200">
@@ -714,7 +714,7 @@
     <div id="subtab-mapa" class="subtab-content hidden space-y-4">
         <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
             <h3 class="text-xs font-bold uppercase text-emerald-400 mb-3">Vincular Insumo a um Serviço</h3>
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-2 text-xs">
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-2 text-xs">
                 <select id="mapaServico" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200"></select>
                 <select id="mapaInsumo" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200"></select>
                 <input type="number" id="mapaQuantidade" placeholder="Qtd. consumida" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200">
@@ -735,7 +735,7 @@
     <div id="subtab-fixos" class="subtab-content hidden space-y-4">
         <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
             <h3 class="text-xs font-bold uppercase text-emerald-400 mb-3">Custo Fixo Mensal</h3>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-2 text-xs">
                 <input type="text" id="fixoNome" placeholder="Ex: Aluguel, Internet, Contador" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200">
                 <input type="number" id="fixoValor" placeholder="Valor mensal (R$)" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200">
                 <button onclick="salvarCustoFixo()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition">Adicionar</button>
@@ -803,7 +803,7 @@
 
     <!-- SUBABA: IMPORTAR CSV -->
     <div id="subtab-importar" class="subtab-content hidden space-y-4">
-        <div class="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-4 text-[11px] text-slate-300 leading-relaxed max-w-3xl">
+        <div class="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-4 text-[11px] text-slate-300 leading-relaxed max-w-none">
             <p class="font-bold text-emerald-400 uppercase text-[10px] mb-2">Migração sem retrabalho — siga esta ordem</p>
             <p>Se você já tem a planilha de custos pronta no Google Sheets, dá para trazer os dados <strong>sem redigitar nada</strong>: exporte cada aba como CSV ("Arquivo → Fazer Download → Valores separados por vírgula") e importe abaixo, <strong>nesta ordem</strong>:</p>
             <ol class="list-decimal list-inside mt-2 space-y-0.5">
@@ -817,7 +817,7 @@
         </div>
 
         <!-- 1. INSUMOS -->
-        <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-3 max-w-2xl">
+        <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-3 max-w-none">
             <h3 class="text-xs font-bold uppercase text-emerald-400">1. Importar Insumos (CUSTOS_INSUMOS_UNID)</h3>
             <p class="text-[11px] text-slate-400">Colunas reconhecidas automaticamente: Nome_Insumo, Apresentação, Quantidade, Unidade_Medida, Preço_Apresentação, Observacao.</p>
             <input type="file" id="inputCsvInsumos" accept=".csv" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
@@ -826,7 +826,7 @@
         </div>
 
         <!-- 2. SERVIÇOS -->
-        <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-3 max-w-2xl">
+        <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-3 max-w-none">
             <h3 class="text-xs font-bold uppercase text-sky-400">2. Importar Serviços/Procedimentos (SERVIÇOS_PROCEDIMENTOS)</h3>
             <p class="text-[11px] text-slate-400">Colunas reconhecidas: ID_Servico, Nome_Servico, Categoria, Tempo_Medio_min, Custo_Servico_Externo, Custo_Radiografia, Outros_Custos_Diretos. Se sua planilha não tiver Preço de Convênio/Particular, preencha esses dois preços depois na aba "Serviços".</p>
             <input type="file" id="inputCsvServicos" accept=".csv" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
@@ -835,7 +835,7 @@
         </div>
 
         <!-- 3. MAPA INSUMO x SERVIÇO -->
-        <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-3 max-w-2xl">
+        <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-3 max-w-none">
             <h3 class="text-xs font-bold uppercase text-purple-400">3. Importar Vínculo Insumo × Serviço (MAP_INSUMOS_SERVICOS)</h3>
             <p class="text-[11px] text-slate-400">Requer que os passos 1 e 2 já tenham sido feitos. Colunas reconhecidas: ID_Servico, Nome_Servico, ID_Insumo, Nome_Insumo, Qtd_Consumida.</p>
             <input type="file" id="inputCsvMapa" accept=".csv" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
@@ -844,7 +844,7 @@
         </div>
 
         <!-- 4. CUSTOS FIXOS -->
-        <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-3 max-w-2xl">
+        <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-3 max-w-none">
             <h3 class="text-xs font-bold uppercase text-amber-400">4. Importar Custos Fixos (CUSTOS_FIXOS_VARIAVEIS)</h3>
             <p class="text-[11px] text-slate-400">Colunas reconhecidas: Tipo, Categoria, Valor Mensal (R$). A linha de total geral é ignorada automaticamente.</p>
             <input type="file" id="inputCsvFixos" accept=".csv" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs">
@@ -853,7 +853,7 @@
         </div>
 
         <!-- 5. CONFIG CONVÊNIO / PARTICULAR -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-none">
             <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-3">
                 <h3 class="text-xs font-bold uppercase text-sky-400">5a. Importar Config. Convênio (CONFIG_CONVENIO)</h3>
                 <p class="text-[11px] text-slate-400">Lê pró-labore, horas/dia, dias/mês, margem e impostos direto da aba de parâmetros.</p>
@@ -880,7 +880,7 @@
                 </div>
                 <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
                     <h3 class="text-xs font-bold uppercase text-emerald-400 mb-3">Novo Atendimento</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-6 gap-2 text-xs">
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-3 text-xs">
                         <select id="atdPaciente" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200"></select>
                         <select id="atdServico" onchange="preencherValoresServico()" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200"></select>
                         <select id="atdProfissional" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200"></select>
