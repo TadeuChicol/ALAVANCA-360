@@ -19,7 +19,7 @@
         .custom-scrollbar::-webkit-scrollbar-track { background: #1e293b; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
     </style>
-</head><body class="h-screen flex flex-col overflow-hidden">
+</head><body class="h-screen flex flex-col overflow-y-auto">
 
     <!-- ============================================================ -->
     <!-- TELA DE LOGIN (MULTI-TENANT) -->
@@ -59,7 +59,7 @@
     <!-- ============================================================ -->
     <!-- APLICAÇÃO PRINCIPAL (visível somente após login) -->
     <!-- ============================================================ -->
-    <div id="appPrincipal" class="hidden h-screen flex flex-col overflow-hidden">
+    <div id="appPrincipal" class="hidden h-screen flex flex-col overflow-y-auto">
 
     <!-- TOPBAR GLOBAL -->
     <header class="bg-slate-900 border-b border-slate-800 px-6 py-4 flex justify-between items-center shrink-0">
@@ -650,7 +650,7 @@
     </div>
 
     <!-- Sub-abas internas do M8 -->
-    <div class="flex flex-wrap bg-slate-900 p-2 rounded-xl border border-slate-800 w-full gap-1 text-xs"
+    <div class="flex flex-wrap bg-slate-900 p-2 rounded-xl border border-slate-800 w-full gap-1 text-xs">
         <button onclick="mudarSubAbaCustos('insumos')" id="subtabBtn-insumos" class="subtab-btn px-4 py-1.5 rounded-lg bg-emerald-600 text-white font-medium transition">Insumos</button>
         <button onclick="mudarSubAbaCustos('servicos')" id="subtabBtn-servicos" class="subtab-btn px-4 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition">Serviços</button>
         <button onclick="mudarSubAbaCustos('mapa')" id="subtabBtn-mapa" class="subtab-btn px-4 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition">Consumo por Serviço</button>
@@ -689,7 +689,7 @@
     <div id="subtab-servicos" class="subtab-content hidden space-y-4">
         <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
             <h3 class="text-xs font-bold uppercase text-emerald-400 mb-3">Novo Serviço/Procedimento</h3>
-            <div class="grid grid-cols-1 md:grid-cols-12 gap-3 text-xs"></div>
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-3 text-xs">
                 <input type="text" id="servNome" placeholder="Nome do serviço" class="md:col-span-4 bg-slate-950 border border-slate-800 p-2 rounded text-slate-200">
                 <input type="text" id="servCategoria" placeholder="Categoria (ex: Facial, Clínico)" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200">
                 <input type="number" id="servTempo" placeholder="Tempo médio (min)" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200">
@@ -884,7 +884,7 @@
                         <select id="atdPaciente" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200"></select>
                         <select id="atdServico" onchange="preencherValoresServico()" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200"></select>
                         <select id="atdProfissional" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200"></select>
-                        <select id="atdTipoPagamento" onchange="ajustarCamposValorAtendimento(); preencherValoresServico()" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200"></select>
+                        <select id="atdTipoPagamento" onchange="ajustarCamposValorAtendimento(); preencherValoresServico()" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200">
                             <option value="convenio">Convênio</option>
                             <option value="particular">Particular</option>
                             <option value="misto">Misto (Convênio + Particular)</option>
