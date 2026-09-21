@@ -3212,6 +3212,8 @@ function importarConfigCsv(modalidade) {
     });
 }
 
+sincronizarTudoDaPlanilha()
+
 // ============================================================
 // 12C. MÓDULO 9 — ATENDIMENTOS (CONVÊNIO / PARTICULAR / MISTO)
 // ============================================================
