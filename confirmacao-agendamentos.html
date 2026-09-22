@@ -94,16 +94,23 @@
   <div class="painel">
     <button class="painel-head" id="cfgToggle">⚙️ Configurações &amp; Links (edite aqui — salva neste navegador)<span>▼</span></button>
     <div class="painel-body" id="cfgBody" style="display:none;">
-      <div class="campo"><label>URL da Edge Function (agendamentos)</label><input id="cfgUrlFuncao" placeholder="https://.../functions/v1/calcom-bookings"></div>
-      <div class="campo"><label>URL da Logomarca (imagem)</label><input id="cfgUrlLogo" placeholder="https://.../nap-logo.png (deixe vazio p/ monograma NAP)"></div>
-      <div class="campo"><label>Link da Agenda (Cal.com)</label><input id="cfgUrlCalcom" placeholder="https://cal.com/..."></div>
-      <div class="campo"><label>Link da Ficha de Anamnese</label><input id="cfgUrlAnamnese" placeholder="https://docs.google.com/forms/..."></div>
-      <div class="campo"><label>Nome da Clínica</label><input id="cfgClinica"></div>
-      <div class="campo"><label>Endereço</label><input id="cfgEndereco"></div>
-      <button class="btn btn-dourado salvar-cfg" id="btnSalvarCfg">💾 Salvar configuração</button>
-      <button class="btn btn-cinza" id="btnTravar" style="justify-self:end;">🔒 Bloquear (proteger)</button>
+      <div id="areaLogin">
+        <div class="campo"><label>E-mail master</label><input id="inpEmail" type="email" placeholder="seu@email.com"></div>
+        <div class="campo"><label>Senha</label><input id="inpSenha" type="password" placeholder="••••••"></div>
+        <button class="btn btn-dourado" id="btnLogin">🔐 Entrar</button>
+        <div id="lblLoginErro" style="color:#8C1D12;font-size:12px;font-weight:700;"></div>
+      </div>
+      <div id="areaConfig" style="display:none;">
+        <div class="campo"><label>URL da Edge Function (agendamentos)</label><input id="cfgUrlFuncao"></div>
+        <div class="campo"><label>URL da Logomarca (imagem)</label><input id="cfgUrlLogo"></div>
+        <div class="campo"><label>Link da Agenda (Cal.com)</label><input id="cfgUrlCalcom"></div>
+        <div class="campo"><label>Link da Ficha de Anamnese</label><input id="cfgUrlAnamnese"></div>
+        <div class="campo"><label>Nome da Clínica</label><input id="cfgClinica"></div>
+        <div class="campo"><label>Endereço</label><input id="cfgEndereco"></div>
+        <button class="btn btn-dourado salvar-cfg" id="btnSalvarCfg">💾 Salvar configuração</button>
+        <button class="btn btn-cinza" id="btnSair" style="justify-self:end;">🚪 Sair</button>
+      </div>
     </div>
-  </div>
 
   <div class="links-rapidos" id="linksRapidos"></div>
 
@@ -141,21 +148,26 @@
   var CHAVE_CFG = 'nap_cfg_v1';
   var CHAVE_COP = 'nap_cop_';
   var cfg = carregarCfg();
-      // ====== SEGURANÇA: configurações protegidas por senha master ======
-    var SENHA_MASTER = 'NAP2026!'; // Troque pela senha que você quiser
-    var CHAVE_BLOQ = 'nap_cfg_unlocked';
+    // ====== SEGURANÇA: configurações protegidas por senha master ======
+    // ====== AUTENTICAÇÃO ADMIN VIA SUPABASE AUTH ======
+    var SUPABASE_URL = 'https://gtcybiuxdpxixdjnshty.supabase.co';
+    var SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0Y3liaXV4ZHB4aXhkam5zaHR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ2NTU1MTgsImV4cCI6MjEwMDIzMTUxOH0.WwLPJlLsJtykl3hxGc9y-nl2NvAzoCFLcl4c5c1t68k'; // chave pública, pode ficar no código
+    var supabaseAuth = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+    var CHAVE_SESSAO = 'nap_admin_sessao';
 
-    function painelLiberado(){
-      return sessionStorage.getItem(CHAVE_BLOQ) === '1';
+    function sessaoValida(){
+      try{ return !!localStorage.getItem(CHAVE_SESSAO); }catch(e){ return false; }
     }
-    function liberarPainel(){
-      sessionStorage.setItem(CHAVE_BLOQ, '1');
+    async function loginAdmin(email, senha){
+      var { data, error } = await supabaseAuth.auth.signInWithPassword({ email: email, password: senha });
+      if (error) return error.message;
+      localStorage.setItem(CHAVE_SESSAO, data.session.access_token);
+      return null;
     }
-    function travarPainel(){
-      sessionStorage.removeItem(CHAVE_BLOQ);
-      document.getElementById('cfgBody').style.display = 'none';
-      document.getElementById('cfgToggle').children[0].textContent = '▼';
-    }
+    
+function logoutAdmin(){
+  localStorage.removeItem(CHAVE_SESSAO);
+}
   var bookings = [];
   var filtroAtivo = 'hoje';
 
@@ -344,30 +356,37 @@
     btn.textContent=textoAnt; btn.disabled=false;
   }
 
-  // ====== EVENTOS ======
-  document.getElementById('btnAtualizar').onclick=carregar;
-  document.getElementById('btnImprimir').onclick=function(){ window.print(); };
+// ====== EVENTOS ======
+  document.getElementById('btnAtualizar').onclick = carregar;
+  document.getElementById('btnImprimir').onclick = function () { window.print(); };
   document.getElementById('cfgToggle').onclick = function () {
-    if (!painelLiberado()) {
-      var senha = prompt('🔒 Área restrita. Digite a senha master para acessar as configurações:');
-      if (senha !== SENHA_MASTER) {
-        alert('Senha incorreta. Acesso negado.');
-        return;
-      }
-      liberarPainel();
+    if (!sessaoValida()) {
+      document.getElementById('cfgBody').style.display = 'grid';
+      document.getElementById('areaLogin').style.display = 'block';
+      document.getElementById('areaConfig').style.display = 'none';
+      return;
     }
+    document.getElementById('areaLogin').style.display = 'none';
+    document.getElementById('areaConfig').style.display = 'grid';
     var b = document.getElementById('cfgBody');
     var vis = b.style.display !== 'none';
     b.style.display = vis ? 'none' : 'grid';
-    this.children[0].textContent = vis ? '▼' : '▲';
   };
-  document.getElementById('btnSalvarCfg').onclick=function(){
+  document.getElementById('btnLogin').onclick = async function () {
+    var email = document.getElementById('inpEmail').value.trim();
+    var senha = document.getElementById('inpSenha').value;
+    var erro = await loginAdmin(email, senha);
+    if (erro) { document.getElementById('lblLoginErro').textContent = 'Falha: ' + erro; return; }
+    document.getElementById('cfgBody').style.display = 'grid';
+    document.getElementById('areaLogin').style.display = 'none';
+    document.getElementById('areaConfig').style.display = 'grid';
+    document.getElementById('lblLoginErro').textContent = '';
+  };
+  document.getElementById('btnSair').onclick = function () { logoutAdmin(); location.reload(); };
+  document.getElementById('btnSalvarCfg').onclick = function () {
     salvarCfg(); aplicarConfig(); carregar();
-    document.getElementById('cfgBody').style.display='none';
-    document.getElementById('cfgToggle').children[0].textContent='▼';
-    document.getElementById('btnTravar').onclick = function () {
-    travarPainel();
-    alert('Configurações bloqueadas. Para reabrir, digite a senha master.');
+    document.getElementById('cfgBody').style.display = 'none';
+    document.getElementById('cfgToggle').children[0].textContent = '▼';
   };
 
   // ====== INIT ======
