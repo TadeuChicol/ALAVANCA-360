@@ -101,6 +101,7 @@
       <div class="campo"><label>Nome da Clínica</label><input id="cfgClinica"></div>
       <div class="campo"><label>Endereço</label><input id="cfgEndereco"></div>
       <button class="btn btn-dourado salvar-cfg" id="btnSalvarCfg">💾 Salvar configuração</button>
+      <button class="btn btn-cinza" id="btnTravar" style="justify-self:end;">🔒 Bloquear (proteger)</button>
     </div>
   </div>
 
@@ -140,6 +141,21 @@
   var CHAVE_CFG = 'nap_cfg_v1';
   var CHAVE_COP = 'nap_cop_';
   var cfg = carregarCfg();
+      // ====== SEGURANÇA: configurações protegidas por senha master ======
+    var SENHA_MASTER = 'NAP2026!'; // Troque pela senha que você quiser
+    var CHAVE_BLOQ = 'nap_cfg_unlocked';
+
+    function painelLiberado(){
+      return sessionStorage.getItem(CHAVE_BLOQ) === '1';
+    }
+    function liberarPainel(){
+      sessionStorage.setItem(CHAVE_BLOQ, '1');
+    }
+    function travarPainel(){
+      sessionStorage.removeItem(CHAVE_BLOQ);
+      document.getElementById('cfgBody').style.display = 'none';
+      document.getElementById('cfgToggle').children[0].textContent = '▼';
+    }
   var bookings = [];
   var filtroAtivo = 'hoje';
 
@@ -331,16 +347,27 @@
   // ====== EVENTOS ======
   document.getElementById('btnAtualizar').onclick=carregar;
   document.getElementById('btnImprimir').onclick=function(){ window.print(); };
-  document.getElementById('cfgToggle').onclick=function(){
-    var b=document.getElementById('cfgBody');
-    var vis=b.style.display!=='none';
-    b.style.display=vis?'none':'grid';
-    this.children[0].textContent=vis?'▼':'▲';
+  document.getElementById('cfgToggle').onclick = function () {
+    if (!painelLiberado()) {
+      var senha = prompt('🔒 Área restrita. Digite a senha master para acessar as configurações:');
+      if (senha !== SENHA_MASTER) {
+        alert('Senha incorreta. Acesso negado.');
+        return;
+      }
+      liberarPainel();
+    }
+    var b = document.getElementById('cfgBody');
+    var vis = b.style.display !== 'none';
+    b.style.display = vis ? 'none' : 'grid';
+    this.children[0].textContent = vis ? '▼' : '▲';
   };
   document.getElementById('btnSalvarCfg').onclick=function(){
     salvarCfg(); aplicarConfig(); carregar();
     document.getElementById('cfgBody').style.display='none';
     document.getElementById('cfgToggle').children[0].textContent='▼';
+    document.getElementById('btnTravar').onclick = function () {
+    travarPainel();
+    alert('Configurações bloqueadas. Para reabrir, digite a senha master.');
   };
 
   // ====== INIT ======
