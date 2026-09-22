@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Central de Confirmações — NAP Odontologia Aquemênida</title>
+<style>
+  :root{
+    --bordo:#7A1F3D; --bordo-escuro:#5C132B; --dourado:#C9A227; --dourado-claro:#E4C76A;
+    --fundo:#FAF7F1; --papel:#FFFFFF; --texto:#2A2230; --cinza:#6B6470; --verde:#1F9D55; --vermelho:#C0392B;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:'Segoe UI',system-ui,-apple-system,Roboto,Arial,sans-serif; background:var(--fundo); color:var(--texto); min-height:100vh;}
+  .topo{background:linear-gradient(135deg,var(--bordo-escuro),var(--bordo)); color:#fff; padding:18px 22px; display:flex; align-items:center; gap:18px; flex-wrap:wrap; box-shadow:0 3px 12px rgba(90,20,50,.25);}
+  .topo img{height:64px; background:#fff; padding:6px; border-radius:10px; object-fit:contain;}
+  .monograma{height:64px; width:64px; min-width:64px; background:#fff; border-radius:10px; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:24px; color:var(--bordo); letter-spacing:1px; border:2px solid var(--dourado);}
+  .topo .titulos{flex:1; min-width:220px;}
+  .topo h1{font-size:20px; letter-spacing:.5px;}
+  .topo .sub{font-size:13px; opacity:.92;}
+  .topo .end{font-size:12px; opacity:.8; margin-top:2px;}
+  .acoes-topo{display:flex; gap:10px; flex-wrap:wrap;}
+  .btn{border:none; cursor:pointer; font-weight:700; font-size:13px; padding:11px 16px; border-radius:10px; transition:.15s; color:#fff;}
+  .btn:hover{filter:brightness(1.08); transform:translateY(-1px);}
+  .btn-verde{background:var(--verde);}
+  .btn-azul{background:#2563EB;}
+  .btn-dourado{background:var(--dourado); color:#3A2B00;}
+  .btn-cinza{background:#8B8790;}
+  .btn-branco{background:#fff; color:var(--bordo);}
+  .banner{padding:12px 20px; font-size:14px; font-weight:600; display:none;}
+  .banner.ok{display:block; background:#E9F9EF; color:#14613A; border-bottom:1px solid #BEEBD1;}
+  .banner.erro{display:block; background:#FDECEA; color:#8C1D12; border-bottom:1px solid #F6C8C2;}
+  .container{max-width:1180px; margin:0 auto; padding:18px;}
+  .painel{background:var(--papel); border-radius:14px; border:1px solid #EADFCE; box-shadow:0 2px 10px rgba(60,30,20,.06); margin-bottom:18px; overflow:hidden;}
+  .painel-head{width:100%; background:#F4EDE2; border:none; cursor:pointer; padding:14px 18px; font-weight:700; font-size:14px; color:var(--bordo); display:flex; justify-content:space-between; align-items:center;}
+  .painel-body{padding:16px 18px; display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:12px;}
+  .campo label{display:block; font-size:12px; font-weight:700; color:var(--cinza); margin-bottom:4px; text-transform:uppercase; letter-spacing:.4px;}
+  .campo input{width:100%; padding:10px 12px; border:1px solid #D8CBB5; border-radius:8px; font-size:13px; background:#FFFDF8;}
+  .salvar-cfg{grid-column:1/-1; justify-self:start;}
+  .links-rapidos{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:18px;}
+  .links-rapidos a{text-decoration:none; background:var(--papel); border:1px solid #EADFCE; color:var(--bordo); font-weight:700; font-size:13px; padding:10px 14px; border-radius:10px; display:inline-flex; align-items:center; gap:6px;}
+  .links-rapidos a:hover{border-color:var(--dourado); background:#FFF9EC;}
+  .filtros{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;}
+  .chip{border:1px solid #D8CBB5; background:var(--papel); color:var(--texto); padding:9px 14px; border-radius:999px; font-size:13px; font-weight:700; cursor:pointer; transition:.15s;}
+  .chip .qtd{background:#F1E8D8; border-radius:999px; padding:1px 8px; margin-left:4px; font-size:12px;}
+  .chip.ativo{background:var(--bordo); color:#fff; border-color:var(--bordo);}
+  .chip.ativo .qtd{background:rgba(255,255,255,.25);}
+  .stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px; margin-bottom:18px;}
+  .stat{background:var(--papel); border:1px solid #EADFCE; border-radius:14px; padding:14px 16px; border-top:4px solid var(--dourado);}
+  .stat .num{font-size:26px; font-weight:800; color:var(--bordo);}
+  .stat .rot{font-size:12px; color:var(--cinza); font-weight:600;}
+  .cards{display:grid; grid-template-columns:repeat(auto-fill,minmax(330px,1fr)); gap:14px;}
+  .card{background:var(--papel); border:1px solid #EADFCE; border-radius:14px; padding:16px; box-shadow:0 2px 8px rgba(60,30,20,.05); display:flex; flex-direction:column; gap:10px;}
+  .card .pac{font-size:17px; font-weight:800; color:var(--bordo);}
+  .card .quando{font-size:14px; font-weight:600; color:var(--texto);}
+  .card .tel{font-size:13px; color:var(--cinza);}
+  .badge{display:inline-block; font-size:11px; font-weight:800; padding:3px 9px; border-radius:999px;}
+  .badge.ok{background:#E9F9EF; color:#14613A;}
+  .badge.sem{background:#FDECEA; color:#8C1D12;}
+  .msg{background:#F8F3EA; border:1px dashed #CDBB96; border-radius:8px; padding:10px; font-size:12px; color:#4A444E; white-space:pre-wrap; max-height:130px; overflow:auto;}
+  .card-acoes{display:flex; gap:8px; flex-wrap:wrap; margin-top:auto;}
+  .btn-copiar{background:var(--bordo);}
+  .btn-whats{background:#25D366; text-decoration:none; text-align:center;}
+  .btn-whats:disabled,.btn-whats.des{background:#C6CCC8; cursor:not-allowed; opacity:.7;}
+  .vazio{text-align:center; padding:44px 16px; color:var(--cinza);}
+  .vazio .icone{font-size:40px; margin-bottom:8px;}
+  footer{text-align:center; font-size:12px; color:var(--cinza); padding:20px; border-top:1px solid #EADFCE; margin-top:26px;}
+  @media print{
+    .topo{background:var(--bordo) !important; -webkit-print-color-adjust:exact; print-color-adjust:exact;}
+    .painel,.links-rapidos,.acoes-topo,.btn,.filtros,.banner{display:none !important;}
+    .cards{grid-template-columns:1fr;}
+    .card{break-inside:avoid; border:1px solid #000;}
+  }
+</style>
+</head>
+<body>
+
+<header class="topo">
+  <div id="boxLogo"><span class="monograma" id="logoFallback">NAP</span></div>
+  <div class="titulos">
+    <h1>Central de Confirmações</h1>
+    <div class="sub" id="lblClinica">NAP - Odontologia Aquemênida</div>
+    <div class="end" id="lblEndereco">Rua Senador Luiz Carlos Prestes, 555 - Jardim Cacique - Suzano/SP</div>
+  </div>
+  <div class="acoes-topo">
+    <button class="btn btn-verde" id="btnAtualizar">🔄 Atualizar</button>
+    <button class="btn btn-cinza" id="btnImprimir">🖨️ Imprimir</button>
+  </div>
+</header>
+
+<div class="banner" id="banner"></div>
+
+<div class="container">
+
+  <div class="painel">
+    <button class="painel-head" id="cfgToggle">⚙️ Configurações &amp; Links (edite aqui — salva neste navegador)<span>▼</span></button>
+    <div class="painel-body" id="cfgBody" style="display:none;">
+      <div class="campo"><label>URL da Edge Function (agendamentos)</label><input id="cfgUrlFuncao" placeholder="https://.../functions/v1/calcom-bookings"></div>
+      <div class="campo"><label>URL da Logomarca (imagem)</label><input id="cfgUrlLogo" placeholder="https://.../nap-logo.png (deixe vazio p/ monograma NAP)"></div>
+      <div class="campo"><label>Link da Agenda (Cal.com)</label><input id="cfgUrlCalcom" placeholder="https://cal.com/..."></div>
+      <div class="campo"><label>Link da Ficha de Anamnese</label><input id="cfgUrlAnamnese" placeholder="https://docs.google.com/forms/..."></div>
+      <div class="campo"><label>Nome da Clínica</label><input id="cfgClinica"></div>
+      <div class="campo"><label>Endereço</label><input id="cfgEndereco"></div>
+      <button class="btn btn-dourado salvar-cfg" id="btnSalvarCfg">💾 Salvar configuração</button>
+    </div>
+  </div>
+
+  <div class="links-rapidos" id="linksRapidos"></div>
+
+  <div class="filtros" id="filtros"></div>
+
+  <div class="stats">
+    <div class="stat"><div class="num" id="stFiltro">0</div><div class="rot" id="stFiltroRot">Consultas no filtro</div></div>
+    <div class="stat"><div class="num" id="stWhats">0</div><div class="rot">Com WhatsApp válido</div></div>
+    <div class="stat"><div class="num" id="stCopiadas">0</div><div class="rot" id="stCopiadasRot">Mensagens copiadas hoje</div></div>
+  </div>
+
+  <div class="cards" id="cards"></div>
+  <div class="vazio" id="vazio" style="display:none;">
+    <div class="icone">📅</div>
+    <div>Nenhum agendamento encontrado para este filtro.</div>
+  </div>
+</div>
+
+<footer>
+  Ferramenta semiautomática — as mensagens são enviadas manualmente pela recepção via WhatsApp.<br>
+  Automação total em breve. • NAP Odontologia Aquemênida • Suzano/SP
+</footer>
+
+<script>
+(function(){
+  // ====== CONFIGURAÇÃO (editável pela própria página, salva no navegador) ======
+  var PADRAO = {
+    urlFuncao: 'https://gtcybiuxdpxixdjnshty.supabase.co/functions/v1/calcom-bookings',
+    urlLogo: '',
+    urlCalcom: 'https://cal.com/rebeca-gomes-da-silva-zara-sorriso-real-suzano-rkq95x/consulta-odontologica-nap',
+    urlAnamnese: 'https://docs.google.com/forms/d/e/1FAIpQLSdZ2A9lVIFI0uW_2lnUBXRguyBT3fHRPKTBgpIOa6c-i4Wu5A/viewform',
+    clinicaNome: 'NAP - Odontologia Aquemênida',
+    endereco: 'Rua Senador Luiz Carlos Prestes, 555 - Jardim Cacique - Suzano/SP'
+  };
+  var CHAVE_CFG = 'nap_cfg_v1';
+  var CHAVE_COP = 'nap_cop_';
+  var cfg = carregarCfg();
+  var bookings = [];
+  var filtroAtivo = 'hoje';
+
+  var FILTROS = [
+    {id:'hoje',   rotulo:'Hoje',    dias:0, exato:true},
+    {id:'amanha', rotulo:'Amanhã',  dias:1, exato:true},
+    {id:'2d',     rotulo:'2 dias',  dias:2},
+    {id:'semana', rotulo:'Semana',  dias:7},
+    {id:'14d',    rotulo:'14 dias', dias:14},
+    {id:'30d',    rotulo:'30 dias', dias:30},
+    {id:'todos',  rotulo:'Todos',   dias:null}
+  ];
+
+  function carregarCfg(){
+    try{ return Object.assign({}, PADRAO, JSON.parse(localStorage.getItem(CHAVE_CFG)||'{}')); }
+    catch(e){ return Object.assign({}, PADRAO); }
+  }
+  function salvarCfg(){
+    cfg.urlFuncao  = val('cfgUrlFuncao');
+    cfg.urlLogo    = val('cfgUrlLogo');
+    cfg.urlCalcom  = val('cfgUrlCalcom');
+    cfg.urlAnamnese= val('cfgUrlAnamnese');
+    cfg.clinicaNome= val('cfgClinica');
+    cfg.endereco   = val('cfgEndereco');
+    localStorage.setItem(CHAVE_CFG, JSON.stringify(cfg));
+  }
+  function val(id){ var el=document.getElementById(id); return el?el.value.trim():''; }
+
+  // ====== UTIL ======
+  function hojeStr(){
+    return new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date());
+  }
+  function parseData(s){
+    if(!s) return null;
+    if(/^\d{4}-\d{2}-\d{2}/.test(s)){ var d=new Date(s); return isNaN(d)?null:d; }
+    var p=String(s).split('/'); if(p.length!==3) return null;
+    var dia=+p[0], mes=+p[1]-1, ano=+p[2];
+    return (dia>=1&&dia<=31&&mes>=0&&mes<=11)?new Date(ano,mes,dia):null;
+  }
+  function diffDias(dataStr){
+    var d=parseData(dataStr); if(!d) return null;
+    var hoje=parseData(hojeStr());
+    return Math.round((d.getTime()-hoje.getTime())/86400000);
+  }
+  function formatarTelefone(t){
+    if(!t) return '';
+    var d=String(t).replace(/\D/g,'');
+    if(d.startsWith('55')) d=d.slice(2);
+    if(d.length===11) return '+55 ('+d.slice(0,2)+') '+d.slice(2,7)+'-'+d.slice(7);
+    if(d.length===10) return '+55 ('+d.slice(0,2)+') '+d.slice(2,6)+'-'+d.slice(6);
+    return t;
+  }
+  function copiadasHoje(){
+    return +(localStorage.getItem(CHAVE_COP+hojeStr())||0);
+  }
+  function montarMensagem(b){
+    return '🦷 Olá, '+ (b.nome||'Paciente') +'! Sua sessão está agendada para '+(b.data||'')+' às '+(b.hora||'')+'.\n📍 '+cfg.endereco+'\n\nPrecisamos que você preencha sua ficha de anamnese para um atendimento de excelência:\n📋 '+(b.link_anamnese||cfg.urlAnamnese)+'\n\nEsta é uma mensagem automática, não precisa ser respondida.';
+  }
+
+  // ====== UI BASE ======
+  function aplicarConfig(){
+    document.getElementById('lblClinica').textContent = cfg.clinicaNome;
+    document.getElementById('lblEndereco').textContent = cfg.endereco;
+    var box=document.getElementById('boxLogo'); box.innerHTML='';
+    if(cfg.urlLogo){
+      var img=document.createElement('img'); img.src=cfg.urlLogo; img.alt='Logomarca '+cfg.clinicaNome;
+      img.onerror=function(){ box.innerHTML='<span class="monograma">NAP</span>'; };
+      box.appendChild(img);
+    } else {
+      box.innerHTML='<span class="monograma">NAP</span>';
+    }
+    var lk=document.getElementById('linksRapidos'); lk.innerHTML='';
+    if(cfg.urlCalcom)   lk.innerHTML+='<a href="'+cfg.urlCalcom+'" target="_blank" rel="noopener">📅 Agenda no Cal.com</a>';
+    lk.innerHTML+='<a href="https://calendar.google.com/calendar/embed?src=sorriso.real.suzano%40gmail.com&ctz=America%2FSao_Paulo" target="_blank" rel="noopener">🗓️ Google Agenda</a>';
+    if(cfg.urlAnamnese) lk.innerHTML+='<a href="'+cfg.urlAnamnese+'" target="_blank" rel="noopener">📋 Ficha de Anamnese</a>';
+    ['cfgUrlFuncao','cfgUrlLogo','cfgUrlCalcom','cfgUrlAnamnese','cfgClinica','cfgEndereco'].forEach(function(id){
+      var el=document.getElementById(id);
+      if(el) el.value = cfg[id]||'';
+    });
+  }
+
+  // ====== FILTROS ======
+  function renderFiltros(){
+    var box=document.getElementById('filtros'); box.innerHTML='';
+    FILTROS.forEach(function(f){
+      var qtd = f.dias===null ? bookings.length : bookings.filter(function(b){return dentroJanela(b,f);}).length;
+      var bot=document.createElement('button');
+      bot.className='chip'+(filtroAtivo===f.id?' ativo':'');
+      bot.innerHTML=f.rotulo+' <span class="qtd">'+qtd+'</span>';
+      bot.onclick=function(){ filtroAtivo=f.id; render(); };
+      box.appendChild(bot);
+    });
+  }
+  function dentroJanela(b,f){
+    var dd=diffDias(b.data); if(dd===null) return false;
+    if(f.exato) return dd===f.dias;
+    return dd>=0 && dd<=f.dias;
+  }
+  function listaFiltrada(){
+    var f=FILTROS.find(function(x){return x.id===filtroAtivo;});
+    return bookings.filter(function(b){ return dentroJanela(b,f); });
+  }
+
+  // ====== RENDER ======
+  function render(){
+    renderFiltros();
+    var lista=listaFiltrada();
+    var cartoes=document.getElementById('cards'); cartoes.innerHTML='';
+    var vazio=document.getElementById('vazio');
+    vazio.style.display = lista.length? 'none':'block';
+    document.getElementById('stFiltro').textContent = lista.length;
+    document.getElementById('stWhats').textContent = lista.filter(function(b){return b.telefone;}).length;
+    document.getElementById('stCopiadas').textContent = copiadasHoje();
+    document.getElementById('stCopiadasRot').textContent = 'Mensagens copiadas hoje ('+hojeStr()+')';
+
+    lista.forEach(function(b){
+      var card=document.createElement('div'); card.className='card';
+      var tel=formatarTelefone(b.telefone);
+      var msg=(b.mensagem_pronta||montarMensagem(b));
+      var wa = b.link_whatsapp || (b.telefone ? 'https://wa.me/'+String(b.telefone).replace(/\D/g,'')+'?text='+encodeURIComponent(msg) : '');
+
+      card.innerHTML =
+        '<div class="pac">'+esc(b.nome||'Paciente')+'</div>'+
+        '<div class="quando">📅 '+(b.data||'')+' às '+(b.hora||'')+'</div>'+
+        '<div class="tel">📞 '+(tel||'<span style="color:#8C1D12">Sem telefone</span>')+'</div>'+
+        (b.telefone?'<span class="badge ok">WhatsApp válido</span>':'<span class="badge sem">Sem WhatsApp — buscar número na ficha do paciente</span>')+
+        '<div class="msg">'+esc(msg)+'</div>';
+
+      var acoes=document.createElement('div'); acoes.className='card-acoes';
+      var cop=document.createElement('button'); cop.className='btn btn-copiar'; cop.textContent='📋 Copiar mensagem';
+      cop.onclick=function(){ copiarMensagem(b,cop); };
+      var waBtn=document.createElement('a');
+      waBtn.className='btn btn-whats'+(wa?'':' des'); waBtn.target='_blank'; waBtn.rel='noopener';
+      waBtn.textContent='💬 Abrir WhatsApp';
+      if(wa) waBtn.href=wa; else waBtn.disabled=true;
+      acoes.appendChild(cop); acoes.appendChild(waBtn);
+      card.appendChild(acoes);
+      cartoes.appendChild(card);
+    });
+  }
+  function esc(s){ return String(s||'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+
+  // ====== COPIAR ======
+  function copiarMensagem(b,btn){
+    var msg=(b.mensagem_pronta||montarMensagem(b));
+    var fazer=function(){ return navigator.clipboard.writeText(msg); };
+    var ok=function(){
+      btn.textContent='✅ Copiado!';
+      setTimeout(function(){ btn.textContent='📋 Copiar mensagem'; },1600);
+      var chave=CHAVE_COP+hojeStr();
+      localStorage.setItem(chave, copiadasHoje()+1);
+      document.getElementById('stCopiadas').textContent=copiadasHoje();
+    };
+    if(navigator.clipboard&&navigator.clipboard.writeText){ fazer().then(ok).catch(function(){ fallbackCopiar(msg,ok); }); }
+    else fallbackCopiar(msg,ok);
+  }
+  function fallbackCopiar(msg,ok){
+    var ta=document.createElement('textarea'); ta.value=msg; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); ok(); }catch(e){ alert('Não foi possível copiar automaticamente. Selecione o texto e copie manualmente.'); }
+    document.body.removeChild(ta);
+  }
+
+  // ====== CARREGAR (fonte de verdade: Edge Function — SEM dados mock) ======
+  function banner(tipo,texto){
+    var b=document.getElementById('banner'); b.className='banner '+tipo; b.textContent=texto;
+  }
+  async function carregar(){
+    var btn=document.getElementById('btnAtualizar'); var textoAnt=btn.textContent;
+    btn.textContent='⏳ Atualizando...'; btn.disabled=true;
+    banner('ok','');
+    try{
+      var resp=await fetch(cfg.urlFuncao,{cache:'no-store'});
+      if(!resp.ok){ banner('erro','Erro HTTP '+resp.status+' ao acessar a Edge Function. Verifique a URL.'); bookings=[]; }
+      else{
+        var j=await resp.json();
+        if(j.ok===true||Array.isArray(j)){ bookings=Array.isArray(j)?j:(j.bookings||[]); }
+        else{ banner('erro','A Edge Function retornou erro: '+(j.erro||j.status||'desconhecido')); bookings=[]; }
+      }
+    }catch(e){
+      banner('erro','Falha de conexão (verifique CORS e a URL da Edge Function — a página com CORS ativo está no ar?). Nenhum dado de demonstração é exibido.');
+      bookings=[];
+    }
+    if(bookings.length){ banner('ok','Conectado: '+bookings.length+' agendamento(s) sincronizados via Edge Function — fonte de verdade.'); }
+    render();
+    btn.textContent=textoAnt; btn.disabled=false;
+  }
+
+  // ====== EVENTOS ======
+  document.getElementById('btnAtualizar').onclick=carregar;
+  document.getElementById('btnImprimir').onclick=function(){ window.print(); };
+  document.getElementById('cfgToggle').onclick=function(){
+    var b=document.getElementById('cfgBody');
+    var vis=b.style.display!=='none';
+    b.style.display=vis?'none':'grid';
+    this.children[0].textContent=vis?'▼':'▲';
+  };
+  document.getElementById('btnSalvarCfg').onclick=function(){
+    salvarCfg(); aplicarConfig(); carregar();
+    document.getElementById('cfgBody').style.display='none';
+    document.getElementById('cfgToggle').children[0].textContent='▼';
+  };
+
+  // ====== INIT ======
+  aplicarConfig();
+  carregar();
+})();
+</script>
+</body>
+</html>
