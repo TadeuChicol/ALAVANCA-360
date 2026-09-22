@@ -4118,15 +4118,24 @@ async function buscarAbaGoogleSheets(spreadsheetId, aba) {
 
 function num(v) {
     if (v == null) return 0;
-    return parseFloat(String(v).replace(/\s/g, '').replace(/\./g, '').replace(/%/g, '').replace(',', '.')) || 0;
+    let s = String(v).replace(/[R$\s%]/g, '').trim();
+    if (/,/.test(s)) s = s.replace(/\./g, '').replace(',', '.');
+    const n = parseFloat(s);
+    return isNaN(n) ? 0 : n;
 }
 
 function mapearInsumo(linha) {
     if (!linha['ID_Insumo']) return null;
-    return { clinica_id: state.clinicaAtual.id, codigo_externo: String(linha['ID_Insumo']).trim(),
-        nome: linha['Nome_Insumo'], apresentacao: linha['Apresentacao'],
-        quantidade_apresentacao: num(linha['Quantidade']), unidade_medida: linha['Unidade_Medida'],
-        preco_apresentacao: num(linha['A360_CUSTO']) };
+    return {
+        clinica_id: state.clinicaAtual.id,
+        codigo_externo: String(linha['ID_Insumo']).trim(),
+        nome: linha['Nome_Insumo'],
+        apresentacao: linha['Apresentacao'],
+        quantidade_apresentacao: num(linha['Quantidade']),
+        unidade_medida: linha['Unidade_Medida'],
+        preco_apresentacao: num(linha['A360_CUSTO']),
+        custo_unitario: num(linha['Custo_Unitario'])
+    };
 }
 
 function mapearServico(linha) {
@@ -4137,12 +4146,9 @@ function mapearServico(linha) {
         custo_radiografia: num(linha['Custo_Radiografia']), outros_custos_diretos: num(linha['Outros_Custos_Diretos']) };
 }
 
-let ultimoCodigoServico = '';   // <-- NOVO: declara a variável no escopo do módulo
-
+let ultimoCodigoServico = '';
 async function mapearMapaConsumo(linha) {
     if (!linha['Codigo_Insumo']) return null;
-    // A aba usa célula mesclada: Codigo_Servico só vem na 1ª linha de cada serviço.
-    // Se vier vazio, herda o último código visto (forward-fill).
     if (linha['Codigo_Servico'] && String(linha['Codigo_Servico']).trim()) {
         ultimoCodigoServico = String(linha['Codigo_Servico']).trim();
     }
@@ -4154,8 +4160,12 @@ async function mapearMapaConsumo(linha) {
     const { data: ins } = await supabaseClient.from('insumos').select('id')
         .eq('clinica_id', state.clinicaAtual.id).eq('codigo_externo', codIns).limit(1).maybeSingle();
     if (!srv || !ins) return null;
-    return { clinica_id: state.clinicaAtual.id, servico_id: srv.id, insumo_id: ins.id,
-        quantidade_consumida: num(linha['Custo_Unitario']) };
+    return {
+        clinica_id: state.clinicaAtual.id,
+        servico_id: srv.id,
+        insumo_id: ins.id,
+        quantidade_consumida: num(linha['Quantidade'])   // <-- era Custo_Unitario (errado)
+    };
 }
 
 function mapearCustoFixo(linha) {
