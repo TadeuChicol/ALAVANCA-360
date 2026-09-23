@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Central de Confirmações — NAP Odontologia Aquemênida</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root{
     --bordo:#7A1F3D; --bordo-escuro:#5C132B; --dourado:#C9A227; --dourado-claro:#E4C76A;
@@ -92,25 +93,26 @@
 <div class="container">
 
   <div class="painel">
-    <button class="painel-head" id="cfgToggle">⚙️ Configurações &amp; Links (edite aqui — salva neste navegador)<span>▼</span></button>
+    <button class="painel-head" id="cfgToggle">⚙️ Configurações &amp; Links (área restrita)<span>▼</span></button>
     <div class="painel-body" id="cfgBody" style="display:none;">
       <div id="areaLogin">
         <div class="campo"><label>E-mail master</label><input id="inpEmail" type="email" placeholder="seu@email.com"></div>
         <div class="campo"><label>Senha</label><input id="inpSenha" type="password" placeholder="••••••"></div>
         <button class="btn btn-dourado" id="btnLogin">🔐 Entrar</button>
-        <div id="lblLoginErro" style="color:#8C1D12;font-size:12px;font-weight:700;"></div>
+        <div id="lblLoginErro" style="color:#8C1D12;font-size:12px;font-weight:700;grid-column:1/-1;"></div>
       </div>
       <div id="areaConfig" style="display:none;">
-        <div class="campo"><label>URL da Edge Function (agendamentos)</label><input id="cfgUrlFuncao"></div>
-        <div class="campo"><label>URL da Logomarca (imagem)</label><input id="cfgUrlLogo"></div>
-        <div class="campo"><label>Link da Agenda (Cal.com)</label><input id="cfgUrlCalcom"></div>
-        <div class="campo"><label>Link da Ficha de Anamnese</label><input id="cfgUrlAnamnese"></div>
+        <div class="campo"><label>URL da Logomarca (imagem)</label><input id="cfgUrlLogo" placeholder="https://.../logo.png"></div>
+        <div class="campo"><label>URL da Edge Function (agendamentos)</label><input id="cfgUrlFuncao" placeholder="https://.../functions/v1/calcom-bookings"></div>
+        <div class="campo"><label>Link da Agenda (Cal.com)</label><input id="cfgUrlCalcom" placeholder="https://cal.com/..."></div>
+        <div class="campo"><label>Link da Ficha de Anamnese</label><input id="cfgUrlAnamnese" placeholder="https://docs.google.com/forms/..."></div>
         <div class="campo"><label>Nome da Clínica</label><input id="cfgClinica"></div>
         <div class="campo"><label>Endereço</label><input id="cfgEndereco"></div>
         <button class="btn btn-dourado salvar-cfg" id="btnSalvarCfg">💾 Salvar configuração</button>
-        <button class="btn btn-cinza" id="btnSair" style="justify-self:end;">🚪 Sair</button>
+        <button class="btn btn-cinza salvar-cfg" id="btnSair">🚪 Sair</button>
       </div>
     </div>
+  </div>
 
   <div class="links-rapidos" id="linksRapidos"></div>
 
@@ -136,10 +138,10 @@
 
 <script>
 (function(){
-  // ====== CONFIGURAÇÃO (editável pela própria página, salva no navegador) ======
+  // ====== CONFIGURAÇÃO PADRÃO ======
   var PADRAO = {
+    urlLogo: 'https://gtcybiuxdpxixdjnshty.supabase.co/storage/v1/object/public/logos-clinicas/logo_9b1c13be-0634-4787-ab05-ae3714e6b501_1785772740542.png',
     urlFuncao: 'https://gtcybiuxdpxixdjnshty.supabase.co/functions/v1/calcom-bookings',
-    urlLogo: '',
     urlCalcom: 'https://cal.com/rebeca-gomes-da-silva-zara-sorriso-real-suzano-rkq95x/consulta-odontologica-nap',
     urlAnamnese: 'https://docs.google.com/forms/d/e/1FAIpQLSdZ2A9lVIFI0uW_2lnUBXRguyBT3fHRPKTBgpIOa6c-i4Wu5A/viewform',
     clinicaNome: 'NAP - Odontologia Aquemênida',
@@ -147,27 +149,28 @@
   };
   var CHAVE_CFG = 'nap_cfg_v1';
   var CHAVE_COP = 'nap_cop_';
-  var cfg = carregarCfg();
-    // ====== SEGURANÇA: configurações protegidas por senha master ======
-    // ====== AUTENTICAÇÃO ADMIN VIA SUPABASE AUTH ======
-    var SUPABASE_URL = 'https://gtcybiuxdpxixdjnshty.supabase.co';
-    var SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0Y3liaXV4ZHB4aXhkam5zaHR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ2NTU1MTgsImV4cCI6MjEwMDIzMTUxOH0.WwLPJlLsJtykl3hxGc9y-nl2NvAzoCFLcl4c5c1t68k'; // chave pública, pode ficar no código
-    var supabaseAuth = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
-    var CHAVE_SESSAO = 'nap_admin_sessao';
 
-    function sessaoValida(){
-      try{ return !!localStorage.getItem(CHAVE_SESSAO); }catch(e){ return false; }
-    }
-    async function loginAdmin(email, senha){
-      var { data, error } = await supabaseAuth.auth.signInWithPassword({ email: email, password: senha });
-      if (error) return error.message;
-      localStorage.setItem(CHAVE_SESSAO, data.session.access_token);
-      return null;
-    }
-    
-function logoutAdmin(){
-  localStorage.removeItem(CHAVE_SESSAO);
-}
+  // ====== AUTENTICAÇÃO ADMIN VIA SUPABASE AUTH ======
+  // >>> PASSO OBRIGATÓRIO: troque ABAIXO pela sua chave anon (Project Settings > API > anon public) <<<
+  var SUPABASE_URL = 'https://gtcybiuxdpxixdjnshty.supabase.co';
+  var SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0Y3liaXV4ZHB4aXhkam5zaHR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ2NTU1MTgsImV4cCI6MjEwMDIzMTUxOH0.WwLPJlLsJtykl3hxGc9y-nl2NvAzoCFLcl4c5c1t68k';
+  var supabaseAuth = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+  var CHAVE_SESSAO = 'nap_admin_sessao';
+
+  function sessaoValida(){
+    try{ return !!localStorage.getItem(CHAVE_SESSAO); }catch(e){ return false; }
+  }
+  async function loginAdmin(email, senha){
+    var { data, error } = await supabaseAuth.auth.signInWithPassword({ email: email, password: senha });
+    if (error) return error.message;
+    localStorage.setItem(CHAVE_SESSAO, data.session.access_token);
+    return null;
+  }
+  function logoutAdmin(){
+    localStorage.removeItem(CHAVE_SESSAO);
+  }
+
+  var cfg = carregarCfg();
   var bookings = [];
   var filtroAtivo = 'hoje';
 
@@ -186,17 +189,16 @@ function logoutAdmin(){
     catch(e){ return Object.assign({}, PADRAO); }
   }
   function salvarCfg(){
-    cfg.urlFuncao  = val('cfgUrlFuncao');
-    cfg.urlLogo    = val('cfgUrlLogo');
-    cfg.urlCalcom  = val('cfgUrlCalcom');
-    cfg.urlAnamnese= val('cfgUrlAnamnese');
-    cfg.clinicaNome= val('cfgClinica');
-    cfg.endereco   = val('cfgEndereco');
+    cfg.urlLogo     = val('cfgUrlLogo');
+    cfg.urlFuncao   = val('cfgUrlFuncao');
+    cfg.urlCalcom   = val('cfgUrlCalcom');
+    cfg.urlAnamnese = val('cfgUrlAnamnese');
+    cfg.clinicaNome = val('cfgClinica');
+    cfg.endereco    = val('cfgEndereco');
     localStorage.setItem(CHAVE_CFG, JSON.stringify(cfg));
   }
   function val(id){ var el=document.getElementById(id); return el?el.value.trim():''; }
 
-  // ====== UTIL ======
   function hojeStr(){
     return new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date());
   }
@@ -227,7 +229,6 @@ function logoutAdmin(){
     return '🦷 Olá, '+ (b.nome||'Paciente') +'! Sua sessão está agendada para '+(b.data||'')+' às '+(b.hora||'')+'.\n📍 '+cfg.endereco+'\n\nPrecisamos que você preencha sua ficha de anamnese para um atendimento de excelência:\n📋 '+(b.link_anamnese||cfg.urlAnamnese)+'\n\nEsta é uma mensagem automática, não precisa ser respondida.';
   }
 
-  // ====== UI BASE ======
   function aplicarConfig(){
     document.getElementById('lblClinica').textContent = cfg.clinicaNome;
     document.getElementById('lblEndereco').textContent = cfg.endereco;
@@ -249,7 +250,6 @@ function logoutAdmin(){
     });
   }
 
-  // ====== FILTROS ======
   function renderFiltros(){
     var box=document.getElementById('filtros'); box.innerHTML='';
     FILTROS.forEach(function(f){
@@ -271,7 +271,8 @@ function logoutAdmin(){
     return bookings.filter(function(b){ return dentroJanela(b,f); });
   }
 
-  // ====== RENDER ======
+  function esc(s){ return String(s||'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+
   function render(){
     renderFiltros();
     var lista=listaFiltrada();
@@ -308,9 +309,7 @@ function logoutAdmin(){
       cartoes.appendChild(card);
     });
   }
-  function esc(s){ return String(s||'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
 
-  // ====== COPIAR ======
   function copiarMensagem(b,btn){
     var msg=(b.mensagem_pronta||montarMensagem(b));
     var fazer=function(){ return navigator.clipboard.writeText(msg); };
@@ -331,7 +330,6 @@ function logoutAdmin(){
     document.body.removeChild(ta);
   }
 
-  // ====== CARREGAR (fonte de verdade: Edge Function — SEM dados mock) ======
   function banner(tipo,texto){
     var b=document.getElementById('banner'); b.className='banner '+tipo; b.textContent=texto;
   }
@@ -348,45 +346,46 @@ function logoutAdmin(){
         else{ banner('erro','A Edge Function retornou erro: '+(j.erro||j.status||'desconhecido')); bookings=[]; }
       }
     }catch(e){
-      banner('erro','Falha de conexão (verifique CORS e a URL da Edge Function — a página com CORS ativo está no ar?). Nenhum dado de demonstração é exibido.');
+      banner('erro','Falha de conexão. Verifique CORS e a URL da Edge Function. Nenhum dado de demonstração é exibido.');
       bookings=[];
     }
-    if(bookings.length){ banner('ok','Conectado: '+bookings.length+' agendamento(s) sincronizados via Edge Function — fonte de verdade.'); }
+    if(bookings.length){ banner('ok','Conectado: '+bookings.length+' agendamento(s) sincronizados via Edge Function.'); }
     render();
     btn.textContent=textoAnt; btn.disabled=false;
   }
 
-// ====== EVENTOS ======
-  document.getElementById('btnAtualizar').onclick = carregar;
-  document.getElementById('btnImprimir').onclick = function () { window.print(); };
-  document.getElementById('cfgToggle').onclick = function () {
-    if (!sessaoValida()) {
-      document.getElementById('cfgBody').style.display = 'grid';
-      document.getElementById('areaLogin').style.display = 'block';
-      document.getElementById('areaConfig').style.display = 'none';
+  // ====== EVENTOS ======
+  document.getElementById('btnAtualizar').onclick=carregar;
+  document.getElementById('btnImprimir').onclick=function(){ window.print(); };
+  document.getElementById('cfgToggle').onclick=function(){
+    if(!sessaoValida()){
+      document.getElementById('cfgBody').style.display='grid';
+      document.getElementById('areaLogin').style.display='block';
+      document.getElementById('areaConfig').style.display='none';
       return;
     }
-    document.getElementById('areaLogin').style.display = 'none';
-    document.getElementById('areaConfig').style.display = 'grid';
-    var b = document.getElementById('cfgBody');
-    var vis = b.style.display !== 'none';
-    b.style.display = vis ? 'none' : 'grid';
+    document.getElementById('areaLogin').style.display='none';
+    document.getElementById('areaConfig').style.display='grid';
+    var b=document.getElementById('cfgBody');
+    var vis=b.style.display!=='none';
+    b.style.display=vis?'none':'grid';
+    this.children[0].textContent=vis?'▼':'▲';
   };
-  document.getElementById('btnLogin').onclick = async function () {
-    var email = document.getElementById('inpEmail').value.trim();
-    var senha = document.getElementById('inpSenha').value;
-    var erro = await loginAdmin(email, senha);
-    if (erro) { document.getElementById('lblLoginErro').textContent = 'Falha: ' + erro; return; }
-    document.getElementById('cfgBody').style.display = 'grid';
-    document.getElementById('areaLogin').style.display = 'none';
-    document.getElementById('areaConfig').style.display = 'grid';
-    document.getElementById('lblLoginErro').textContent = '';
+  document.getElementById('btnLogin').onclick=async function(){
+    var email=document.getElementById('inpEmail').value.trim();
+    var senha=document.getElementById('inpSenha').value;
+    var erro=await loginAdmin(email,senha);
+    if(erro){ document.getElementById('lblLoginErro').textContent='Falha: '+erro; return; }
+    document.getElementById('cfgBody').style.display='grid';
+    document.getElementById('areaLogin').style.display='none';
+    document.getElementById('areaConfig').style.display='grid';
+    document.getElementById('lblLoginErro').textContent='';
   };
-  document.getElementById('btnSair').onclick = function () { logoutAdmin(); location.reload(); };
-  document.getElementById('btnSalvarCfg').onclick = function () {
+  document.getElementById('btnSair').onclick=function(){ logoutAdmin(); location.reload(); };
+  document.getElementById('btnSalvarCfg').onclick=function(){
     salvarCfg(); aplicarConfig(); carregar();
-    document.getElementById('cfgBody').style.display = 'none';
-    document.getElementById('cfgToggle').children[0].textContent = '▼';
+    document.getElementById('cfgBody').style.display='none';
+    document.getElementById('cfgToggle').children[0].textContent='▼';
   };
 
   // ====== INIT ======
