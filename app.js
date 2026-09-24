@@ -3299,25 +3299,31 @@ function importarConfigCsv(modalidade) {
 // A planilha é a fonte de verdade. Nada aqui é digitado à mão.
 // ============================================================
 function mapearTabelaFinalV2(linhas) {
-  // linhas[0] = grupo master (CONVÊNIOS / IDEAL / PARTICIPAL)
-  // linhas[1] = nomes reais (Bradesco, Unimed, ...)
-  const grupo0 = (linhas[0] || []).map(c => String(c || '').trim());
-  const nomes1 = (linhas[1] || []).map(c => String(c || '').trim());
+  // ESTRUTURA ATUAL DA PLANILHA:
+  // Linha 1 (linhas[0]) = cabeçalho com os nomes dos convênios direto
+  //   ex.: "CONVÊNIO Bradesco", "CONVÊNIO Unimed", ..., "Preço - CONVÊNIO (IDEAL)", "PARTICULAR"
+  // Linha 2 (linhas[1]) = linha em branco
+  // Linha 3+ (linhas[2..]) = dados
+  const headers = (linhas[0] || []).map(c => String(c || '').trim());
   const colsConvenios = [];
   let idxIdeal = -1, idxParticular = -1;
-  let dentroConvenios = false;
-  grupo0.forEach((g, i) => {
-    const gn = g.toLowerCase().replace(/[^a-z0-9]/g, '');
-    const nome = nomes1[i];
-    if (gn === 'convenios') { dentroConvenios = true; if (nome) colsConvenios.push({ idx: i, nome }); return; }
-    if (gn.includes('ideal')) { idxIdeal = i; dentroConvenios = false; return; }
-    if (gn.includes('participal') || gn.includes('particular')) { idxParticular = i; dentroConvenios = false; return; }
-    // Dentro do bloco CONVÊNIOS, a linha 1 pode estar vazia (célula mesclada),
-    // mas a linha 2 carrega o nome real do convênio — captura todos.
-    if (dentroConvenios && nome) colsConvenios.push({ idx: i, nome });
+
+  headers.forEach((h, i) => {
+    if (!h) return;
+    const hn = h.toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (hn.includes('ideal')) { idxIdeal = i; return; }
+    if (hn.includes('participal') || hn.includes('particular')) { idxParticular = i; return; }
+    if (hn.includes('convenio')) {
+      // extrai o nome do convênio do cabeçalho: "CONVÊNIO Bradesco" -> "Bradesco"
+      const nome = h.replace(/^CONV[ÊE]NIO\s*/i, '').trim();
+      if (nome) colsConvenios.push({ idx: i, nome });
+    }
   });
+
   const convenios = colsConvenios.map(c => c.nome);
   const precos = [], particulares = [], ideais = [];
+
+  // dados a partir da linha 3 (índice 2)
   for (let r = 2; r < linhas.length; r++) {
     const row = linhas[r];
     const cod = String(row?.[0] || '').trim();
