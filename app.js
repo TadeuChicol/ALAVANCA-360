@@ -3299,16 +3299,16 @@ function importarConfigCsv(modalidade) {
 // A planilha é a fonte de verdade. Nada aqui é digitado à mão.
 // ============================================================
 function mapearTabelaFinalV2(linhas) {
-    // 1) Acha a linha do cabeçalho (a que tem "Serviço" ou "Convênio")
     let ih = -1;
     for (let i = 0; i < linhas.length && ih === -1; i++) {
-        const l = (linhas[i] || []).map(c => String(c || '').toLowerCase());
-        if (l.some(c => c.includes('servico') || c.includes('serviço'))) ih = i;
+        const linha = (linhas[i] || []).map(c => String(c || '').toLowerCase());
+        if (linha.some(c => c.includes('servico') || c.includes('serviço') || c.includes('nome_serv'))) ih = i;
     }
     if (ih === -1) return { convenios: [], precos: [], particulares: [], ideais: [] };
-    const cab = (linhas[ih] || []).map(c => String(c || '').trim());
 
-    // 2) Identifica colunas: Nome, IDEAL, PARTICULAR e convênios (tudo entre Nome e IDEAL)
+    const cab  = (linhas[ih] || []).map(c => String(c || '').trim());
+    const cab2 = (linhas[ih + 1] || []).map(c => String(c || '').trim()); // nomes abaixo do cabeçalho (se existirem)
+
     let idxIdeal = -1, idxParticular = -1;
     const colsConv = [];
     cab.forEach((h, i) => {
@@ -3316,24 +3316,28 @@ function mapearTabelaFinalV2(linhas) {
         if (!h) return;
         if (t.includes('ideal')) { idxIdeal = i; return; }
         if (t.includes('partic')) { idxParticular = i; return; }
-        if (t.includes('nome') || t.includes('servico') || t.includes('serviço') || t.includes('cod') || t.includes('cód')) return;
-        if (idxIdeal === -1 || i < idxIdeal) colsConv.push({ idx: i, nome: h.replace(/^CONV[ÊE]NIO\s*/i, '').trim() });
+        if (t.includes('id_serv') || t.includes('nome_serv') || t.includes('codigo') || t.includes('código') || (t.includes('servico') && !t.includes('convenio'))) return;
+        const ehConvenio = t.includes('convenio') || t.includes('convênio');
+        const nome = ehConvenio ? h.replace(/^CONV[ÊE]NIO\s*/i, '').trim() : '';
+        const nomeFinal = nome || (cab2[i] || '').trim();
+        if (nomeFinal) colsConv.push({ idx: i, nome: nomeFinal });
     });
 
     const convenios = colsConv.map(c => c.nome).filter(Boolean);
     const precos = [], particulares = [], ideais = [];
 
-    // 3) Dados: linhas onde a coluna A é um código de serviço (S001...)
     for (let r = ih + 1; r < linhas.length; r++) {
         const row = linhas[r];
         const cod = String(row?.[0] || '').trim();
-        if (!/^(S)?\d/.test(cod)) continue;
+        if (!/^(S\s*)?\d/.test(cod)) continue;
         colsConv.forEach(c => {
             const v = row[c.idx];
             if (String(v ?? '').trim() !== '') precos.push({ servico_codigo: cod, convenio: c.nome, preco: parseNumeroBR(v) });
         });
-        if (idxParticular !== -1 && String(row[idxParticular] ?? '').trim() !== '') particulares.push({ servico_codigo: cod, preco: parseNumeroBR(row[idxParticular]) });
-        if (idxIdeal !== -1 && String(row[idxIdeal] ?? '').trim() !== '') ideais.push({ servico_codigo: cod, preco: parseNumeroBR(row[idxIdeal]) });
+        if (idxParticular !== -1 && String(row[idxParticular] ?? '').trim() !== '')
+            particulares.push({ servico_codigo: cod, preco: parseNumeroBR(row[idxParticular]) });
+        if (idxIdeal !== -1 && String(row[idxIdeal] ?? '').trim() !== '')
+            ideais.push({ servico_codigo: cod, preco: parseNumeroBR(row[idxIdeal]) });
     }
     return { convenios, precos, particulares, ideais };
 }
@@ -4496,9 +4500,18 @@ function atualizarLogosVisuais() {
 }
 
 // ===== HUB CLÍNICA — DENTISTAS DA CLÍNICA =====
+function popularSelectDentistasM7() {
+    const sel = document.querySelector('#selectDentistaM7, [id*="dentista" i]');
+    if (!sel) return;
+    const dentistas = state.dentistas || [];
+    sel.innerHTML = '<option value="">Selecione o dentista</option>' +
+        dentistas.map(d => `<option value="${d.id}">${d.nome || ''}${d.cro ? ' — CRO ' + d.cro : ''}</option>`).join('');
+}
+
 async function carregarDentistasHub() {
     try {
         const lista = await apiList('dentistas');
+        if (typeof popularSelectDentistasM7 === 'function') popularSelectDentistasM7();
         state.dentistas = (Array.isArray(lista) ? lista : []).filter(Boolean);
         renderizarListaDentistasHub();
         popularSelectDentistasM7();
