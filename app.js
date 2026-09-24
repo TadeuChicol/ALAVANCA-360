@@ -4287,23 +4287,41 @@ function extrairIdPlanilha(url) {
     return m ? m[1] : null;
 }
 
+function parseCsvRespeitandoAspas(texto) {
+    texto = String(texto || '').replace(/^\uFEFF/, '');
+    const linhas = [];
+    let campo = '', linha = [], dentroAspas = false;
+    for (let i = 0; i < texto.length; i++) {
+        const c = texto[i];
+        if (dentroAspas) {
+            if (c === '"') {
+                if (texto[i + 1] === '"') { campo += '"'; i++; }
+                else dentroAspas = false;
+            } else campo += c;
+        } else if (c === '"') {
+            dentroAspas = true;
+        } else if (c === ',') {
+            linha.push(campo); campo = '';
+        } else if (c === '\r') {
+            // ignora
+        } else if (c === '\n') {
+            linha.push(campo); linhas.push(linha); linha = []; campo = '';
+        } else {
+            campo += c;
+        }
+    }
+    if (campo.length > 0 || linha.length > 0) { linha.push(campo); linhas.push(linha); }
+    return linhas.filter(l => l.some(c => (c || '').trim() !== ''));
+}
+
 async function buscarAbaGoogleSheets(spreadsheetId, aba) {
     const url = 'https://docs.google.com/spreadsheets/d/' + spreadsheetId +
         '/gviz/tq?tqx=out:csv&sheet=' + encodeURIComponent(aba) + '&headers=1';
     const resp = await fetch(url);
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const csv = await resp.text();
-    const linhas = csv.trim().split(/\r?\n/).map(l => l.split(','));
-    if (linhas.length < 2) return [];
-    const headers = linhas[0].map(h => h.trim().replace(/^"|"$/g, ''));
-    return linhas.slice(1).map(row => {
-        const obj = {};
-        headers.forEach((h, i) => {
-            const chave = h.trim();                       // limpa espaço no nome da coluna
-            obj[chave] = (row[i] || '').trim().replace(/^"|"$/g, '');
-        });
-        return obj;
-    });
+    // Retorna MATRIZ de linhas (array de arrays), preservando vírgulas decimais entre aspas
+    return parseCsvRespeitandoAspas(csv);
 }
 
 function num(v) {
