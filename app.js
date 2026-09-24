@@ -2252,53 +2252,46 @@ function renderizarTabelaPrecos() {
         const p = precosServico.find(x => String(x.servico_codigo).trim() === String(s.codigo_externo).trim() && x.convenio === filtro);
         return p ? Number(p.preco || 0) : 0;
     };
+    const pegaCusto = s => part ? Number(s.custo_particular || 0) : Number(s.custo_convenio || 0);
 
+    // ESPELHAMENTO: mostra TODOS os serviços, mesmo com preço 0
     const linhas = servicos
-        .map(s => ({ s, preco: pegaPreco(s) }))
-        .filter(l => l.preco > 0)
+        .map(s => ({ s, preco: pegaPreco(s), custo: pegaCusto(s) }))
         .sort((a, b) => (a.s.nome || '').localeCompare(b.s.nome || '', 'pt-BR'));
 
     const cfg = obterConfigPrecificacao(part ? 'particular' : 'convenio');
     const meta = cfg ? Number(cfg.margem_desejada_pct) || 0 : 0;
-    const fmt = v => formatarMoeda(Number(v) || 0);
-    const pct = (s, preco) => {
-        if (preco <= 0) return '—';
-        const margem = part ? Number(s.margem_particular_pct || 0) : Number(s.margem_convenio_pct || 0);
-        return margem > 0 ? margem.toFixed(1) + '%' : '—';
+    const fmt = v => { const n = Number(v) || 0; return n > 0 ? formatarMoeda(n) : '—'; };
+    const pct = l => {
+        if (l.preco <= 0) return '—';
+        const m = l.preco > 0 ? ((l.preco - l.custo) / l.preco) * 100 : 0;
+        return m.toFixed(1) + '%';
     };
-    const situacao = (s, preco) => {
-        if (preco <= 0) return '<span class="text-slate-500">—</span>';
-        const margem = part ? Number(s.margem_particular_pct || 0) : Number(s.margem_convenio_pct || 0);
-        return (margem > 0 && margem < meta)
-            ? '<span class="text-amber-400 font-medium">Atenção</span>'
-            : '<span class="text-emerald-400">Ok</span>';
+    const situacao = l => {
+        if (l.preco <= 0) return '<span class="text-slate-500">—</span>';
+        const m = ((l.preco - l.custo) / l.preco) * 100;
+        return (m < meta) ? '<span class="text-amber-400 font-medium">Atenção</span>' : '<span class="text-emerald-400">Ok</span>';
     };
 
-    let html;
-    if (linhas.length === 0) {
-        html = `<p class="text-xs text-slate-500 p-6 text-center">Nenhum preço cadastrado para ${filtro} ainda. Os preços são atualizados pela consultoria a partir da planilha.</p>`;
-    } else {
-        const cab = `<tr>
-            <th class="p-2 text-left">Código</th>
-            <th class="p-2 text-left">Serviço</th>
-            <th class="p-2 text-right">Preço ${part ? 'Particular' : filtro}</th>
-            <th class="p-2 text-right">Margem</th>
-            <th class="p-2 text-right">Situação</th>
-        </tr>`;
-        const corpo = linhas.map(l => `
-            <tr class="border-b border-slate-800/60">
-                <td class="p-2 font-mono text-slate-500 text-xs">${String(l.s.codigo_externo || '').trim()}</td>
-                <td class="p-2 font-medium text-slate-200">${l.s.nome || '—'}</td>
-                <td class="p-2 text-right font-bold text-slate-100">${fmt(l.preco)}</td>
-                <td class="p-2 text-right text-slate-300">${pct(l.s, l.preco)}</td>
-                <td class="p-2 text-right">${situacao(l.s, l.preco)}</td>
-            </tr>`).join('');
-        html = `<table class="w-full text-left text-sm text-slate-300">
-            <thead class="bg-slate-950 text-slate-400 uppercase text-[11px]">${cab}</thead>
-            <tbody>${corpo}</tbody>
-        </table>`;
-    }
-    container.innerHTML = html;
+    const cab = `<tr>
+        <th class="p-2 text-left">Código</th>
+        <th class="p-2 text-left">Serviço</th>
+        <th class="p-2 text-right">Preço ${part ? 'Particular' : filtro}</th>
+        <th class="p-2 text-right">Margem</th>
+        <th class="p-2 text-right">Situação</th>
+    </tr>`;
+    const corpo = linhas.map(l => `
+        <tr class="border-b border-slate-800/60">
+            <td class="p-2 font-mono text-slate-500 text-xs">${String(l.s.codigo_externo || '').trim()}</td>
+            <td class="p-2 font-medium text-slate-200">${l.s.nome || '—'}</td>
+            <td class="p-2 text-right font-bold text-slate-100">${fmt(l.preco)}</td>
+            <td class="p-2 text-right text-slate-300">${pct(l)}</td>
+            <td class="p-2 text-right">${situacao(l)}</td>
+        </tr>`).join('');
+    container.innerHTML = `<table class="w-full text-left text-sm text-slate-300">
+        <thead class="bg-slate-950 text-slate-400 uppercase text-[11px]">${cab}</thead>
+        <tbody>${corpo}</tbody>
+    </table>`;
 }
 
 function calcularCustoUnitarioInsumo(ins) {
@@ -2959,18 +2952,15 @@ function encontrarTodosIndices(headers, opcoes) {
 
 // --- 3. Número em formato brasileiro: "1 000,00" | "40,00%" | "0,57" | "12" ---
 function parseNumeroBR(valor) {
-    if (valor === undefined || valor === null) return 0;
-    let s = String(valor).trim();
-    if (!s) return 0;
-    s = s.replace(/[R$\s%]/g, ''); // remove símbolo de moeda, % e espaço (separador de milhar)
-    s = s.replace(/\./g, '').replace(',', '.'); // 1.234,56 -> 1234.56 (caso apareça ponto de milhar)
-    // Se não havia vírgula, o replace acima pode ter removido pontos decimais indevidamente
-    // (ex.: "12.5" sem vírgula) — nesse caso, refaz sem remover o ponto.
-    if (!/,/.test(String(valor)) && /\.\d/.test(String(valor).replace(/[R$\s%]/g, ''))) {
-        s = String(valor).replace(/[R$\s%]/g, '');
-    }
-    const n = parseFloat(s);
-    return isNaN(n) ? 0 : n;
+  if (valor == null || valor === '') return 0;
+  if (typeof valor === 'number') return isNaN(valor) ? 0 : valor;
+  let s = String(valor).trim();
+  // já é número puro (ex.: "42.36")
+  if (/^-?\d+(\.\d+)?$/.test(s)) return parseFloat(s) || 0;
+  // formato brasileiro: remove separador de milhar (.) e converte vírgula (,) em decimal
+  s = s.replace(/\s/g, '').replace(/\./g, '').replace(/,/g, '.');
+  const n = parseFloat(s);
+  return isNaN(n) ? 0 : n;
 }
 
 // --- 4. Wrapper padrão: lê o arquivo, roda o parser específico da entidade ---
