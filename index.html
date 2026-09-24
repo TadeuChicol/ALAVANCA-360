@@ -649,15 +649,46 @@
         <p class="text-xs text-slate-400">Base viva de custos: alimenta automaticamente o Dashboard e o Assistente de Decisão. Funciona para clínicas de odontologia, estética e saúde em geral.</p>
     </div>
 
-    <!-- Sub-abas internas do M8 -->
-    <div class="flex flex-wrap bg-slate-900 p-2 rounded-xl border border-slate-800 w-full gap-1 text-xs">
-        <button onclick="mudarSubAbaCustos('insumos')" id="subtabBtn-insumos" class="subtab-btn px-4 py-1.5 rounded-lg bg-emerald-600 text-white font-medium transition">Insumos</button>
-        <button onclick="mudarSubAbaCustos('servicos')" id="subtabBtn-servicos" class="subtab-btn px-4 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition">Serviços</button>
-        <button onclick="mudarSubAbaCustos('mapa')" id="subtabBtn-mapa" class="subtab-btn px-4 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition">Consumo por Serviço</button>
-        <button onclick="mudarSubAbaCustos('fixos')" id="subtabBtn-fixos" class="subtab-btn px-4 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition">Custos Fixos</button>
-        <button onclick="mudarSubAbaCustos('config')" id="subtabBtn-config" class="subtab-btn px-4 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition">Config. Convênio/Particular</button>
-        <button onclick="mudarSubAbaCustos('resultado')" id="subtabBtn-resultado" class="subtab-btn px-4 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition">Custo Final por Procedimento</button>
-        <button onclick="mudarSubAbaCustos('importar')" id="subtabBtn-importar" class="subtab-btn px-4 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition">Importar Planilha (CSV)</button>
+        <!-- Sub-abas internas do M8 -->
+    <div class="flex flex-wrap items-center gap-1 text-xs">
+        <button onclick="mudarSubAbaCustos('tabela')" id="subtabBtn-tabela" class="subtab-btn px-4 py-1.5 rounded-lg bg-emerald-600 text-white font-medium transition">📊 Tabela de Preços</button>
+        <div id="areaAbastecimentoM8" class="flex flex-wrap gap-1 hidden">
+            <button onclick="mudarSubAbaCustos('insumos')" id="subtabBtn-insumos" class="subtab-btn px-4 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition">Insumos</button>
+            <button onclick="mudarSubAbaCustos('servicos')" id="subtabBtn-servicos" class="subtab-btn px-4 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition">Serviços</button>
+            <button onclick="mudarSubAbaCustos('mapa')" id="subtabBtn-mapa" class="subtab-btn px-4 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition">Consumo por Serviço</button>
+            <button onclick="mudarSubAbaCustos('fixos')" id="subtabBtn-fixos" class="subtab-btn px-4 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition">Custos Fixos</button>
+            <button onclick="mudarSubAbaCustos('config')" id="subtabBtn-config" class="subtab-btn px-4 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition">Config. Convênio/Particular</button>
+            <button onclick="mudarSubAbaCustos('resultado')" id="subtabBtn-resultado" class="subtab-btn px-4 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition">Custo Final por Procedimento</button>
+            <button onclick="mudarSubAbaCustos('importar')" id="subtabBtn-importar" class="subtab-btn px-4 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition">Importar Planilha (CSV)</button>
+        </div>
+    </div>
+    <!-- SUBABA: TABELA DE PREÇOS (vista da clínica) -->
+    <div id="subtab-tabela" class="subtab-content space-y-4">
+        <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <h3 class="text-xs font-bold uppercase text-emerald-400">Tabela de Preços e Margens — fonte: planilha</h3>
+                <label class="text-[11px] text-slate-400">Convênio:
+                    <select id="filtroConvenioM8" onchange="renderizarTabelaPrecos()" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs ml-1"></select>
+                </label>
+            </div>
+        </div>
+        <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 overflow-x-auto custom-scrollbar">
+            <table class="w-full text-left text-xs text-slate-300">
+                <thead class="bg-slate-950 text-slate-400 uppercase text-[10px]">
+                    <tr>
+                        <th class="p-2">Código</th>
+                        <th class="p-2">Serviço</th>
+                        <th class="p-2">Preço Convênio</th>
+                        <th class="p-2">Preço Particular</th>
+                        <th class="p-2">Preço Ideal Ref.</th>
+                        <th class="p-2">Margem Conv %</th>
+                        <th class="p-2">Margem Part %</th>
+                        <th class="p-2">Status</th>
+                    </tr>
+                </thead>
+                <tbody id="tbodyTabelaPrecos"><tr><td colspan="8" class="p-3 text-center text-slate-600">Sincronize a planilha para carregar a tabela.</td></tr></tbody>
+            </table>
+        </div>
     </div>
 
     <!-- SUBABA: INSUMOS -->
