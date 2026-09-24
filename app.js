@@ -2226,7 +2226,7 @@ function aplicarPerfilM8() {
     }
 }
 
-const CONVENIOS_PREVISTOS = ['Bradesco','Unimed','Porto Seguro','Amil','OdontoPrev','Sulamerica','Dentaluni'];
+const CONVENIOS_PREVISTOS = ['Bradesco','Unimed','Porto Seguro','Amil','OdontoPrev','Sulamerica','Dentaluni','Intermédica'];
 
 function renderizarTabelaPrecos() {
     const container = document.getElementById('containerTabelaPrecos');
@@ -3299,43 +3299,43 @@ function importarConfigCsv(modalidade) {
 // A planilha é a fonte de verdade. Nada aqui é digitado à mão.
 // ============================================================
 function mapearTabelaFinalV2(linhas) {
-  // ESTRUTURA ATUAL DA PLANILHA:
-  // Linha 1 (linhas[0]) = cabeçalho com os nomes dos convênios direto
-  //   ex.: "CONVÊNIO Bradesco", "CONVÊNIO Unimed", ..., "Preço - CONVÊNIO (IDEAL)", "PARTICULAR"
-  // Linha 2 (linhas[1]) = linha em branco
-  // Linha 3+ (linhas[2..]) = dados
-  const headers = (linhas[0] || []).map(c => String(c || '').trim());
-  const colsConvenios = [];
-  let idxIdeal = -1, idxParticular = -1;
-
-  headers.forEach((h, i) => {
-    if (!h) return;
-    const hn = h.toLowerCase().replace(/[^a-z0-9]/g, '');
-    if (hn.includes('ideal')) { idxIdeal = i; return; }
-    if (hn.includes('participal') || hn.includes('particular')) { idxParticular = i; return; }
-    if (hn.includes('convenio')) {
-      // extrai o nome do convênio do cabeçalho: "CONVÊNIO Bradesco" -> "Bradesco"
-      const nome = h.replace(/^CONV[ÊE]NIO\s*/i, '').trim();
-      if (nome) colsConvenios.push({ idx: i, nome });
+    // 1) Acha a linha do cabeçalho (a que tem "Serviço" ou "Convênio")
+    let ih = -1;
+    for (let i = 0; i < linhas.length && ih === -1; i++) {
+        const l = (linhas[i] || []).map(c => String(c || '').toLowerCase());
+        if (l.some(c => c.includes('servico') || c.includes('serviço'))) ih = i;
     }
-  });
+    if (ih === -1) return { convenios: [], precos: [], particulares: [], ideais: [] };
+    const cab = (linhas[ih] || []).map(c => String(c || '').trim());
 
-  const convenios = colsConvenios.map(c => c.nome);
-  const precos = [], particulares = [], ideais = [];
-
-  // dados a partir da linha 3 (índice 2)
-  for (let r = 2; r < linhas.length; r++) {
-    const row = linhas[r];
-    const cod = String(row?.[0] || '').trim();
-    if (!cod) continue;
-    colsConvenios.forEach(c => {
-      const v = row[c.idx];
-      if (String(v ?? '').trim() !== '') precos.push({ servico_codigo: cod, convenio: c.nome, preco: parseNumeroBR(v) });
+    // 2) Identifica colunas: Nome, IDEAL, PARTICULAR e convênios (tudo entre Nome e IDEAL)
+    let idxIdeal = -1, idxParticular = -1;
+    const colsConv = [];
+    cab.forEach((h, i) => {
+        const t = String(h || '').toLowerCase();
+        if (!h) return;
+        if (t.includes('ideal')) { idxIdeal = i; return; }
+        if (t.includes('partic')) { idxParticular = i; return; }
+        if (t.includes('nome') || t.includes('servico') || t.includes('serviço') || t.includes('cod') || t.includes('cód')) return;
+        if (idxIdeal === -1 || i < idxIdeal) colsConv.push({ idx: i, nome: h.replace(/^CONV[ÊE]NIO\s*/i, '').trim() });
     });
-    if (idxParticular !== -1 && String(row[idxParticular] ?? '').trim() !== '') particulares.push({ servico_codigo: cod, preco: parseNumeroBR(row[idxParticular]) });
-    if (idxIdeal !== -1 && String(row[idxIdeal] ?? '').trim() !== '') ideais.push({ servico_codigo: cod, preco: parseNumeroBR(row[idxIdeal]) });
-  }
-  return { convenios, precos, particulares, ideais };
+
+    const convenios = colsConv.map(c => c.nome).filter(Boolean);
+    const precos = [], particulares = [], ideais = [];
+
+    // 3) Dados: linhas onde a coluna A é um código de serviço (S001...)
+    for (let r = ih + 1; r < linhas.length; r++) {
+        const row = linhas[r];
+        const cod = String(row?.[0] || '').trim();
+        if (!/^(S)?\d/.test(cod)) continue;
+        colsConv.forEach(c => {
+            const v = row[c.idx];
+            if (String(v ?? '').trim() !== '') precos.push({ servico_codigo: cod, convenio: c.nome, preco: parseNumeroBR(v) });
+        });
+        if (idxParticular !== -1 && String(row[idxParticular] ?? '').trim() !== '') particulares.push({ servico_codigo: cod, preco: parseNumeroBR(row[idxParticular]) });
+        if (idxIdeal !== -1 && String(row[idxIdeal] ?? '').trim() !== '') ideais.push({ servico_codigo: cod, preco: parseNumeroBR(row[idxIdeal]) });
+    }
+    return { convenios, precos, particulares, ideais };
 }
 function mapearCustoTotalPorServico(linhas) {
   const cab = (linhas[0] || []).map(c => String(c || '').trim());
@@ -4289,7 +4289,7 @@ async function sincronizarTodasAbasPlanilha() {
 }
 
 function extrairIdPlanilha(url) {
-    const m = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
+    const m = String(url || '').match(/\/d\/([a-zA-Z0-9-_]{10,})/);
     return m ? m[1] : null;
 }
 
