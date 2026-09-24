@@ -645,8 +645,8 @@
 <!-- MÓDULO 8: CUSTOS & INSUMOS -->
 <div id="tab-custos" class="tab-content hidden space-y-6">
     <div>
-        <h2 class="text-xl font-bold text-slate-100">Módulo 8 — Custos, Insumos e Precificação</h2>
-        <p class="text-xs text-slate-400">Base viva de custos: alimenta automaticamente o Dashboard e o Assistente de Decisão. Funciona para clínicas de odontologia, estética e saúde em geral.</p>
+        <h2 class="text-xl font-bold text-slate-100">Módulo 8 — Tabela de Preços</h2>
+        <p class="text-xs text-slate-400">Consulte os preços praticados pela clínica (convênios e particular) e a margem de cada serviço.</p>
     </div>
 
         <!-- Sub-abas internas do M8 -->
@@ -666,28 +666,20 @@
     <div id="subtab-tabela" class="subtab-content space-y-4">
         <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
             <div class="flex flex-wrap items-center justify-between gap-3">
-                <h3 class="text-xs font-bold uppercase text-emerald-400">Tabela de Preços e Margens — fonte: planilha</h3>
-                <label class="text-[11px] text-slate-400">Convênio:
-                    <select id="filtroConvenioM8" onchange="renderizarTabelaPrecos()" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-xs ml-1"></select>
-                </label>
+                <div>
+                    <h3 class="text-sm font-bold text-slate-100">Minha Tabela de Preços</h3>
+                    <p class="text-[11px] text-slate-500">Preços e margens vêm da planilha da clínica — atualização feita pela consultoria.</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <label class="text-sm text-slate-300">Consultar por:
+                        <select id="filtroConvenioM8" onchange="renderizarTabelaPrecos()" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 text-sm ml-1"></select>
+                    </label>
+                    <button id="btnSincronizarM8" onclick="sincronizarM8PrecosMargens()" class="hidden bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition">Sincronizar preços da planilha</button>
+                </div>
             </div>
         </div>
-        <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 overflow-x-auto custom-scrollbar">
-            <table class="w-full text-left text-xs text-slate-300">
-                <thead class="bg-slate-950 text-slate-400 uppercase text-[10px]">
-                    <tr>
-                        <th class="p-2">Código</th>
-                        <th class="p-2">Serviço</th>
-                        <th class="p-2">Preço Convênio</th>
-                        <th class="p-2">Preço Particular</th>
-                        <th class="p-2">Preço Ideal Ref.</th>
-                        <th class="p-2">Margem Conv %</th>
-                        <th class="p-2">Margem Part %</th>
-                        <th class="p-2">Status</th>
-                    </tr>
-                </thead>
-                <tbody id="tbodyTabelaPrecos"><tr><td colspan="8" class="p-3 text-center text-slate-600">Sincronize a planilha para carregar a tabela.</td></tr></tbody>
-            </table>
+        <div id="containerTabelaPrecos" class="bg-slate-900 p-4 rounded-xl border border-slate-800 overflow-x-auto custom-scrollbar">
+            <p class="text-xs text-slate-500 p-4 text-center">Carregando tabela...</p>
         </div>
     </div>
 
