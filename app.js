@@ -2227,67 +2227,82 @@ function aplicarPerfilM8() {
 }
 
 function renderizarTabelaPrecos() {
+    const CONVENIOS_PREVISTOS = ['Bradesco','Unimed','Porto Seguro','Amil','OdontoPrev','Sulamerica','Dentaluni'];
+
+function renderizarTabelaPrecos() {
     const container = document.getElementById('containerTabelaPrecos');
     const sel = document.getElementById('filtroConvenioM8');
-    const servicos = state.servicos || [];
     if (!container) return;
-    const convenios = (state.conveniosDisponiveis && state.conveniosDisponiveis.length) ? state.conveniosDisponiveis : ['Bradesco'];
+
+    // Dropdown SEMPRE com os convênios previsionados + Particular
+    const convs = (state.conveniosDisponiveis && state.conveniosDisponiveis.length)
+        ? [...new Set([...state.conveniosDisponiveis, ...CONVENIOS_PREVISTOS])]
+        : [...CONVENIOS_PREVISTOS];
     if (sel && sel.options.length === 0) {
-        sel.innerHTML = convenios.map(c => `<option value="${c}">Convênio ${c}</option>`).join('') + '<option value="PARTICULAR">Particular</option>';
+        sel.innerHTML = convs.map(c => `<option value="${c}">${c}</option>`).join('')
+            + '<option value="PARTICULAR">Particular</option>';
     }
-    const filtro = sel ? sel.value : (convenios[0] || 'Bradesco');
+    const filtro = sel ? sel.value : convs[0];
     const part = filtro === 'PARTICULAR';
+
+    const servicos = (state.servicos || []).filter(s => String(s.codigo_externo || '').trim());
+
+    // Pega o preço do serviço para o convênio selecionado (ou particular)
+    const precosServico = state.precosServico || [];
+    const pegaPreco = s => {
+        if (part) return Number(s.preco_particular || 0);
+        if (filtro === 'Bradesco') return Number(s.preco_convenio || 0);
+        const p = precosServico.find(x => String(x.servico_codigo).trim() === String(s.codigo_externo).trim() && x.convenio === filtro);
+        return p ? Number(p.preco || 0) : 0;
+    };
+
+    // Só lista serviços que TÊM preço para o que está sendo consultado
+    const linhas = servicos
+        .map(s => ({ s, preco: pegaPreco(s) }))
+        .filter(l => l.preco > 0)
+        .sort((a, b) => (a.s.nome || '').localeCompare(b.s.nome || '', 'pt-BR'));
+
     const cfg = obterConfigPrecificacao(part ? 'particular' : 'convenio');
     const meta = cfg ? Number(cfg.margem_desejada_pct) || 0 : 0;
-    const fmt = v => { const n = Number(v) || 0; return n > 0 ? formatarMoeda(n) : '—'; };
-    const pct = v => { const n = Number(v) || 0; return n > 0 ? n.toFixed(1) + '%' : '—'; };
+    const fmt = v => formatarMoeda(Number(v) || 0);
+    const pct = (s, preco) => {
+        if (preco <= 0) return '—';
+        const margem = part ? Number(s.margem_particular_pct || 0) : Number(s.margem_convenio_pct || 0);
+        return margem > 0 ? margem.toFixed(1) + '%' : '—';
+    };
+    const situacao = (s, preco) => {
+        if (preco <= 0) return '<span class="text-slate-500">—</span>';
+        const margem = part ? Number(s.margem_particular_pct || 0) : Number(s.margem_convenio_pct || 0);
+        return (margem > 0 && margem < meta)
+            ? '<span class="text-amber-400 font-medium">Atenção</span>'
+            : '<span class="text-emerald-400">Ok</span>';
+    };
 
-    const linhas = servicos
-        .filter(s => String(s.codigo_externo || '').trim())
-        .map(s => {
-            const preco   = part ? Number(s.preco_particular || 0) : Number(s.preco_convenio || 0);
-            const margem  = part ? Number(s.margem_particular_pct || 0) : Number(s.margem_convenio_pct || 0);
-            const ref     = Number(s.preco_convenio_ideal || 0);
-            const ok      = preco > 0 && margem >= meta;
-            const status  = preco <= 0
-                ? '<span class="text-slate-500">—</span>'
-                : ok
-                    ? '<span class="text-emerald-400">● saudável</span>'
-                    : '<span class="text-amber-400">● atenção</span>';
-            return { cod: String(s.codigo_externo || '').trim(), nome: s.nome || '—', preco, margem, ref, status };
-        })
-        .sort((a, b) => (a.nome || '').localeCompare(b.nome || '', 'pt-BR'));
-
-    const th = part
-        ? `<th class="p-2">Código</th><th class="p-2">Serviço</th><th class="p-2">Preço Particular</th><th class="p-2">Margem</th><th class="p-2">Situação</th>`
-        : `<th class="p-2">Código</th><th class="p-2">Serviço</th><th class="p-2">Preço ${filtro}</th><th class="p-2">Referência Ideal</th><th class="p-2">Margem</th><th class="p-2">Situação</th>`;
-
-    const body = linhas.length === 0
-        ? `<tr><td colspan="6" class="p-3 text-center text-slate-500">Nenhum serviço com preço definido. A consultoria precisa sincronizar a planilha.</td></tr>`
-        : linhas.map(l => part
-            ? `<tr class="border-b border-slate-800/60">
-                 <td class="p-2 font-mono text-slate-500">${l.cod}</td>
-                 <td class="p-2 font-medium text-slate-200">${l.nome}</td>
-                 <td class="p-2 font-bold text-slate-100">${fmt(l.preco)}</td>
-                 <td class="p-2 text-slate-300">${pct(l.margem)}</td>
-                 <td class="p-2">${l.status}</td>
-               </tr>`
-            : `<tr class="border-b border-slate-800/60">
-                 <td class="p-2 font-mono text-slate-500">${l.cod}</td>
-                 <td class="p-2 font-medium text-slate-200">${l.nome}</td>
-                 <td class="p-2 font-bold text-slate-100">${fmt(l.preco)}</td>
-                 <td class="p-2 text-slate-400">${fmt(l.ref)}</td>
-                 <td class="p-2 text-slate-300">${pct(l.margem)}</td>
-                 <td class="p-2">${l.status}</td>
-               </tr>`).join('');
-
-    container.innerHTML = `
-        <table class="w-full text-left text-sm text-slate-300">
-            <thead class="bg-slate-950 text-slate-400 uppercase text-[11px]">
-                <tr>${th}</tr>
-            </thead>
-            <tbody>${body}</tbody>
+    let html;
+    if (linhas.length === 0) {
+        html = `<p class="text-xs text-slate-500 p-6 text-center">Nenhum preço cadastrado para ${filtro} ainda. Os preços são atualizados pela consultoria a partir da planilha.</p>`;
+    } else {
+        const cab = `<tr>
+            <th class="p-2 text-left">Código</th>
+            <th class="p-2 text-left">Serviço</th>
+            <th class="p-2 text-right">Preço ${part ? 'Particular' : filtro}</th>
+            <th class="p-2 text-right">Margem</th>
+            <th class="p-2 text-right">Situação</th>
+        </tr>`;
+        const corpo = linhas.map(l => `
+            <tr class="border-b border-slate-800/60">
+                <td class="p-2 font-mono text-slate-500 text-xs">${String(l.s.codigo_externo || '').trim()}</td>
+                <td class="p-2 font-medium text-slate-200">${l.s.nome || '—'}</td>
+                <td class="p-2 text-right font-bold text-slate-100">${fmt(l.preco)}</td>
+                <td class="p-2 text-right text-slate-300">${pct(l.s, l.preco)}</td>
+                <td class="p-2 text-right">${situacao(l.s, l.preco)}</td>
+            </tr>`).join('');
+        html = `<table class="w-full text-left text-sm text-slate-300">
+            <thead class="bg-slate-950 text-slate-400 uppercase text-[11px]">${cab}</thead>
+            <tbody>${corpo}</tbody>
         </table>`;
+    }
+    container.innerHTML = html;
 }
 
 function calcularCustoUnitarioInsumo(ins) {
@@ -3396,7 +3411,7 @@ async function sincronizarM8PrecosMargens() {
     }
   }
 
-  state.conveniosDisponiveis = convenios;
+  state.conveniosDisponiveis = convenios; state.precosServico = precos;
   renderizarModuloFinanceiroCompleto();
   alert(`M8 sincronizado: ${atualizados} serviço(s) atualizado(s). Convênios detectados: ${convenios.join(', ')}.`);
 }
