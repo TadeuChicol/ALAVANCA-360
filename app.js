@@ -2218,52 +2218,76 @@ function mudarSubAbaCustos(nome) {
 function aplicarPerfilM8() {
     const area = document.getElementById('areaAbastecimentoM8');
     if (area) area.classList.toggle('hidden', !state.isAdmin);
+    const btnSync = document.getElementById('btnSincronizarM8');
+    if (btnSync) btnSync.classList.toggle('hidden', !state.isAdmin);
     if (!state.isAdmin) {
         const ativa = document.querySelector('.subtab-content:not(.hidden)');
         if (ativa && ativa.id !== 'subtab-tabela') mudarSubAbaCustos('tabela');
     }
 }
+
 function renderizarTabelaPrecos() {
-    const tbody = document.getElementById('tbodyTabelaPrecos');
-    if (!tbody) return;
+    const container = document.getElementById('containerTabelaPrecos');
     const sel = document.getElementById('filtroConvenioM8');
     const servicos = state.servicos || [];
-    if (servicos.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="p-3 text-center text-slate-600">Nenhum serviço carregado. Sincronize a planilha (botão no HUB Clínica).</td></tr>`;
-        return;
-    }
+    if (!container) return;
     const convenios = (state.conveniosDisponiveis && state.conveniosDisponiveis.length) ? state.conveniosDisponiveis : ['Bradesco'];
     if (sel && sel.options.length === 0) {
-        sel.innerHTML = convenios.map(c => `<option value="${c}">${c}</option>`).join('') + '<option value="PARTICULAR">Particular</option>';
+        sel.innerHTML = convenios.map(c => `<option value="${c}">Convênio ${c}</option>`).join('') + '<option value="PARTICULAR">Particular</option>';
     }
-    const filtro = sel ? sel.value : 'Bradesco';
-    const cfgConv = obterConfigPrecificacao('convenio');
-    const cfgPart = obterConfigPrecificacao('particular');
-    const meta = filtro === 'PARTICULAR'
-        ? (cfgPart ? Number(cfgPart.margem_desejada_pct) || 0 : 0)
-        : (cfgConv ? Number(cfgConv.margem_desejada_pct) || 0 : 0);
-    let html = '';
-    servicos.forEach(s => {
-        const part = filtro === 'PARTICULAR';
-        const preco  = part ? Number(s.preco_particular || 0) : Number(s.preco_convenio || 0);
-        const margem = part ? Number(s.margem_particular_pct || 0) : Number(s.margem_convenio_pct || 0);
-        const ideal  = Number(s.preco_convenio_ideal || 0);
-        const status = margem >= meta
-            ? '<span class="text-emerald-400 font-bold">Lucrativo</span>'
-            : '<span class="text-rose-400 font-bold">⚠ Abaixo da meta</span>';
-        html += `
-        <tr class="border-b border-slate-800/60">
-            <td class="p-2 font-mono text-slate-400">${String(s.codigo_externo || '').trim()}</td>
-            <td class="p-2 font-medium text-slate-200">${s.nome}</td>
-            <td class="p-2 text-sky-400">${formatarMoeda(Number(s.preco_convenio || 0))}</td>
-            <td class="p-2 text-purple-400">${formatarMoeda(Number(s.preco_particular || 0))}</td>
-            <td class="p-2 text-amber-400/80">${formatarMoeda(ideal)}</td>
-            <td class="p-2 text-slate-300">${Number(s.margem_convenio_pct || 0).toFixed(1)}%</td>
-            <td class="p-2 text-slate-300">${Number(s.margem_particular_pct || 0).toFixed(1)}%</td>
-            <td class="p-2">${status}</td>
-        </tr>`;
-    });
-    tbody.innerHTML = html;
+    const filtro = sel ? sel.value : (convenios[0] || 'Bradesco');
+    const part = filtro === 'PARTICULAR';
+    const cfg = obterConfigPrecificacao(part ? 'particular' : 'convenio');
+    const meta = cfg ? Number(cfg.margem_desejada_pct) || 0 : 0;
+    const fmt = v => { const n = Number(v) || 0; return n > 0 ? formatarMoeda(n) : '—'; };
+    const pct = v => { const n = Number(v) || 0; return n > 0 ? n.toFixed(1) + '%' : '—'; };
+
+    const linhas = servicos
+        .filter(s => String(s.codigo_externo || '').trim())
+        .map(s => {
+            const preco   = part ? Number(s.preco_particular || 0) : Number(s.preco_convenio || 0);
+            const margem  = part ? Number(s.margem_particular_pct || 0) : Number(s.margem_convenio_pct || 0);
+            const ref     = Number(s.preco_convenio_ideal || 0);
+            const ok      = preco > 0 && margem >= meta;
+            const status  = preco <= 0
+                ? '<span class="text-slate-500">—</span>'
+                : ok
+                    ? '<span class="text-emerald-400">● saudável</span>'
+                    : '<span class="text-amber-400">● atenção</span>';
+            return { cod: String(s.codigo_externo || '').trim(), nome: s.nome || '—', preco, margem, ref, status };
+        })
+        .sort((a, b) => (a.nome || '').localeCompare(b.nome || '', 'pt-BR'));
+
+    const th = part
+        ? `<th class="p-2">Código</th><th class="p-2">Serviço</th><th class="p-2">Preço Particular</th><th class="p-2">Margem</th><th class="p-2">Situação</th>`
+        : `<th class="p-2">Código</th><th class="p-2">Serviço</th><th class="p-2">Preço ${filtro}</th><th class="p-2">Referência Ideal</th><th class="p-2">Margem</th><th class="p-2">Situação</th>`;
+
+    const body = linhas.length === 0
+        ? `<tr><td colspan="6" class="p-3 text-center text-slate-500">Nenhum serviço com preço definido. A consultoria precisa sincronizar a planilha.</td></tr>`
+        : linhas.map(l => part
+            ? `<tr class="border-b border-slate-800/60">
+                 <td class="p-2 font-mono text-slate-500">${l.cod}</td>
+                 <td class="p-2 font-medium text-slate-200">${l.nome}</td>
+                 <td class="p-2 font-bold text-slate-100">${fmt(l.preco)}</td>
+                 <td class="p-2 text-slate-300">${pct(l.margem)}</td>
+                 <td class="p-2">${l.status}</td>
+               </tr>`
+            : `<tr class="border-b border-slate-800/60">
+                 <td class="p-2 font-mono text-slate-500">${l.cod}</td>
+                 <td class="p-2 font-medium text-slate-200">${l.nome}</td>
+                 <td class="p-2 font-bold text-slate-100">${fmt(l.preco)}</td>
+                 <td class="p-2 text-slate-400">${fmt(l.ref)}</td>
+                 <td class="p-2 text-slate-300">${pct(l.margem)}</td>
+                 <td class="p-2">${l.status}</td>
+               </tr>`).join('');
+
+    container.innerHTML = `
+        <table class="w-full text-left text-sm text-slate-300">
+            <thead class="bg-slate-950 text-slate-400 uppercase text-[11px]">
+                <tr>${th}</tr>
+            </thead>
+            <tbody>${body}</tbody>
+        </table>`;
 }
 
 function calcularCustoUnitarioInsumo(ins) {
