@@ -2212,6 +2212,58 @@ function mudarSubAbaCustos(nome) {
 
     if (nome === 'mapa') atualizarSelectsMapa();
     if (nome === 'resultado') renderizarResultadosCustos();
+    if (nome === 'tabela') renderizarTabelaPrecos();
+}
+
+function aplicarPerfilM8() {
+    const area = document.getElementById('areaAbastecimentoM8');
+    if (area) area.classList.toggle('hidden', !state.isAdmin);
+    if (!state.isAdmin) {
+        const ativa = document.querySelector('.subtab-content:not(.hidden)');
+        if (ativa && ativa.id !== 'subtab-tabela') mudarSubAbaCustos('tabela');
+    }
+}
+function renderizarTabelaPrecos() {
+    const tbody = document.getElementById('tbodyTabelaPrecos');
+    if (!tbody) return;
+    const sel = document.getElementById('filtroConvenioM8');
+    const servicos = state.servicos || [];
+    if (servicos.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="p-3 text-center text-slate-600">Nenhum serviço carregado. Sincronize a planilha (botão no HUB Clínica).</td></tr>`;
+        return;
+    }
+    const convenios = (state.conveniosDisponiveis && state.conveniosDisponiveis.length) ? state.conveniosDisponiveis : ['Bradesco'];
+    if (sel && sel.options.length === 0) {
+        sel.innerHTML = convenios.map(c => `<option value="${c}">${c}</option>`).join('') + '<option value="PARTICULAR">Particular</option>';
+    }
+    const filtro = sel ? sel.value : 'Bradesco';
+    const cfgConv = obterConfigPrecificacao('convenio');
+    const cfgPart = obterConfigPrecificacao('particular');
+    const meta = filtro === 'PARTICULAR'
+        ? (cfgPart ? Number(cfgPart.margem_desejada_pct) || 0 : 0)
+        : (cfgConv ? Number(cfgConv.margem_desejada_pct) || 0 : 0);
+    let html = '';
+    servicos.forEach(s => {
+        const part = filtro === 'PARTICULAR';
+        const preco  = part ? Number(s.preco_particular || 0) : Number(s.preco_convenio || 0);
+        const margem = part ? Number(s.margem_particular_pct || 0) : Number(s.margem_convenio_pct || 0);
+        const ideal  = Number(s.preco_convenio_ideal || 0);
+        const status = margem >= meta
+            ? '<span class="text-emerald-400 font-bold">Lucrativo</span>'
+            : '<span class="text-rose-400 font-bold">⚠ Abaixo da meta</span>';
+        html += `
+        <tr class="border-b border-slate-800/60">
+            <td class="p-2 font-mono text-slate-400">${String(s.codigo_externo || '').trim()}</td>
+            <td class="p-2 font-medium text-slate-200">${s.nome}</td>
+            <td class="p-2 text-sky-400">${formatarMoeda(Number(s.preco_convenio || 0))}</td>
+            <td class="p-2 text-purple-400">${formatarMoeda(Number(s.preco_particular || 0))}</td>
+            <td class="p-2 text-amber-400/80">${formatarMoeda(ideal)}</td>
+            <td class="p-2 text-slate-300">${Number(s.margem_convenio_pct || 0).toFixed(1)}%</td>
+            <td class="p-2 text-slate-300">${Number(s.margem_particular_pct || 0).toFixed(1)}%</td>
+            <td class="p-2">${status}</td>
+        </tr>`;
+    });
+    tbody.innerHTML = html;
 }
 
 function calcularCustoUnitarioInsumo(ins) {
@@ -2503,7 +2555,7 @@ function renderizarResultadosCustos() {
         }, 0);
 
         ['convenio', 'particular'].forEach(mod => {
-            const cfg = (state.configPrecificacao && state.configPrecificacao[mod]) || {};
+            const cfg = obterConfigPrecificacao(mod) || {};
             const minutosMes = (Number(cfg.horas_dia) || 8) * (Number(cfg.dias_mes) || 22) * 60;
             const proLabore = Number(cfg.pro_labore) || 0;
             const valorMinutoFixo = minutosMes > 0 ? (totalFixos + proLabore) / minutosMes : 0;
@@ -2537,12 +2589,14 @@ function renderizarResultadosCustos() {
 
 // Renderização consolidada do Módulo Financeiro
 function renderizarModuloFinanceiroCompleto() {
+    aplicarPerfilM8();
     renderizarInsumos();
     renderizarServicos();
     renderizarMapaInsumos();
     renderizarCustosFixos();
     atualizarSelectsMapa();
     renderizarResultadosCustos();
+    renderizarTabelaPrecos();
 }
 
 // Atualiza só o preço (Convênio ou Particular) de um serviço já cadastrado,
@@ -3212,7 +3266,118 @@ function importarConfigCsv(modalidade) {
     });
 }
 
-sincronizarTudoDaPlanilha()
+// ============================================================
+// M8 v2 — SINCRONIZAÇÃO DE PREÇOS E MARGENS (TABELA_FINAL)
+// Puxa APENAS o que o sistema precisa: preço por convênio (pelo
+// nome no cabeçalho da planilha), preço particular, preço ideal
+// (referência) e margens a partir do custo total das abas de tabela.
+// A planilha é a fonte de verdade. Nada aqui é digitado à mão.
+// ============================================================
+function mapearTabelaFinalV2(linhas) {
+  // linhas[0] = grupo master (CONVÊNIOS / IDEAL / PARTICIPAL)
+  // linhas[1] = nomes reais (Bradesco, Unimed, ...)
+  const grupo0 = (linhas[0] || []).map(c => String(c || '').trim());
+  const nomes1 = (linhas[1] || []).map(c => String(c || '').trim());
+  const colsConvenios = [];
+  let idxIdeal = -1, idxParticular = -1;
+  let dentroConvenios = false;
+  grupo0.forEach((g, i) => {
+    const gn = g.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const nome = nomes1[i];
+    if (gn === 'convenios') { dentroConvenios = true; if (nome) colsConvenios.push({ idx: i, nome }); return; }
+    if (gn.includes('ideal')) { idxIdeal = i; dentroConvenios = false; return; }
+    if (gn.includes('participal') || gn.includes('particular')) { idxParticular = i; dentroConvenios = false; return; }
+    // Dentro do bloco CONVÊNIOS, a linha 1 pode estar vazia (célula mesclada),
+    // mas a linha 2 carrega o nome real do convênio — captura todos.
+    if (dentroConvenios && nome) colsConvenios.push({ idx: i, nome });
+  });
+  const convenios = colsConvenios.map(c => c.nome);
+  const precos = [], particulares = [], ideais = [];
+  for (let r = 2; r < linhas.length; r++) {
+    const row = linhas[r];
+    const cod = String(row?.[0] || '').trim();
+    if (!cod) continue;
+    colsConvenios.forEach(c => {
+      const v = row[c.idx];
+      if (String(v ?? '').trim() !== '') precos.push({ servico_codigo: cod, convenio: c.nome, preco: parseNumeroBR(v) });
+    });
+    if (idxParticular !== -1 && String(row[idxParticular] ?? '').trim() !== '') particulares.push({ servico_codigo: cod, preco: parseNumeroBR(row[idxParticular]) });
+    if (idxIdeal !== -1 && String(row[idxIdeal] ?? '').trim() !== '') ideais.push({ servico_codigo: cod, preco: parseNumeroBR(row[idxIdeal]) });
+  }
+  return { convenios, precos, particulares, ideais };
+}
+function mapearCustoTotalPorServico(linhas) {
+  const cab = (linhas[0] || []).map(c => String(c || '').trim());
+  const idx = cab.findIndex(c => c.toLowerCase().replace(/[^a-z0-9]/g, '') === 'custototalservico');
+  const mapa = new Map();
+  for (let r = 1; r < linhas.length; r++) {
+    const row = linhas[r];
+    const cod = String(row?.[0] || '').trim();
+    if (!cod || idx === -1) continue;
+    mapa.set(cod, parseNumeroBR(row[idx]));
+  }
+  return mapa;
+}
+async function sincronizarM8PrecosMargens() {
+  const clinicaId = state.clinicaAtual?.id || '';
+  if (!clinicaId) { alert('Clínica não identificada. Abra o HUB Clínica e salve.'); return; }
+  const url = state.clinicaAtual?.url_planilha_nap || state.clinicaAtual?.url_planilha || '';
+  const id = extrairIdPlanilha(url);
+  if (!id) { alert('Configure o link do Google Sheets no HUB Clínica.'); return; }
+
+  const [tabFinal, tabConv, tabPart] = await Promise.all([
+    buscarAbaGoogleSheets(id, 'TABELA_FINAL'),
+    buscarAbaGoogleSheets(id, 'TABELA_CONVÊNIO'),
+    buscarAbaGoogleSheets(id, 'TABELA_PARTICULAR')
+  ]);
+
+  const { convenios, precos, particulares, ideais } = mapearTabelaFinalV2(tabFinal);
+  const custoConv = mapearCustoTotalPorServico(tabConv);
+  const custoPart = mapearCustoTotalPorServico(tabPart);
+
+  let atualizados = 0;
+  for (const s of (state.servicos || [])) {
+    const cod = String(s.codigo_externo || '').trim();
+    if (!cod) continue;
+    const pPart  = particulares.find(p => p.servico_codigo === cod);
+    const pIdeal = ideais.find(p => p.servico_codigo === cod);
+    const pConv  = precos.find(p => p.servico_codigo === cod && p.convenio === 'Bradesco');
+    const custoC = custoConv.get(cod) || 0;
+    const custoP = custoPart.get(cod) || 0;
+    const precoPart  = pPart ? pPart.preco : 0;
+    const precoConv  = pConv ? pConv.preco : 0;
+    try {
+      await apiUpdate('servicos', s.id, {
+        clinica_id: clinicaId,
+        custo_convenio: custoC,
+        custo_particular: custoP,
+        preco_convenio: precoConv,
+        preco_particular: precoPart,
+        preco_convenio_ideal: pIdeal ? pIdeal.preco : 0,
+        margem_convenio_pct: precoConv > 0 ? Math.round(((precoConv - custoC) / precoConv) * 10000) / 100 : 0,
+        margem_particular_pct: precoPart > 0 ? Math.round(((precoPart - custoP) / precoPart) * 10000) / 100 : 0
+      });
+      atualizados++;
+    } catch (e) { console.error('Erro ao atualizar serviço', s.id, e); }
+  }
+
+  // Preços por convênio (estrutura pronta para os futuros convênios)
+  if (precos.length && typeof supabaseClient !== 'undefined') {
+    const { error: errDel } = await supabaseClient.from('precos_servico').delete().eq('clinica_id', clinicaId);
+    if (!errDel) {
+      const { error: errIns } = await supabaseClient.from('precos_servico').insert(
+        precos.map(p => ({ clinica_id: clinicaId, servico_codigo: p.servico_codigo, convenio: p.convenio, preco: p.preco }))
+      );
+      if (errIns) console.error('Erro ao gravar precos_servico', errIns);
+    }
+  }
+
+  state.conveniosDisponiveis = convenios;
+  renderizarModuloFinanceiroCompleto();
+  alert(`M8 sincronizado: ${atualizados} serviço(s) atualizado(s). Convênios detectados: ${convenios.join(', ')}.`);
+}
+
+if (typeof sincronizarTudoDaPlanilha === 'function') sincronizarTudoDaPlanilha();
 
 // ============================================================
 // 12C. MÓDULO 9 — ATENDIMENTOS (CONVÊNIO / PARTICULAR / MISTO)
