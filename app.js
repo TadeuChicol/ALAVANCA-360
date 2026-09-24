@@ -2226,15 +2226,13 @@ function aplicarPerfilM8() {
     }
 }
 
-function renderizarTabelaPrecos() {
-    const CONVENIOS_PREVISTOS = ['Bradesco','Unimed','Porto Seguro','Amil','OdontoPrev','Sulamerica','Dentaluni'];
+const CONVENIOS_PREVISTOS = ['Bradesco','Unimed','Porto Seguro','Amil','OdontoPrev','Sulamerica','Dentaluni'];
 
 function renderizarTabelaPrecos() {
     const container = document.getElementById('containerTabelaPrecos');
     const sel = document.getElementById('filtroConvenioM8');
     if (!container) return;
 
-    // Dropdown SEMPRE com os convênios previsionados + Particular
     const convs = (state.conveniosDisponiveis && state.conveniosDisponiveis.length)
         ? [...new Set([...state.conveniosDisponiveis, ...CONVENIOS_PREVISTOS])]
         : [...CONVENIOS_PREVISTOS];
@@ -2246,9 +2244,8 @@ function renderizarTabelaPrecos() {
     const part = filtro === 'PARTICULAR';
 
     const servicos = (state.servicos || []).filter(s => String(s.codigo_externo || '').trim());
-
-    // Pega o preço do serviço para o convênio selecionado (ou particular)
     const precosServico = state.precosServico || [];
+
     const pegaPreco = s => {
         if (part) return Number(s.preco_particular || 0);
         if (filtro === 'Bradesco') return Number(s.preco_convenio || 0);
@@ -2256,7 +2253,6 @@ function renderizarTabelaPrecos() {
         return p ? Number(p.preco || 0) : 0;
     };
 
-    // Só lista serviços que TÊM preço para o que está sendo consultado
     const linhas = servicos
         .map(s => ({ s, preco: pegaPreco(s) }))
         .filter(l => l.preco > 0)
