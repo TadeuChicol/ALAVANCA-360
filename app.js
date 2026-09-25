@@ -3336,45 +3336,20 @@ function mapearTabelaFinalV2(linhas) {
     return { convenios, precos, particulares, ideais };
 }
 
-// Lê a coluna Lucro_Liquido (em R$) de uma aba de tabela
-function mapearLucroLiquido(linhas) {
+// Lê preço da TABELA_CONVÊNIO-BRADESCO (coluna Tabela_Convênio), chaveado pelo NOME
+function mapearPrecoConvenio(linhas) {
     const cab = (linhas[0] || []).map(c => String(c || '').trim());
-    const iLucro = cab.findIndex(c => c.toLowerCase().replace(/[^a-z0-9]/g, '') === 'lucroliquido');
+    const iNome  = cab.findIndex(c => /nome_serv/i.test(c.toLowerCase().replace(/[^a-z0-9]/g,'')));
+    const iPreco = cab.findIndex(c => c.toLowerCase().replace(/[^a-z0-9]/g, '') === 'tabelaconvenio');
     const mapa = new Map();
     for (let r = 1; r < linhas.length; r++) {
         const row = linhas[r];
-        const cod = String(row?.[0] || '').trim();
-        if (!cod || iLucro === -1) continue;
-        mapa.set(cod, parseNumeroBR(row[iLucro]));
+        const nome = String(row?.[iNome] || '').trim().toLowerCase();
+        if (!nome || iPreco === -1) continue;
+        mapa.set(nome, parseNumeroBR(row[iPreco]));
     }
     return mapa;
 }
-
-// Lê a coluna Tabela_Particular (o preço do particular) da aba TABELA_PARTICULAR
-function mapearPrecoParticular(linhas) {
-    const cab = (linhas[0] || []).map(c => String(c || '').trim());
-    const iPreco = cab.findIndex(c => c.toLowerCase().replace(/[^a-z0-9]/g, '') === 'tabelaparticular');
-    const mapa = new Map();
-    for (let r = 1; r < linhas.length; r++) {
-        const row = linhas[r];
-        const cod = String(row?.[0] || '').trim();
-        if (!cod || iPreco === -1) continue;
-        mapa.set(cod, parseNumeroBR(row[iPreco]));
-    }
-    return mapa;
-}
-
-// Mapa: nome do convênio -> nome da aba na planilha
-const MAPA_ABAS_CONVENIOS = {
-    'Bradesco':    'TABELA_CONVÊNIO-BRADESCO',
-    'Unimed':      'TABELA_CONVÊNIO-UNIMED',
-    'Porto Seguro':'TABELA_CONVÊNIO-PORTO',
-    'Amil':        'TABELA_CONVÊNIO-AMIL',
-    'OdontoPrev':  'TABELA_CONVÊNIO-ODONTOPREV',
-    'Sulamerica':  'TABELA_CONVÊNIO-SULAMERICA',
-    'Dentaluni':   'TABELA_CONVÊNIO-DENTALUNI',
-    'Intermédica': 'TABELA_CONVÊNIO-INTERMÉDICA'
-};
 
 async function sincronizarM8PrecosMargens() {
     const clinicaId = state.clinicaAtual?.id || '';
@@ -3383,44 +3358,33 @@ async function sincronizarM8PrecosMargens() {
     const id = extrairIdPlanilha(url);
     if (!id) { alert('Configure o link do Google Sheets no HUB Clínica.'); return; }
 
-    const [tabFinal, tabPart] = await Promise.all([
+    const [tabFinal, tabPart, tabBradesco] = await Promise.all([
         buscarAbaGoogleSheets(id, 'TABELA_FINAL'),
-        buscarAbaGoogleSheets(id, 'TABELA_PARTICULAR')
+        buscarAbaGoogleSheets(id, 'TABELA_PARTICULAR'),
+        buscarAbaGoogleSheets(id, 'TABELA_CONVÊNIO-BRADESCO')
     ]);
-    const { convenios, precos, ideais } = mapearTabelaFinalV2(tabFinal);
+    const { convenios, precos } = mapearTabelaFinalV2(tabFinal);
 
-    // Preço e lucro do PARTICULAR vêm da TABELA_PARTICULAR (fonte correta)
+    // Preço e lucro do PARTICULAR vêm da TABELA_PARTICULAR (por nome)
     const precoPart = mapearPrecoParticular(tabPart);
     const lucroPart = mapearLucroLiquido(tabPart);
 
-    // Lê o lucro líquido de cada convênio (para cada aba que existir)
-    const lucroConvPorConvenio = {};
-    for (const c of convenios) {
-        const aba = MAPA_ABAS_CONVENIOS[c];
-        if (!aba) continue;
-        try {
-            const linhas = await buscarAbaGoogleSheets(id, aba);
-            lucroConvPorConvenio[c] = mapearLucroLiquido(linhas);
-        } catch (e) {
-            console.warn('[M8] Aba não encontrada para convênio', c, e.message);
-            lucroConvPorConvenio[c] = new Map();
-        }
-    }
+    // Preço e lucro do BRADESCO vêm da TABELA_CONVÊNIO-BRADESCO (por nome)
+    const precoBradesco = mapearPrecoConvenio(tabBradesco);
+    const lucroBradesco = mapearLucroLiquido(tabBradesco);
 
     let atualizados = 0;
     for (const s of (state.servicos || [])) {
-        const cod = String(s.codigo_externo || '').trim();
-        if (!cod) continue;
-        const pIdeal = ideais.find(p => p.servico_codigo === cod);
-        const pBradesco = precos.find(p => p.servico_codigo === cod && p.convenio === 'Bradesco');
+        const nome = String(s.nome || '').trim().toLowerCase();
+        if (!nome) continue;
         try {
             await apiUpdate('servicos', s.id, {
                 clinica_id: clinicaId,
-                preco_convenio: pBradesco ? pBradesco.preco : 0,
-                preco_particular: precoPart.get(cod) ?? 0,          // ← da TABELA_PARTICULAR
-                preco_convenio_ideal: pIdeal ? pIdeal.preco : 0,
-                lucro_liquido_particular: lucroPart.get(cod) ?? 0,  // ← lucro em R$ (particular)
-                lucro_liquido_convenio: (lucroConvPorConvenio['Bradesco']?.get(cod) ?? 0)
+                preco_convenio: precoBradesco.get(nome) ?? 0,          // preço do Bradesco (por nome)
+                preco_particular: precoPart.get(nome) ?? 0,             // preço particular (por nome)
+                lucro_liquido_particular: lucroPart.get(nome) ?? 0,     // lucro particular (por nome)
+                lucro_liquido_convenio: lucroBradesco.get(nome) ?? 0    // lucro Bradesco (por nome)
+                // NÃO grava preco_convenio_ideal — é referência da planilha, não vai para o sistema
             });
             atualizados++;
         } catch (e) { console.error('Erro ao atualizar serviço', s.id, e); }
