@@ -3286,11 +3286,10 @@ function importarConfigCsv(modalidade) {
 }
 
 // ============================================================
-// M8 v2 — SINCRONIZAÇÃO DE PREÇOS, LUCRO LÍQUIDO E MARGENS
-// Puxa da planilha: preço por convênio (pelo cabeçalho), preço
-// particular (TABELA_PARTICULAR), preço ideal, lucro líquido
-// (coluna Lucro_Liquido, em R$) por convênio e por particular.
-// A planilha é a fonte de verdade. Nada aqui é digitado à mão.
+// M8 v2 — SINCRONIZAÇÃO DE PREÇOS E LUCRO LÍQUIDO
+// PARTICULAR  -> lê da aba TABELA_PARTICULAR (por nome)
+// BRADESCO    -> lê da aba TABELA_CONVÊNIO-BRADESCO (por nome)
+// NÃO grava preço ideal (é referência da planilha)
 // ============================================================
 function mapearTabelaFinalV2(linhas) {
     let ih = -1;
@@ -3298,17 +3297,14 @@ function mapearTabelaFinalV2(linhas) {
         const linha = (linhas[i] || []).map(c => String(c || '').toLowerCase());
         if (linha.some(c => c.includes('servico') || c.includes('serviço') || c.includes('nome_serv'))) ih = i;
     }
-    if (ih === -1) return { convenios: [], precos: [], particulares: [], ideais: [] };
-
+    if (ih === -1) return { convenios: [], precos: [] };
     const cab  = (linhas[ih] || []).map(c => String(c || '').trim());
     const cab2 = (linhas[ih + 1] || []).map(c => String(c || '').trim());
-
-    let idxIdeal = -1, idxParticular = -1;
+    let idxParticular = -1;
     const colsConv = [];
     cab.forEach((h, i) => {
         const t = String(h || '').toLowerCase();
         if (!h) return;
-        if (t.includes('ideal')) { idxIdeal = i; return; }
         if (t.includes('partic')) { idxParticular = i; return; }
         if (t.includes('id_serv') || t.includes('nome_serv') || t.includes('codigo') || t.includes('código') || (t.includes('servico') && !t.includes('convenio'))) return;
         const ehConvenio = t.includes('convenio') || t.includes('convênio');
@@ -3316,10 +3312,8 @@ function mapearTabelaFinalV2(linhas) {
         const nomeFinal = nome || (cab2[i] || '').trim();
         if (nomeFinal) colsConv.push({ idx: i, nome: nomeFinal });
     });
-
     const convenios = colsConv.map(c => c.nome).filter(Boolean);
-    const precos = [], particulares = [], ideais = [];
-
+    const precos = [];
     for (let r = ih + 1; r < linhas.length; r++) {
         const row = linhas[r];
         const cod = String(row?.[0] || '').trim();
@@ -3328,25 +3322,21 @@ function mapearTabelaFinalV2(linhas) {
             const v = row[c.idx];
             if (String(v ?? '').trim() !== '') precos.push({ servico_codigo: cod, convenio: c.nome, preco: parseNumeroBR(v) });
         });
-        if (idxParticular !== -1 && String(row[idxParticular] ?? '').trim() !== '')
-            particulares.push({ servico_codigo: cod, preco: parseNumeroBR(row[idxParticular]) });
-        if (idxIdeal !== -1 && String(row[idxIdeal] ?? '').trim() !== '')
-            ideais.push({ servico_codigo: cod, preco: parseNumeroBR(row[idxIdeal]) });
     }
-    return { convenios, precos, particulares, ideais };
+    return { convenios, precos };
 }
 
-// Lê preço da TABELA_CONVÊNIO-BRADESCO (coluna Tabela_Convênio), chaveado pelo NOME
-function mapearPrecoConvenio(linhas) {
+// Lê uma coluna por NOME do serviço (coluna A = código, Nome_Servico = nome)
+function mapearColunaPorNome(linhas, nomeColuna) {
     const cab = (linhas[0] || []).map(c => String(c || '').trim());
-    const iNome  = cab.findIndex(c => /nome_serv/i.test(c.toLowerCase().replace(/[^a-z0-9]/g,'')));
-    const iPreco = cab.findIndex(c => c.toLowerCase().replace(/[^a-z0-9]/g, '') === 'tabelaconvenio');
+    const iNome = cab.findIndex(c => /nome_serv/i.test(c.toLowerCase().replace(/[^a-z0-9]/g, '')));
+    const iCol  = cab.findIndex(c => c.toLowerCase().replace(/[^a-z0-9]/g, '') === nomeColuna.toLowerCase().replace(/[^a-z0-9]/g, ''));
     const mapa = new Map();
     for (let r = 1; r < linhas.length; r++) {
         const row = linhas[r];
         const nome = String(row?.[iNome] || '').trim().toLowerCase();
-        if (!nome || iPreco === -1) continue;
-        mapa.set(nome, parseNumeroBR(row[iPreco]));
+        if (!nome || iCol === -1) continue;
+        mapa.set(nome, parseNumeroBR(row[iCol]));
     }
     return mapa;
 }
@@ -3365,13 +3355,13 @@ async function sincronizarM8PrecosMargens() {
     ]);
     const { convenios, precos } = mapearTabelaFinalV2(tabFinal);
 
-    // Preço e lucro do PARTICULAR vêm da TABELA_PARTICULAR (por nome)
-    const precoPart = mapearPrecoParticular(tabPart);
-    const lucroPart = mapearLucroLiquido(tabPart);
+    // PARTICULAR: preço (Tabela_Particular) e lucro (Lucro_Liquido) — por nome
+    const precoPart = mapearColunaPorNome(tabPart, 'Tabela_Particular');
+    const lucroPart = mapearColunaPorNome(tabPart, 'Lucro_Liquido');
 
-    // Preço e lucro do BRADESCO vêm da TABELA_CONVÊNIO-BRADESCO (por nome)
-    const precoBradesco = mapearPrecoConvenio(tabBradesco);
-    const lucroBradesco = mapearLucroLiquido(tabBradesco);
+    // BRADESCO: preço (Tabela_Convênio) e lucro (Lucro_Liquido) — por nome
+    const precoBradesco = mapearColunaPorNome(tabBradesco, 'Tabela_Convênio');
+    const lucroBradesco = mapearColunaPorNome(tabBradesco, 'Lucro_Liquido');
 
     let atualizados = 0;
     for (const s of (state.servicos || [])) {
@@ -3380,11 +3370,11 @@ async function sincronizarM8PrecosMargens() {
         try {
             await apiUpdate('servicos', s.id, {
                 clinica_id: clinicaId,
-                preco_convenio: precoBradesco.get(nome) ?? 0,          // preço do Bradesco (por nome)
-                preco_particular: precoPart.get(nome) ?? 0,             // preço particular (por nome)
-                lucro_liquido_particular: lucroPart.get(nome) ?? 0,     // lucro particular (por nome)
-                lucro_liquido_convenio: lucroBradesco.get(nome) ?? 0    // lucro Bradesco (por nome)
-                // NÃO grava preco_convenio_ideal — é referência da planilha, não vai para o sistema
+                preco_particular: precoPart.get(nome) ?? 0,
+                lucro_liquido_particular: lucroPart.get(nome) ?? 0,
+                preco_convenio: precoBradesco.get(nome) ?? 0,
+                lucro_liquido_convenio: lucroBradesco.get(nome) ?? 0
+                // NÃO grava preco_convenio_ideal (referência da planilha)
             });
             atualizados++;
         } catch (e) { console.error('Erro ao atualizar serviço', s.id, e); }
