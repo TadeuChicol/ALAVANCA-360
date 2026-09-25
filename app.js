@@ -2232,7 +2232,6 @@ function renderizarTabelaPrecos() {
     const container = document.getElementById('containerTabelaPrecos');
     const sel = document.getElementById('filtroConvenioM8');
     if (!container) return;
-
     const convs = (state.conveniosDisponiveis && state.conveniosDisponiveis.length)
         ? [...new Set([...state.conveniosDisponiveis, ...CONVENIOS_PREVISTOS])]
         : [...CONVENIOS_PREVISTOS];
@@ -2242,7 +2241,6 @@ function renderizarTabelaPrecos() {
     }
     const filtro = sel ? sel.value : convs[0];
     const part = filtro === 'PARTICULAR';
-
     const servicos = (state.servicos || []).filter(s => String(s.codigo_externo || '').trim());
     const precosServico = state.precosServico || [];
 
@@ -2252,46 +2250,42 @@ function renderizarTabelaPrecos() {
         const p = precosServico.find(x => String(x.servico_codigo).trim() === String(s.codigo_externo).trim() && x.convenio === filtro);
         return p ? Number(p.preco || 0) : 0;
     };
-    const pegaCusto = s => part ? Number(s.custo_particular || 0) : Number(s.custo_convenio || 0);
+    const pegaLucro = s => part ? Number(s.lucro_liquido_particular || 0) : Number(s.lucro_liquido_convenio || 0);
 
-    // ESPELHAMENTO: mostra TODOS os serviços, mesmo com preço 0
     const linhas = servicos
-        .map(s => ({ s, preco: pegaPreco(s), custo: pegaCusto(s) }))
-        .sort((a, b) => (a.s.nome || '').localeCompare(b.s.nome || '', 'pt-BR'));
+        .map(s => ({ s, preco: pegaPreco(s), lucro: pegaLucro(s) }))
+        .sort((a, b) => {
+            const na = parseInt(String(a.s.codigo_externo || '').replace(/\D/g, ''), 10) || 0;
+            const nb = parseInt(String(b.s.codigo_externo || '').replace(/\D/g, ''), 10) || 0;
+            return na - nb;   // ordem por número do serviço (S01, S02, S03...)
+        });
 
-    const cfg = obterConfigPrecificacao(part ? 'particular' : 'convenio');
-    const meta = cfg ? Number(cfg.margem_desejada_pct) || 0 : 0;
-    const fmt = v => { const n = Number(v) || 0; return n > 0 ? formatarMoeda(n) : '—'; };
-    const pct = l => {
-        if (l.preco <= 0) return '—';
-        const m = l.preco > 0 ? ((l.preco - l.custo) / l.preco) * 100 : 0;
-        return m.toFixed(1) + '%';
-    };
-    const situacao = l => {
-        if (l.preco <= 0) return '<span class="text-slate-500">—</span>';
-        const m = ((l.preco - l.custo) / l.preco) * 100;
-        return (m < meta) ? '<span class="text-amber-400 font-medium">Atenção</span>' : '<span class="text-emerald-400">Ok</span>';
-    };
+    const fmt = v => { const n = Number(v) || 0; return n !== 0 ? formatarMoeda(n) : '—'; };
+    const classeLucro = v => v < 0 ? 'text-rose-400 font-bold' : 'text-emerald-400 font-medium';
 
-    const cab = `<tr>
-        <th class="p-2 text-left">Código</th>
-        <th class="p-2 text-left">Serviço</th>
-        <th class="p-2 text-right">Preço ${part ? 'Particular' : filtro}</th>
-        <th class="p-2 text-right">Margem</th>
-        <th class="p-2 text-right">Situação</th>
-    </tr>`;
-    const corpo = linhas.map(l => `
-        <tr class="border-b border-slate-800/60">
-            <td class="p-2 font-mono text-slate-500 text-xs">${String(l.s.codigo_externo || '').trim()}</td>
-            <td class="p-2 font-medium text-slate-200">${l.s.nome || '—'}</td>
-            <td class="p-2 text-right font-bold text-slate-100">${fmt(l.preco)}</td>
-            <td class="p-2 text-right text-slate-300">${pct(l)}</td>
-            <td class="p-2 text-right">${situacao(l)}</td>
-        </tr>`).join('');
-    container.innerHTML = `<table class="w-full text-left text-sm text-slate-300">
-        <thead class="bg-slate-950 text-slate-400 uppercase text-[11px]">${cab}</thead>
-        <tbody>${corpo}</tbody>
-    </table>`;
+    let html;
+    if (linhas.length === 0) {
+        html = `<p class="text-xs text-slate-500 p-6 text-center">Nenhum preço cadastrado para ${filtro} ainda.</p>`;
+    } else {
+        const cab = `<tr>
+            <th class="p-2 text-left">Código</th>
+            <th class="p-2 text-left">Serviço</th>
+            <th class="p-2 text-right">Preço ${part ? 'Particular' : filtro}</th>
+            <th class="p-2 text-right">Lucro Líquido</th>
+        </tr>`;
+        const corpo = linhas.map(l => `
+            <tr class="border-b border-slate-800/60">
+                <td class="p-2 font-mono text-slate-500 text-xs">${String(l.s.codigo_externo || '').trim()}</td>
+                <td class="p-2 font-medium text-slate-200">${l.s.nome || '—'}</td>
+                <td class="p-2 text-right font-bold text-slate-100">${fmt(l.preco)}</td>
+                <td class="p-2 text-right ${classeLucro(l.lucro)}">${fmt(l.lucro)}</td>
+            </tr>`).join('');
+        html = `<table class="w-full text-left text-sm text-slate-300">
+            <thead class="bg-slate-950 text-slate-400 uppercase text-[11px]">${cab}</thead>
+            <tbody>${corpo}</tbody>
+        </table>`;
+    }
+    container.innerHTML = html;
 }
 
 function calcularCustoUnitarioInsumo(ins) {
@@ -3292,10 +3286,10 @@ function importarConfigCsv(modalidade) {
 }
 
 // ============================================================
-// M8 v2 — SINCRONIZAÇÃO DE PREÇOS E MARGENS (TABELA_FINAL)
-// Puxa APENAS o que o sistema precisa: preço por convênio (pelo
-// nome no cabeçalho da planilha), preço particular, preço ideal
-// (referência) e margens a partir do custo total das abas de tabela.
+// M8 v2 — SINCRONIZAÇÃO DE PREÇOS, LUCRO LÍQUIDO E MARGENS
+// Puxa da planilha: preço por convênio (pelo cabeçalho), preço
+// particular (TABELA_PARTICULAR), preço ideal, lucro líquido
+// (coluna Lucro_Liquido, em R$) por convênio e por particular.
 // A planilha é a fonte de verdade. Nada aqui é digitado à mão.
 // ============================================================
 function mapearTabelaFinalV2(linhas) {
@@ -3307,7 +3301,7 @@ function mapearTabelaFinalV2(linhas) {
     if (ih === -1) return { convenios: [], precos: [], particulares: [], ideais: [] };
 
     const cab  = (linhas[ih] || []).map(c => String(c || '').trim());
-    const cab2 = (linhas[ih + 1] || []).map(c => String(c || '').trim()); // nomes abaixo do cabeçalho (se existirem)
+    const cab2 = (linhas[ih + 1] || []).map(c => String(c || '').trim());
 
     let idxIdeal = -1, idxParticular = -1;
     const colsConv = [];
@@ -3341,75 +3335,110 @@ function mapearTabelaFinalV2(linhas) {
     }
     return { convenios, precos, particulares, ideais };
 }
-function mapearCustoTotalPorServico(linhas) {
-  const cab = (linhas[0] || []).map(c => String(c || '').trim());
-  const idx = cab.findIndex(c => c.toLowerCase().replace(/[^a-z0-9]/g, '') === 'custototalservico');
-  const mapa = new Map();
-  for (let r = 1; r < linhas.length; r++) {
-    const row = linhas[r];
-    const cod = String(row?.[0] || '').trim();
-    if (!cod || idx === -1) continue;
-    mapa.set(cod, parseNumeroBR(row[idx]));
-  }
-  return mapa;
-}
-async function sincronizarM8PrecosMargens() {
-  const clinicaId = state.clinicaAtual?.id || '';
-  if (!clinicaId) { alert('Clínica não identificada. Abra o HUB Clínica e salve.'); return; }
-  const url = state.clinicaAtual?.url_planilha_nap || state.clinicaAtual?.url_planilha || '';
-  const id = extrairIdPlanilha(url);
-  if (!id) { alert('Configure o link do Google Sheets no HUB Clínica.'); return; }
 
-  const [tabFinal, tabConv, tabPart] = await Promise.all([
-    buscarAbaGoogleSheets(id, 'TABELA_FINAL'),
-    buscarAbaGoogleSheets(id, 'TABELA_CONVÊNIO'),
-    buscarAbaGoogleSheets(id, 'TABELA_PARTICULAR')
-  ]);
-
-  const { convenios, precos, particulares, ideais } = mapearTabelaFinalV2(tabFinal);
-  const custoConv = mapearCustoTotalPorServico(tabConv);
-  const custoPart = mapearCustoTotalPorServico(tabPart);
-
-  let atualizados = 0;
-  for (const s of (state.servicos || [])) {
-    const cod = String(s.codigo_externo || '').trim();
-    if (!cod) continue;
-    const pPart  = particulares.find(p => p.servico_codigo === cod);
-    const pIdeal = ideais.find(p => p.servico_codigo === cod);
-    const pConv  = precos.find(p => p.servico_codigo === cod && p.convenio === 'Bradesco');
-    const custoC = custoConv.get(cod) || 0;
-    const custoP = custoPart.get(cod) || 0;
-    const precoPart  = pPart ? pPart.preco : 0;
-    const precoConv  = pConv ? pConv.preco : 0;
-    try {
-      await apiUpdate('servicos', s.id, {
-        clinica_id: clinicaId,
-        custo_convenio: custoC,
-        custo_particular: custoP,
-        preco_convenio: precoConv,
-        preco_particular: precoPart,
-        preco_convenio_ideal: pIdeal ? pIdeal.preco : 0,
-        margem_convenio_pct: precoConv > 0 ? Math.round(((precoConv - custoC) / precoConv) * 10000) / 100 : 0,
-        margem_particular_pct: precoPart > 0 ? Math.round(((precoPart - custoP) / precoPart) * 10000) / 100 : 0
-      });
-      atualizados++;
-    } catch (e) { console.error('Erro ao atualizar serviço', s.id, e); }
-  }
-
-  // Preços por convênio (estrutura pronta para os futuros convênios)
-  if (precos.length && typeof supabaseClient !== 'undefined') {
-    const { error: errDel } = await supabaseClient.from('precos_servico').delete().eq('clinica_id', clinicaId);
-    if (!errDel) {
-      const { error: errIns } = await supabaseClient.from('precos_servico').insert(
-        precos.map(p => ({ clinica_id: clinicaId, servico_codigo: p.servico_codigo, convenio: p.convenio, preco: p.preco }))
-      );
-      if (errIns) console.error('Erro ao gravar precos_servico', errIns);
+// Lê a coluna Lucro_Liquido (em R$) de uma aba de tabela
+function mapearLucroLiquido(linhas) {
+    const cab = (linhas[0] || []).map(c => String(c || '').trim());
+    const iLucro = cab.findIndex(c => c.toLowerCase().replace(/[^a-z0-9]/g, '') === 'lucroliquido');
+    const mapa = new Map();
+    for (let r = 1; r < linhas.length; r++) {
+        const row = linhas[r];
+        const cod = String(row?.[0] || '').trim();
+        if (!cod || iLucro === -1) continue;
+        mapa.set(cod, parseNumeroBR(row[iLucro]));
     }
-  }
+    return mapa;
+}
 
-  state.conveniosDisponiveis = convenios; state.precosServico = precos;
-  renderizarModuloFinanceiroCompleto();
-  alert(`M8 sincronizado: ${atualizados} serviço(s) atualizado(s). Convênios detectados: ${convenios.join(', ')}.`);
+// Lê a coluna Tabela_Particular (o preço do particular) da aba TABELA_PARTICULAR
+function mapearPrecoParticular(linhas) {
+    const cab = (linhas[0] || []).map(c => String(c || '').trim());
+    const iPreco = cab.findIndex(c => c.toLowerCase().replace(/[^a-z0-9]/g, '') === 'tabelaparticular');
+    const mapa = new Map();
+    for (let r = 1; r < linhas.length; r++) {
+        const row = linhas[r];
+        const cod = String(row?.[0] || '').trim();
+        if (!cod || iPreco === -1) continue;
+        mapa.set(cod, parseNumeroBR(row[iPreco]));
+    }
+    return mapa;
+}
+
+// Mapa: nome do convênio -> nome da aba na planilha
+const MAPA_ABAS_CONVENIOS = {
+    'Bradesco':    'TABELA_CONVÊNIO-BRADESCO',
+    'Unimed':      'TABELA_CONVÊNIO-UNIMED',
+    'Porto Seguro':'TABELA_CONVÊNIO-PORTO',
+    'Amil':        'TABELA_CONVÊNIO-AMIL',
+    'OdontoPrev':  'TABELA_CONVÊNIO-ODONTOPREV',
+    'Sulamerica':  'TABELA_CONVÊNIO-SULAMERICA',
+    'Dentaluni':   'TABELA_CONVÊNIO-DENTALUNI',
+    'Intermédica': 'TABELA_CONVÊNIO-INTERMÉDICA'
+};
+
+async function sincronizarM8PrecosMargens() {
+    const clinicaId = state.clinicaAtual?.id || '';
+    if (!clinicaId) { alert('Clínica não identificada. Abra o HUB Clínica e salve.'); return; }
+    const url = state.clinicaAtual?.url_planilha_nap || state.clinicaAtual?.url_planilha || '';
+    const id = extrairIdPlanilha(url);
+    if (!id) { alert('Configure o link do Google Sheets no HUB Clínica.'); return; }
+
+    const [tabFinal, tabPart] = await Promise.all([
+        buscarAbaGoogleSheets(id, 'TABELA_FINAL'),
+        buscarAbaGoogleSheets(id, 'TABELA_PARTICULAR')
+    ]);
+    const { convenios, precos, ideais } = mapearTabelaFinalV2(tabFinal);
+
+    // Preço e lucro do PARTICULAR vêm da TABELA_PARTICULAR (fonte correta)
+    const precoPart = mapearPrecoParticular(tabPart);
+    const lucroPart = mapearLucroLiquido(tabPart);
+
+    // Lê o lucro líquido de cada convênio (para cada aba que existir)
+    const lucroConvPorConvenio = {};
+    for (const c of convenios) {
+        const aba = MAPA_ABAS_CONVENIOS[c];
+        if (!aba) continue;
+        try {
+            const linhas = await buscarAbaGoogleSheets(id, aba);
+            lucroConvPorConvenio[c] = mapearLucroLiquido(linhas);
+        } catch (e) {
+            console.warn('[M8] Aba não encontrada para convênio', c, e.message);
+            lucroConvPorConvenio[c] = new Map();
+        }
+    }
+
+    let atualizados = 0;
+    for (const s of (state.servicos || [])) {
+        const cod = String(s.codigo_externo || '').trim();
+        if (!cod) continue;
+        const pIdeal = ideais.find(p => p.servico_codigo === cod);
+        const pBradesco = precos.find(p => p.servico_codigo === cod && p.convenio === 'Bradesco');
+        try {
+            await apiUpdate('servicos', s.id, {
+                clinica_id: clinicaId,
+                preco_convenio: pBradesco ? pBradesco.preco : 0,
+                preco_particular: precoPart.get(cod) ?? 0,          // ← da TABELA_PARTICULAR
+                preco_convenio_ideal: pIdeal ? pIdeal.preco : 0,
+                lucro_liquido_particular: lucroPart.get(cod) ?? 0,  // ← lucro em R$ (particular)
+                lucro_liquido_convenio: (lucroConvPorConvenio['Bradesco']?.get(cod) ?? 0)
+            });
+            atualizados++;
+        } catch (e) { console.error('Erro ao atualizar serviço', s.id, e); }
+    }
+
+    if (precos.length && typeof supabaseClient !== 'undefined') {
+        const { error: errDel } = await supabaseClient.from('precos_servico').delete().eq('clinica_id', clinicaId);
+        if (!errDel) {
+            const { error: errIns } = await supabaseClient.from('precos_servico').insert(
+                precos.map(p => ({ clinica_id: clinicaId, servico_codigo: p.servico_codigo, convenio: p.convenio, preco: p.preco }))
+            );
+            if (errIns) console.error('Erro ao gravar precos_servico', errIns);
+        }
+    }
+
+    state.conveniosDisponiveis = convenios; state.precosServico = precos;
+    renderizarModuloFinanceiroCompleto();
+    alert(`M8 sincronizado: ${atualizados} serviço(s) atualizado(s). Convênios detectados: ${convenios.join(', ')}.`);
 }
 
 if (typeof sincronizarTudoDaPlanilha === 'function') sincronizarTudoDaPlanilha();
