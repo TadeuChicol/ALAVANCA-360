@@ -3409,7 +3409,11 @@ async function sincronizarM8PrecosMargens() {
 
     state.conveniosDisponiveis = convenios; state.precosServico = precos;
     renderizarModuloFinanceiroCompleto();
-    alert(`M8 sincronizado: ${atualizados} serviço(s) atualizado(s). Convênios detectados: ${convenios.join(', ')}.`);
+    alert(`M8 sincronizado: ${atualizados} serviço(s) atualizado(s).\n`
+        + `Convênios detectados: ${convenios.join(', ') || 'nenhum'}.\n`
+        + `Particular: ${partMap.size} serviço(s) lido(s) da aba.\n`
+        + `Bradesco: ${bradescoMap.size} serviço(s) lido(s) da aba.\n`
+        + `Aba Bradesco usada: ${tabBradesco && tabBradesco.length ? 'encontrada (' + tabBradesco.length + ' linhas)' : 'NÃO ENCONTRADA (vazia)'}`);
 }
 
 if (typeof sincronizarTudoDaPlanilha === 'function') sincronizarTudoDaPlanilha();
