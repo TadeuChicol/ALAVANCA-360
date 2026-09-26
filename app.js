@@ -3600,100 +3600,372 @@ function renderizarAtendimentos() {
 }
 
 // ============================================================
-// 12C-2. MÓDULO 9 — POPULAÇÃO DOS SELECTS E AUTO-PREENCHIMENTO
+// M9 v2 — CROQUI DE SERVIÇOS & PRÉ-ORÇAMENTO
+// Lista de itens (vários serviços), convênio por item, puxada de
+// preço+lucro da tabela M8, desconto individual e geral, somatório
+// e margem em R$ E % para a dentista balizar descontos.
 // ============================================================
+if (!state.croqui) state.croqui = [];
 
-// Popula os selects do M9 com dados reais do banco
-async function popularSelectsAtendimento() {
-    // Pacientes
-    const selPac = document.getElementById('atdPaciente');
-    if (selPac) {
-        selPac.innerHTML = '<option value="">Selecione o paciente</option>' +
-            (state.pacientes || []).map(p => `<option value="${p.id}">${p.nome || ''}</option>`).join('');
-    }
-
-    // Serviços (vêm da planilha via M8)
-    const selServ = document.getElementById('atdServico');
-    if (selServ) {
-        selServ.innerHTML = '<option value="">Selecione o serviço</option>' +
-            (state.servicos || []).map(s => `<option value="${s.id}">${s.nome || ''}</option>`).join('');
-    }
-
-    // Profissionais (DENTISTAS REAIS do Hub Clínica)
-    const selProf = document.getElementById('atdProfissional');
-    if (selProf) {
-        let profissionais = [];
-        try {
-            const { data } = await supabaseClient
-                .from('dentistas')
-                .select('id, nome, especialidade')
-                .eq('clinica_id', clinicaId());
-            profissionais = data || [];
-        } catch (e) {
-            profissionais = state.profissionais || [];
-        }
-        if (!profissionais.length) profissionais = state.profissionais || [];
-        selProf.innerHTML = '<option value="">Selecione o profissional</option>' +
-            profissionais.map(d => `<option value="${d.id}">${d.nome || ''}</option>`).join('');
-    }
+function buscarPrecoTabelaConvenio(servico, convenio) {
+    if (!servico) return 0;
+    if (convenio === 'PARTICULAR') return Number(servico.preco_particular || 0);
+    if (convenio === 'Bradesco') return Number(servico.preco_convenio || 0);
+    // Demais convênios: preço vem da tabela precos_servico (preenchida no M8)
+    const p = (state.precosServico || []).find(x =>
+        String(x.servico_codigo).trim() === String(servico.codigo_externo || '').trim() &&
+        x.convenio === convenio
+    );
+    return p ? Number(p.preco || 0) : 0;
 }
 
-// Ao escolher o serviço, preenche os valores e mostra custo/margem
+function buscarLucroTabelaConvenio(servico, convenio, custoTotal) {
+    if (!servico) return 0;
+    const preco = buscarPrecoTabelaConvenio(servico, convenio);
+    if (convenio === 'PARTICULAR') {
+        const l = Number(servico.lucro_liquido_particular || 0);
+        return l || (preco - custoTotal);
+    }
+    if (convenio === 'Bradesco') {
+        const l = Number(servico.lucro_liquido_convenio || 0);
+        return l || (preco - custoTotal);
+    }
+    // Unimed, Intermédica etc.: a aba M8 ainda não grava lucro desses →
+    // usa estimativa preço − custo (fonte de verdade da planilha quando houver).
+    return preco - custoTotal;
+}
+
+function buscarCustoTotalServico(servicoId) {
+    if (!servicoId) return Promise.resolve(0);
+    const vw = (state.custoServicoView || []).find(v => String(v.id) === String(servicoId));
+    if (vw && vw.custo_total != null) return Promise.resolve(Number(vw.custo_total) || 0);
+    return supabaseClient.from('vw_custo_servico')
+        .select('custo_total')
+        .eq('id', servicoId)
+        .single()
+        .then(({ data }) => (data && data.custo_total) ? Number(data.custo_total) : 0)
+        .catch(() => 0);
+}
+
+function margemMinimaPara(convenio) {
+    const modalidade = convenio === 'PARTICULAR' ? 'particular' : 'convenio';
+    const cfg = obterConfigPrecificacao ? obterConfigPrecificacao(modalidade) : null;
+    return cfg ? (Number(cfg.margem_desejada_pct) || 0) : 0;
+}
+
+// Ao escolher o serviço + convênio, mostra preço/lucro/margem ANTES de adicionar
 async function preencherValoresServico() {
     const servicoId = document.getElementById('atdServico').value;
-    const tipo = document.getElementById('atdTipoPagamento').value;
+    const convenio = document.getElementById('atdConvenioLinha').value;
     const info = document.getElementById('infoServicoAtendimento');
-    const campoConv = document.getElementById('atdValorConvenio');
-    const campoPart = document.getElementById('atdValorParticular');
-
-    if (!servicoId) {
-        campoConv.value = ''; campoPart.value = '';
+    const campoPreco = document.getElementById('atdPrecoTabela');
+    if (!servicoId || !convenio) {
+        if (campoPreco) campoPreco.value = '';
         if (info) info.classList.add('hidden');
         return;
     }
-
-    // Preços vindos da planilha (tabela servicos)
     const servico = (state.servicos || []).find(s => s.id === servicoId);
-    const precoConv = servico ? (Number(servico.preco_convenio) || 0) : 0;
-    const precoPart = servico ? (Number(servico.preco_particular) || 0) : 0;
+    if (!servico) return;
 
-    // Custo real vindo da view
-    let custoTotal = 0, margemMin = 20;
-    try {
-        const { data: sv } = await supabaseClient
-            .from('vw_custo_servico')
-            .select('custo_total, margem_minima')
-            .eq('id', servicoId)
-            .single();
-        if (sv) { custoTotal = sv.custo_total || 0; margemMin = sv.margem_minima || 20; }
-    } catch (e) { /* usa padrão */ }
+    const custoTotal = await buscarCustoTotalServico(servicoId);
+    const precoTabela = buscarPrecoTabelaConvenio(servico, convenio);
+    const lucroTabela = buscarLucroTabelaConvenio(servico, convenio, custoTotal);
 
-    // Preenche conforme o tipo de pagamento
-    if (tipo === 'convenio') {
-        campoConv.value = precoConv || '';
-        campoPart.value = '';
-    } else if (tipo === 'particular') {
-        campoConv.value = '';
-        campoPart.value = precoPart || '';
-    } else {
-        campoConv.value = precoConv || '';
-        campoPart.value = precoPart || '';
-    }
+    if (campoPreco) campoPreco.value = precoTabela || '';
 
-    // Mostra custo, preço e margem para a dentista decidir
+    // Aplica o desconto individual digitado (em %)
+    const descPct = parseFloat(document.getElementById('atdDescontoLinha').value) || 0;
+    const valorFinal = precoTabela * (1 - descPct / 100);
+    const margemR$ = lucroTabela - (precoTabela * descPct / 100);
+    const margemPct = valorFinal > 0 ? (margemR$ / valorFinal) * 100 : 0;
+    const min = margemMinimaPara(convenio);
+    const cor = margemPct >= min ? 'text-emerald-300' : 'text-amber-300';
+
     if (info) {
-        const precoUsado = tipo === 'particular' ? precoPart : (tipo === 'convenio' ? precoConv : precoConv + precoPart);
-        let margemReal = null;
-        if (precoUsado > 0) margemReal = ((precoUsado - custoTotal) / precoUsado) * 100;
-        const cor = margemReal === null ? 'text-slate-400' : (margemReal < margemMin ? 'text-amber-300' : 'text-emerald-300');
         info.classList.remove('hidden');
         info.innerHTML = `
-            <div class="flex flex-wrap gap-3">
-                <span>Custo total: <strong>${typeof formatarMoeda === 'function' ? formatarMoeda(custoTotal) : 'R$ ' + custoTotal.toFixed(2)}</strong></span>
-                <span>Preço ${tipo === 'particular' ? 'particular' : (tipo === 'convenio' ? 'convênio' : 'total')}: <strong>${typeof formatarMoeda === 'function' ? formatarMoeda(precoUsado) : 'R$ ' + precoUsado.toFixed(2)}</strong></span>
-                <span class="${cor}">Margem: <strong>${margemReal === null ? '—' : margemReal.toFixed(1) + '%'}</strong> (mín. ${margemMin}%)</span>
+            <div class="flex flex-wrap gap-4">
+                <span>Custo total: <strong>${formatarMoeda(custoTotal)}</strong></span>
+                <span>Preço tabela (${convenio}): <strong>${formatarMoeda(precoTabela)}</strong></span>
+                <span>Valor final: <strong>${formatarMoeda(valorFinal)}</strong></span>
+                <span>Lucro líquido: <strong>${formatarMoeda(margemR$)}</strong></span>
+                <span class="${cor}">Margem: <strong>${margemPct.toFixed(2)}%</strong> (mín. ${min}%)</span>
+                <span class="text-slate-500">${lucroTabela <= 0 ? '⚠ atenção: lucro zero/negativo' : ''}</span>
             </div>`;
     }
+}
+
+let croquiSeq = 0; // id temporário das linhas
+
+async function adicionarLinhaCroqui() {
+    const servicoId = document.getElementById('atdServico').value;
+    const convenio = document.getElementById('atdConvenioLinha').value;
+    const paciente = document.getElementById('atdPaciente').value;
+    if (!servicoId || !convenio) { alert('Selecione o serviço e o convênio.'); return; }
+    if (!paciente) { alert('Selecione o paciente primeiro.'); return; }
+    const servico = (state.servicos || []).find(s => s.id === servicoId);
+    if (!servico) return;
+
+    const custoTotal = await buscarCustoTotalServico(servicoId);
+    const precoTabela = buscarPrecoTabelaConvenio(servico, convenio);
+    const lucroTabela = buscarLucroTabelaConvenio(servico, convenio, custoTotal);
+    const descPct = parseFloat(document.getElementById('atdDescontoLinha').value) || 0;
+
+    state.croqui.push({
+        id: 'c' + (++croquiSeq),
+        servico_id: servicoId,
+        servico_nome: servico.nome || '',
+        codigo_externo: servico.codigo_externo || '',
+        convenio,
+        preco_tabela: precoTabela,
+        custo_total: custoTotal,
+        lucro_tabela: lucroTabela,
+        desconto_pct: descPct
+    });
+
+    document.getElementById('atdDescontoLinha').value = '';
+    recalcLinha(state.croqui[state.croqui.length - 1]);
+    renderizarCroqui();
+}
+
+function recalcLinha(item) {
+    const valorFinal = item.preco_tabela * (1 - item.desconto_pct / 100);
+    item.valor_final = valorFinal;
+    item.margem_r = item.lucro_tabela - (item.preco_tabela * item.desconto_pct / 100);
+    item.margem_pct = valorFinal > 0 ? (item.margem_r / valorFinal) * 100 : 0;
+    return item;
+}
+
+function renderizarCroqui() {
+    const tbody = document.getElementById('tbodyCroqui');
+    if (!tbody) return;
+    if (!state.croqui.length) {
+        tbody.innerHTML = `<tr><td colspan="9" class="p-3 text-center text-slate-600">Nenhum serviço adicionado ainda.</td></tr>`;
+        return;
+    }
+    const min = margemMinimaPara('convenio');
+    tbody.innerHTML = state.croqui.map(item => {
+        recalcLinha(item);
+        const cor = item.margem_r < 0 ? 'text-rose-400 font-bold' : (item.margem_pct >= min ? 'text-emerald-400' : 'text-amber-300');
+        return `
+            <tr class="border-b border-slate-800/60">
+                <td class="p-2 font-mono text-slate-500 text-xs">${item.codigo_externo || '—'}</td>
+                <td class="p-2 font-medium text-slate-200">${item.servico_nome}</td>
+                <td class="p-2 text-slate-400">${item.convenio}</td>
+                <td class="p-2 text-right text-slate-300">${formatarMoeda(item.preco_tabela)}</td>
+                <td class="p-2 text-right">
+                    <input type="number" min="0" max="100" step="0.1" value="${item.desconto_pct}"
+                        onchange="atualizarDescontoLinha('${item.id}', this.value)"
+                        class="w-16 bg-slate-950 border border-slate-800 p-1 rounded text-slate-200 text-right">
+                </td>
+                <td class="p-2 text-right font-bold text-slate-100">${formatarMoeda(item.valor_final)}</td>
+                <td class="p-2 text-right ${cor}">${formatarMoeda(item.margem_r)}</td>
+                <td class="p-2 text-right ${cor}">${item.margem_pct.toFixed(2)}%</td>
+                <td class="p-2 text-right">
+                    <button onclick="removerLinhaCroqui('${item.id}')" class="text-rose-400 hover:underline">Excluir</button>
+                </td>
+            </tr>`;
+    }).join('');
+    recalcularTotais();
+}
+
+function atualizarDescontoLinha(id, valor) {
+    const item = state.croqui.find(i => i.id === id);
+    if (!item) return;
+    item.desconto_pct = parseFloat(valor) || 0;
+    renderizarCroqui();
+}
+
+function removerLinhaCroqui(id) {
+    state.croqui = state.croqui.filter(i => i.id !== id);
+    renderizarCroqui();
+}
+
+function limparCroqui() {
+    if (state.croqui.length && !confirm('Limpar todos os itens do croqui?')) return;
+    state.croqui = [];
+    renderizarCroqui();
+}
+
+// Totais + margem geral (R$ e %) com desconto geral em %
+function recalcularTotais() {
+    const subtotal = state.croqui.reduce((s, i) => s + (Number(i.valor_final) || 0), 0);
+    const lucroTotal = state.croqui.reduce((s, i) => s + (Number(i.margem_r) || 0), 0);
+    const descGeral = parseFloat(document.getElementById('atdDescontoGeral')?.value) || 0;
+    const valorDescGeral = subtotal * (descGeral / 100);
+    const totalFinal = subtotal - valorDescGeral;
+    const margemGeralR$ = lucroTotal - valorDescGeral;
+    const margemGeralPct = totalFinal > 0 ? (margemGeralR$ / totalFinal) * 100 : 0;
+
+    const el = id => document.getElementById(id);
+    el('lblCroquiSubtotal').textContent = formatarMoeda(subtotal);
+    el('lblCroquiValorDescontoGeral').textContent = formatarMoeda(valorDescGeral);
+    el('lblCroquiTotal').textContent = formatarMoeda(totalFinal);
+    el('lblCroquiMargemR$').textContent = formatarMoeda(margemGeralR$);
+    el('lblCroquiMargemPct').textContent = margemGeralPct.toFixed(2) + '%';
+    el('lblCroquiMargemR$').className = 'text-lg font-bold ' + (margemGeralR$ < 0 ? 'text-rose-400' : 'text-emerald-400');
+    el('lblCroquiMargemPct').className = 'text-[13px] font-bold ' + (margemGeralR$ < 0 ? 'text-rose-400' : 'text-slate-300');
+
+    const alerta = el('alertaMargemAtendimento');
+    const minGeral = margemMinimaPara('convenio');
+    if (margemGeralR$ < 0) {
+        alerta.classList.remove('hidden');
+        alerta.textContent = '⚠ Margem geral negativa: você está operando no prejuízo. Reveja os descontos.';
+    } else if (margemGeralPct < minGeral) {
+        alerta.classList.remove('hidden');
+        alerta.textContent = `⚠ Margem geral ${margemGeralPct.toFixed(2)}% abaixo da meta de ${minGeral}%. Reveja os descontos.`;
+    } else {
+        alerta.classList.add('hidden');
+    }
+}
+
+function recalcularCroqui() {
+    state.croqui.forEach(recalcLinha);
+    renderizarCroqui();
+}
+
+// Salva cada linha do croqui como atendimento (base do Dashboard Vivo)
+async function validarESalvarCroquiComoAtendimentos() {
+    if (!state.croqui.length) { alert('Adicione pelo menos um serviço ao croqui.'); return; }
+    const pacienteId = document.getElementById('atdPaciente').value;
+    const profissionalId = document.getElementById('atdProfissional').value;
+    const data = document.getElementById('atdData').value || new Date().toISOString().slice(0, 10);
+    if (!pacienteId) { alert('Selecione o paciente.'); return; }
+    const paciente = (state.pacientes || []).find(p => String(p.id) === String(pacienteId));
+    const dentista = (state.profissionais || []).find(d => String(d.id) === String(profissionalId));
+
+    let salvos = 0;
+    for (const item of state.croqui) {
+        const isParticular = item.convenio === 'PARTICULAR';
+        const dados = {
+            clinica_id: clinicaId(),
+            paciente_id: pacienteId,
+            paciente_nome: paciente ? (paciente.nome || '') : '',
+            servico_id: item.servico_id,
+            servico_nome: item.servico_nome,
+            profissional_id: profissionalId || null,
+            profissional_nome: dentista ? (dentista.nome || '') : '',
+            tipo_pagamento: isParticular ? 'particular' : 'convenio',
+            convenio_nome: isParticular ? null : item.convenio,
+            valor_convenio: isParticular ? 0 : Number(item.valor_final) || 0,
+            valor_particular: isParticular ? Number(item.valor_final) || 0 : 0,
+            desconto_pct: item.desconto_pct,
+            margem_r: item.margem_r,
+            margem_pct: item.margem_pct,
+            data_atendimento: data
+        };
+        try {
+            await apiCreate('atendimentos', dados);
+            salvos++;
+        } catch (e) {
+            console.error('[M9] erro ao salvar atendimento', item, e);
+        }
+    }
+    alert(salvos + ' atendimento(s) salvo(s) com sucesso.');
+    if (typeof renderizarAtendimentos === 'function') renderizarAtendimentos();
+    if (typeof renderizarDashboardVivo === 'function') renderizarDashboardVivo();
+}
+
+// Gera o pré-orçamento (visual para levar ao paciente)
+function montarHtmlPreOrcamento() {
+    if (!state.croqui.length) return '';
+    const paciente = (state.pacientes || []).find(p => String(p.id) === String(document.getElementById('atdPaciente').value));
+    const dentista = (state.profissionais || []).find(d => String(d.id) === String(document.getElementById('atdProfissional').value));
+    const data = document.getElementById('atdData').value || new Date().toISOString().slice(0, 10);
+    const linhas = state.croqui.map(i => `
+        <tr>
+            <td style="padding:6px;border-bottom:1px solid #ddd;">${i.codigo_externo || '—'}</td>
+            <td style="padding:6px;border-bottom:1px solid #ddd;">${i.servico_nome}</td>
+            <td style="padding:6px;border-bottom:1px solid #ddd;">${i.convenio}</td>
+            <td style="padding:6px;border-bottom:1px solid #ddd;text-align:right;">${formatarMoeda(i.preco_tabela)}</td>
+            <td style="padding:6px;border-bottom:1px solid #ddd;text-align:right;">${i.desconto_pct ? i.desconto_pct + '%' : '—'}</td>
+            <td style="padding:6px;border-bottom:1px solid #ddd;text-align:right;">${formatarMoeda(i.valor_final)}</td>
+        </tr>`).join('');
+    const subtotal = state.croqui.reduce((s, i) => s + i.valor_final, 0);
+    const descGeral = parseFloat(document.getElementById('atdDescontoGeral').value) || 0;
+    const total = subtotal * (1 - descGeral / 100);
+    const lucro = state.croqui.reduce((s, i) => s + i.margem_r, 0) - (subtotal * descGeral / 100);
+    const pct = total > 0 ? (lucro / total) * 100 : 0;
+    return `
+        <div style="font-family:Arial,Helvetica,sans-serif;color:#111;padding:16px;">
+            <h2 style="margin:0 0 4px;">Orçamento de Tratamento Estético</h2>
+            <p style="margin:0 0 12px;font-size:12px;color:#555;">${typeof state.clinicaAtual !== 'undefined' && state.clinicaAtual ? (state.clinicaAtual.nome || '') : ''}</p>
+            <p style="font-size:12px;margin:2px 0;">Paciente: <strong>${paciente ? paciente.nome : '—'}</strong> &nbsp;|&nbsp; Data: ${data}</p>
+            <p style="font-size:12px;margin:2px 0 12px;">Responsável: <strong>${dentista ? dentista.nome : '—'}</strong></p>
+            <table style="width:100%;border-collapse:collapse;font-size:12px;">
+                <thead><tr style="background:#f3f4f6;">
+                    <th style="padding:6px;text-align:left;">Código</th>
+                    <th style="padding:6px;text-align:left;">Serviço</th>
+                    <th style="padding:6px;text-align:left;">Convênio</th>
+                    <th style="padding:6px;text-align:right;">Preço Tabela</th>
+                    <th style="padding:6px;text-align:right;">Desc.</th>
+                    <th style="padding:6px;text-align:right;">Valor</th>
+                </tr></thead>
+                <tbody>${linhas}</tbody>
+            </table>
+            <p style="font-size:13px;margin:10px 0 2px;text-align:right;">Subtotal: ${formatarMoeda(subtotal)}</p>
+            <p style="font-size:13px;margin:2px 0;text-align:right;">Desconto geral: ${descGeral ? descGeral + '%' : '—'}</p>
+            <p style="font-size:16px;font-weight:bold;margin:2px 0;text-align:right;">TOTAL: ${formatarMoeda(total)}</p>
+            <p style="font-size:12px;margin:6px 0 0;text-align:right;color:${lucro < 0 ? '#b91c1c' : '#047857'};">Margem estimada: ${formatarMoeda(lucro)} (${pct.toFixed(2)}%)</p>
+        </div>`;
+}
+
+function gerarPreOrcamento() {
+    if (!state.croqui.length) { alert('Adicione pelo menos um serviço ao croqui.'); return; }
+    const html = montarHtmlPreOrcamento();
+    if (typeof abrirModalDocumento === 'function') {
+        abrirModalDocumento({ html, modo: 'orcamento', aoSalvar: null });
+    } else {
+        const w = window.open('', '_blank');
+        w.document.write('<html><head><title>Pré-Orçamento</title></head><body>' + html + '<script>window.print();<\/script></body></html>');
+        w.document.close();
+    }
+}
+
+// Ponte com o M7: guarda o pré-orçamento e navega para o módulo de emissão
+function irParaAbaM9(idCandidatos) {
+    try {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+        let alvo = null;
+        (idCandidatos || []).forEach(id => { if (!alvo) alvo = document.getElementById(id); });
+        if (alvo) alvo.classList.remove('hidden');
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('bg-emerald-600', 'text-white'));
+        const btn = document.querySelector('[data-aba="' + (alvo ? alvo.id : '') + '"]');
+        if (btn) btn.classList.add('bg-emerald-600', 'text-white');
+    } catch (e) { console.warn('[M9] navegação', e); }
+}
+
+function enviarPreOrcamentoParaM7() {
+    if (!state.croqui.length) { alert('Adicione pelo menos um serviço ao croqui.'); return; }
+    const pacienteId = document.getElementById('atdPaciente').value;
+    if (!pacienteId) { alert('Selecione o paciente.'); return; }
+    const data = document.getElementById('atdData').value || new Date().toISOString().slice(0, 10);
+
+    // Guarda o pré-orçamento para o M7 consumir
+    state.preOrcamentoAtivo = {
+        paciente_id: pacienteId,
+        paciente_nome: (state.pacientes || []).find(p => String(p.id) === String(pacienteId))?.nome || '',
+        profissional_id: document.getElementById('atdProfissional').value || null,
+        data,
+        itens: state.croqui.map(i => ({ ...i })),
+        html: montarHtmlPreOrcamento()
+    };
+
+    // Navega para o M7
+    irParaAbaM9(['tab-docs', 'tab-documentos', 'tab-emissao']);
+
+    // Pré-preenche o cliente/dentista no M7, se os selects existirem
+    const selCliente = document.getElementById('docCliente') || document.getElementById('docClienteAlvo')
+        || document.getElementById('selClienteDoc');
+    if (selCliente) selCliente.value = pacienteId;
+    const selDentista = document.getElementById('docDentista') || document.getElementById('selDentistaDoc');
+    if (selDentista && state.preOrcamentoAtivo.profissional_id) selDentista.value = state.preOrcamentoAtivo.profissional_id;
+
+    // Injeta o orçamento no preview do M7, se existir
+    const preview = document.getElementById('areaPreviewDocumento');
+    if (preview) preview.innerHTML = state.preOrcamentoAtivo.html;
+
+    alert('Pré-orçamento enviado para o M7. Revise e clique em "Emitir Documento & Lançar no Prontuário M5".');
 }
 
 // ============================================================
