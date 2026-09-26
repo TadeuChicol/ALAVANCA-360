@@ -3371,8 +3371,8 @@ async function sincronizarM8PrecosMargens() {
 
     const [tabFinal, tabPart, tabBradesco] = await Promise.all([
         buscarAbaGoogleSheets(id, 'TABELA_FINAL'),
-        lerAba(['TABELA_PARTICULAR']),
-        lerAba(['TABELA_CONVÊNIO-BRADESCO', 'TABELA_CONVÊNIO'])
+        buscarAbaGoogleSheets(id, 'TABELA_PARTICULAR'),
+        buscarAbaGoogleSheets(id, 'TABELA_CONVÊNIO-BRADESCO')   // direto, SEM fallback
     ]);
     const { convenios, precos } = mapearTabelaFinalV2(tabFinal);
 
