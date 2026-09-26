@@ -3312,6 +3312,46 @@ function mapearTabelaPorCodigo(linhas) {
     return mapa;
 }
 
+function mapearTabelaFinalV2(linhas) {
+    let ih = -1;
+    for (let i = 0; i < linhas.length && ih === -1; i++) {
+        const linha = (linhas[i] || []).map(c => String(c || '').toLowerCase());
+        if (linha.some(c => c.includes('servico') || c.includes('serviço') || c.includes('nome_serv'))) ih = i;
+    }
+    if (ih === -1) return { convenios: [], precos: [], particulares: [], ideais: [] };
+    const cab  = (linhas[ih] || []).map(c => String(c || '').trim());
+    const cab2 = (linhas[ih + 1] || []).map(c => String(c || '').trim());
+    let idxIdeal = -1, idxParticular = -1;
+    const colsConv = [];
+    cab.forEach((h, i) => {
+        const t = String(h || '').toLowerCase();
+        if (!h) return;
+        if (t.includes('ideal')) { idxIdeal = i; return; }
+        if (t.includes('partic')) { idxParticular = i; return; }
+        if (t.includes('id_serv') || t.includes('nome_serv') || t.includes('codigo') || t.includes('código') || (t.includes('servico') && !t.includes('convenio'))) return;
+        const ehConvenio = t.includes('convenio') || t.includes('convênio');
+        const nome = ehConvenio ? h.replace(/^CONV[ÊE]NIO\s*/i, '').trim() : '';
+        const nomeFinal = nome || (cab2[i] || '').trim();
+        if (nomeFinal) colsConv.push({ idx: i, nome: nomeFinal });
+    });
+    const convenios = colsConv.map(c => c.nome).filter(Boolean);
+    const precos = [], particulares = [], ideais = [];
+    for (let r = ih + 1; r < linhas.length; r++) {
+        const row = linhas[r];
+        const cod = String(row?.[0] || '').trim();
+        if (!/^(S\s*)?\d/.test(cod)) continue;
+        colsConv.forEach(c => {
+            const v = row[c.idx];
+            if (String(v ?? '').trim() !== '') precos.push({ servico_codigo: cod, convenio: c.nome, preco: parseNumeroBR(v) });
+        });
+        if (idxParticular !== -1 && String(row[idxParticular] ?? '').trim() !== '')
+            particulares.push({ servico_codigo: cod, preco: parseNumeroBR(row[idxParticular]) });
+        if (idxIdeal !== -1 && String(row[idxIdeal] ?? '').trim() !== '')
+            ideais.push({ servico_codigo: cod, preco: parseNumeroBR(row[idxIdeal]) });
+    }
+    return { convenios, precos, particulares, ideais };
+}
+
 async function sincronizarM8PrecosMargens() {
     const clinicaId = state.clinicaAtual?.id || '';
     if (!clinicaId) { alert('Clínica não identificada. Abra o HUB Clínica e salve.'); return; }
@@ -3319,7 +3359,6 @@ async function sincronizarM8PrecosMargens() {
     const id = extrairIdPlanilha(url);
     if (!id) { alert('Configure o link do Google Sheets no HUB Clínica.'); return; }
 
-    // Lê uma aba tentando vários nomes (fallback), para não depender do nome exato
     async function lerAba(nomes) {
         for (const nome of nomes) {
             try {
@@ -3337,7 +3376,6 @@ async function sincronizarM8PrecosMargens() {
     ]);
     const { convenios, precos } = mapearTabelaFinalV2(tabFinal);
 
-    // Mapas por CÓDIGO: preço (coluna C) e lucro líquido (coluna M)
     const partMap     = mapearTabelaPorCodigo(tabPart);
     const bradescoMap = mapearTabelaPorCodigo(tabBradesco);
 
@@ -3354,75 +3392,6 @@ async function sincronizarM8PrecosMargens() {
                 lucro_liquido_particular: pP ? pP.lucro : 0,
                 preco_convenio: pB ? pB.preco : 0,
                 lucro_liquido_convenio: pB ? pB.lucro : 0
-            });
-            atualizados++;
-        } catch (e) { console.error('Erro ao atualizar serviço', s.id, e); }
-    }
-
-    if (precos.length && typeof supabaseClient !== 'undefined') {
-        const { error: errDel } = await supabaseClient.from('precos_servico').delete().eq('clinica_id', clinicaId);
-        if (!errDel) {
-            const { error: errIns } = await supabaseClient.from('precos_servico').insert(
-                precos.map(p => ({ clinica_id: clinicaId, servico_codigo: p.servico_codigo, convenio: p.convenio, preco: p.preco }))
-            );
-            if (errIns) console.error('Erro ao gravar precos_servico', errIns);
-        }
-    }
-
-    state.conveniosDisponiveis = convenios; state.precosServico = precos;
-    renderizarModuloFinanceiroCompleto();
-    alert(`M8 sincronizado: ${atualizados} serviço(s) atualizado(s). Convênios detectados: ${convenios.join(', ')}.`);
-}
-
-// Lê uma coluna por NOME do serviço (coluna A = código, coluna Nome_Servico = nome)
-function mapearColunaPorNome(linhas, nomeColuna) {
-    const cab = (linhas[0] || []).map(c => String(c || '').trim());
-    const iNome = cab.findIndex(c => /nome_serv/i.test(c.toLowerCase().replace(/[^a-z0-9]/g, '')));
-    const iCol  = cab.findIndex(c => c.toLowerCase().replace(/[^a-z0-9]/g, '') === nomeColuna.toLowerCase().replace(/[^a-z0-9]/g, ''));
-    const mapa = new Map();
-    for (let r = 1; r < linhas.length; r++) {
-        const row = linhas[r];
-        const nome = String(row?.[iNome] || '').trim().toLowerCase();
-        if (!nome || iCol === -1) continue;
-        mapa.set(nome, parseNumeroBR(row[iCol]));
-    }
-    return mapa;
-}
-
-async function sincronizarM8PrecosMargens() {
-    const clinicaId = state.clinicaAtual?.id || '';
-    if (!clinicaId) { alert('Clínica não identificada. Abra o HUB Clínica e salve.'); return; }
-    const url = state.clinicaAtual?.url_planilha_nap || state.clinicaAtual?.url_planilha || '';
-    const id = extrairIdPlanilha(url);
-    if (!id) { alert('Configure o link do Google Sheets no HUB Clínica.'); return; }
-
-    const [tabFinal, tabPart, tabBradesco] = await Promise.all([
-        buscarAbaGoogleSheets(id, 'TABELA_FINAL'),
-        buscarAbaGoogleSheets(id, 'TABELA_PARTICULAR'),
-        buscarAbaGoogleSheets(id, 'TABELA_CONVÊNIO-BRADESCO')
-    ]);
-    const { convenios, precos } = mapearTabelaFinalV2(tabFinal);
-
-    // PARTICULAR: preço (Tabela_Particular) e lucro (Lucro_Liquido)
-    const precoPart = mapearColunaPorNome(tabPart, 'Tabela_Particular');
-    const lucroPart = mapearColunaPorNome(tabPart, 'Lucro_Liquido');
-
-    // BRADESCO: preço (Tabela_Convênio) e lucro (Lucro_Liquido)
-    const precoBradesco = mapearColunaPorNome(tabBradesco, 'Tabela_Convênio');
-    const lucroBradesco = mapearColunaPorNome(tabBradesco, 'Lucro_Liquido');
-
-    let atualizados = 0;
-    for (const s of (state.servicos || [])) {
-        const nome = String(s.nome || '').trim().toLowerCase();
-        if (!nome) continue;
-        try {
-            await apiUpdate('servicos', s.id, {
-                clinica_id: clinicaId,
-                preco_particular: precoPart.get(nome) ?? 0,
-                lucro_liquido_particular: lucroPart.get(nome) ?? 0,
-                preco_convenio: precoBradesco.get(nome) ?? 0,
-                lucro_liquido_convenio: lucroBradesco.get(nome) ?? 0
-                // NÃO grava preco_convenio_ideal (referência da planilha)
             });
             atualizados++;
         } catch (e) { console.error('Erro ao atualizar serviço', s.id, e); }
