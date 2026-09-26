@@ -895,62 +895,125 @@
     </div>
 </div>
 
-            <!-- MÓDULO 9: ATENDIMENTOS (CONVÊNIO x PARTICULAR x MISTO) -->
-            <div id="tab-atendimentos" class="tab-content hidden space-y-6">
-                <div>
-                    <h2 class="text-xl font-bold text-slate-100">Módulo 9 — Registro de Atendimentos</h2>
-                    <p class="text-xs text-slate-400">Cada procedimento realizado, vinculado ao paciente e ao tipo de pagamento (Convênio, Particular ou Misto) — a base do Dashboard Vivo e do Assistente.</p>
-                </div>
-                <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
-                    <h3 class="text-xs font-bold uppercase text-emerald-400 mb-3">Novo Atendimento</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-12 gap-3 text-xs">
-                        <select id="atdPaciente" class="md:col-span-3 bg-slate-950 border border-slate-800 p-2 rounded text-slate-200"></select>
-                        <select id="atdServico" onchange="preencherValoresServico()" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200"></select>
-                        <select id="atdProfissional" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200"></select>
-                        <select id="atdTipoPagamento" onchange="ajustarCamposValorAtendimento(); preencherValoresServico()" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200">
-                            <option value="convenio">Convênio</option>
-                            <option value="particular">Particular</option>
-                            <option value="misto">Misto (Convênio + Particular)</option>
-                        </select>
-                        <input type="number" id="atdValorConvenio" placeholder="Valor Convênio (R$)" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200">
-                        <input type="number" id="atdValorParticular" placeholder="Valor Particular (R$)" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 hidden">
-                        <input type="date" id="atdData" class="bg-slate-950 border border-slate-800 p-2 rounded text-slate-200">
-                    </div>
-                    <!-- Info de custo e margem do serviço selecionado -->
-                    <div id="infoServicoAtendimento" class="hidden my-2 p-3 bg-slate-800/60 border border-slate-700 rounded-xl text-slate-300 text-xs"></div>
-                    <!-- Container de Alerta Dinâmico de Margem Baixa -->
-                    <div id="alertaMargemAtendimento" class="hidden my-3 p-3 bg-amber-950/40 border border-amber-800/80 rounded-xl text-amber-300 text-xs"></div>
+<!-- MÓDULO 9: CROQUI DE SERVIÇOS & PRÉ-ORÇAMENTO (CONVÊNIO x PARTICULAR x MISTO) -->
+<div id="tab-atendimentos" class="tab-content hidden space-y-6">
+    <div>
+        <h2 class="text-xl font-bold text-slate-100">Módulo 9 — Croqui de Serviços & Pré-Orçamento</h2>
+        <p class="text-xs text-slate-400">Monte o plano do paciente adicionando serviços. Cada item puxa preço e lucro da tabela do M8 pelo convênio escolhido, permite desconto e mostra a margem em R$ e %.</p>
+    </div>
 
-                    <div class="flex justify-end mt-2">
-                        <button onclick="salvarAtendimentoComVerificacao()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition flex items-center gap-1.5 shadow-lg shadow-emerald-900/20">
-                            <i data-lucide="check-circle" class="w-4 h-4"></i> Validar Margem e Salvar Atendimento
-                        </button>
-                    </div>
-
-                    <!-- Script de integração local para chamada encadeada -->
-                    <script>
-                         async function salvarAtendimentoComVerificacao() {
-                            // Dispara a verificação de margem do app.js
-                            if (typeof dispararVerificacaoFinanceira === 'function') {
-                                const margemValida = await dispararVerificacaoFinanceira();
-                                if (!margemValida) return; // Cancela se o usuário recusar no alerta
-                            }
-                            // Executa o salvamento padrão
-                            if (typeof salvarAtendimento === 'function') {
-                                await salvarAtendimento();
-                            }
-                        }
-                    </script>
-                </div>
-                <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 overflow-x-auto custom-scrollbar">
-                    <table class="w-full text-left text-xs text-slate-300">
-                        <thead class="bg-slate-950 text-slate-400 uppercase text-[10px]">
-                            <tr><th class="p-2">Data</th><th class="p-2">Paciente</th><th class="p-2">Serviço</th><th class="p-2">Tipo Pagamento</th><th class="p-2">Valor Total</th><th class="p-2 text-right">Ações</th></tr>
-                        </thead>
-                        <tbody id="tbodyAtendimentos"><tr><td colspan="6" class="p-3 text-center text-slate-600">Nenhum atendimento registrado.</td></tr></tbody>
-                    </table>
-                </div>
+    <!-- CABEÇALHO DO CROQUI -->
+    <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+            <div>
+                <label class="text-[11px] uppercase text-slate-500 font-bold">Paciente</label>
+                <select id="atdPaciente" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 mt-1"></select>
             </div>
+            <div>
+                <label class="text-[11px] uppercase text-slate-500 font-bold">Profissional</label>
+                <select id="atdProfissional" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 mt-1"></select>
+            </div>
+            <div>
+                <label class="text-[11px] uppercase text-slate-500 font-bold">Data do orçamento</label>
+                <input type="date" id="atdData" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-slate-200 mt-1">
+            </div>
+        </div>
+    </div>
+
+    <!-- ADICIONAR SERVIÇO -->
+    <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+        <h3 class="text-xs font-bold uppercase text-emerald-400 mb-3">➕ Adicionar Serviço ao Croqui</h3>
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-3 text-xs">
+            <select id="atdServico" onchange="preencherValoresServico()" class="md:col-span-4 bg-slate-950 border border-slate-800 p-2 rounded text-slate-200"></select>
+            <select id="atdConvenioLinha" onchange="preencherValoresServico()" class="md:col-span-3 bg-slate-950 border border-slate-800 p-2 rounded text-slate-200">
+                <option value="">Selecione o convênio</option>
+                <option value="PARTICULAR">Particular</option>
+                <option value="Bradesco">Bradesco</option>
+                <option value="Unimed">Unimed</option>
+                <option value="Porto Seguro">Porto Seguro</option>
+                <option value="Amil">Amil</option>
+                <option value="OdontoPrev">OdontoPrev</option>
+                <option value="Sulamerica">Sulamerica</option>
+                <option value="Dentaluni">Dentaluni</option>
+                <option value="Intermédica">Intermédica (Hapvida)</option>
+            </select>
+            <input type="number" id="atdPrecoTabela" readonly placeholder="Preço tabela" class="md:col-span-2 bg-slate-950 border border-slate-800 p-2 rounded text-slate-400">
+            <input type="number" id="atdDescontoLinha" min="0" max="100" step="0.1" placeholder="Desc. %" oninput="preencherValoresServico()" class="md:col-span-1 bg-slate-950 border border-slate-800 p-2 rounded text-slate-200">
+            <div class="md:col-span-12 flex flex-wrap gap-2 justify-end">
+                <button onclick="adicionarLinhaCroqui()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition">➕ Adicionar ao Croqui</button>
+            </div>
+        </div>
+        <div id="infoServicoAtendimento" class="hidden mt-2 p-3 bg-slate-800/60 border border-slate-700 rounded-xl text-slate-300 text-xs"></div>
+    </div>
+
+    <!-- TABELA DO CROQUI -->
+    <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 overflow-x-auto custom-scrollbar">
+        <div class="flex items-center justify-between mb-3">
+            <h3 class="text-xs font-bold uppercase text-emerald-400">Itens do Pré-Orçamento</h3>
+            <button onclick="limparCroqui()" class="text-[11px] text-rose-400 hover:underline">Limpar todos os itens</button>
+        </div>
+        <table class="w-full text-left text-xs text-slate-300">
+            <thead class="bg-slate-950 text-slate-400 uppercase text-[10px]">
+                <tr>
+                    <th class="p-2">Código</th>
+                    <th class="p-2">Serviço</th>
+                    <th class="p-2">Convênio</th>
+                    <th class="p-2 text-right">Preço Tabela</th>
+                    <th class="p-2 text-right">Desconto</th>
+                    <th class="p-2 text-right">Valor Final</th>
+                    <th class="p-2 text-right">Lucro Líq. (R$)</th>
+                    <th class="p-2 text-right">Margem %</th>
+                    <th class="p-2 text-right">Ações</th>
+                </tr>
+            </thead>
+            <tbody id="tbodyCroqui"><tr><td colspan="9" class="p-3 text-center text-slate-600">Nenhum serviço adicionado ainda.</td></tr></tbody>
+        </table>
+    </div>
+
+    <!-- RESUMO / DESCONTO GERAL / MARGEM GERAL -->
+    <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
+            <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 text-center">
+                <p class="text-[10px] uppercase text-slate-500">Subtotal</p>
+                <p id="lblCroquiSubtotal" class="text-lg font-bold text-slate-100">R$ 0,00</p>
+            </div>
+            <div class="bg-slate-950 border border-slate-800 rounded-xl p-3">
+                <p class="text-[10px] uppercase text-slate-500">Desconto geral</p>
+                <div class="flex items-center gap-2 mt-1">
+                    <input type="number" id="atdDescontoGeral" min="0" max="100" step="0.1" value="0" oninput="recalcularCroqui()" class="w-20 bg-slate-950 border border-slate-800 p-1.5 rounded text-slate-200">
+                    <span class="text-slate-400">%</span>
+                </div>
+                <p class="text-[10px] mt-1 text-amber-400">− <span id="lblCroquiValorDescontoGeral">R$ 0,00</span></p>
+            </div>
+            <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 text-center">
+                <p class="text-[10px] uppercase text-slate-500">Total do orçamento</p>
+                <p id="lblCroquiTotal" class="text-lg font-bold text-emerald-400">R$ 0,00</p>
+            </div>
+            <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 text-center">
+                <p class="text-[10px] uppercase text-slate-500">Margem geral</p>
+                <p id="lblCroquiMargemR$" class="text-lg font-bold text-slate-100">R$ 0,00</p>
+                <p id="lblCroquiMargemPct" class="text-[13px] font-bold text-slate-300">0,0%</p>
+                <div id="alertaMargemAtendimento" class="hidden mt-2 p-2 bg-amber-950/40 border border-amber-800/80 rounded-lg text-amber-300 text-[11px]"></div>
+            </div>
+        </div>
+        <div class="flex flex-wrap justify-end gap-2 mt-4">
+            <button onclick="validarESalvarCroquiComoAtendimentos()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition">💾 Salvar como Atendimentos</button>
+            <button onclick="gerarPreOrcamento()" class="bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition">📄 Gerar Pré-Orçamento</button>
+            <button onclick="enviarPreOrcamentoParaM7()" class="bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition">🚀 Enviar para M7 (Orçamento)</button>
+        </div>
+    </div>
+
+    <!-- ATENDIMENTOS JÁ REGISTRADOS (alimentam o Dashboard Vivo) -->
+    <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 overflow-x-auto custom-scrollbar">
+        <h3 class="text-xs font-bold uppercase text-emerald-400 mb-3">Atendimentos registrados (Dashboard Vivo)</h3>
+        <table class="w-full text-left text-xs text-slate-300">
+            <thead class="bg-slate-950 text-slate-400 uppercase text-[10px]">
+                <tr><th class="p-2">Data</th><th class="p-2">Paciente</th><th class="p-2">Serviço</th><th class="p-2">Tipo Pagamento</th><th class="p-2">Valor Total</th><th class="p-2 text-right">Ações</th></tr>
+            </thead>
+            <tbody id="tbodyAtendimentos"><tr><td colspan="6" class="p-3 text-center text-slate-600">Nenhum atendimento registrado.</td></tr></tbody>
+        </table>
+    </div>
+</div>
 
             <!-- DASHBOARD VIVO -->
             <div id="tab-dashboard-vivo" class="tab-content hidden space-y-6">
