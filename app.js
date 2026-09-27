@@ -3844,14 +3844,9 @@ async function validarESalvarCroquiComoAtendimentos() {
             servico_id: item.servico_id,
             servico_nome: item.servico_nome,
             profissional_id: profissionalId || null,
-            profissional_nome: dentista ? (dentista.nome || '') : '',
             tipo_pagamento: isParticular ? 'particular' : 'convenio',
-            convenio_nome: isParticular ? null : item.convenio,
             valor_convenio: isParticular ? 0 : Number(item.valor_final) || 0,
             valor_particular: isParticular ? Number(item.valor_final) || 0 : 0,
-            desconto_pct: item.desconto_pct,
-            margem_r: item.margem_r,
-            margem_pct: item.margem_pct,
             data_atendimento: data
         };
         try {
