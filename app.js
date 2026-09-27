@@ -3960,7 +3960,7 @@ function enviarPreOrcamentoParaM7() {
     const preview = document.getElementById('areaPreviewDocumento');
     if (preview) preview.innerHTML = state.preOrcamentoAtivo.html;
 
-    alert('Pré-orçamento enviado para o M7. Revise e clique em "Emitir Documento & Lançar no Prontuário M5".');
+    alert('Pré-orçamento enviado para o M7. Revise os dados e finalize a emissão do orçamento lá.');
 }
 
 // ============================================================
