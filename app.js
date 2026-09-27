@@ -703,6 +703,7 @@ function switchTab(tabId) {
             case 'tab-atendimentos':
                 if (typeof renderizarModuloFinanceiroCompleto === 'function') renderizarModuloFinanceiroCompleto();
                 if (typeof popularSelectsAtendimento === 'function') popularSelectsAtendimento();
+                if (typeof popularDentistasM9 === 'function') popularDentistasM9();
                 break;
             case 'tab-comercial':
                 if (typeof calcularFunilComercial === 'function') calcularFunilComercial();
@@ -2639,6 +2640,27 @@ async function atualizarPrecoServico(id, campo, valor) {
     }
 }
 
+// Popula o select de profissional do M9 SEMPRE da tabela dentistas (Hub Clínica),
+// a MESMA fonte que o M7 usa. Grava em state.dentistasM9 para o M9 linkar com o M7.
+async function popularDentistasM9() {
+    const selProf = document.getElementById('atdProfissional');
+    if (!selProf) return;
+    let dentistas = [];
+    try {
+        const { data, error } = await supabaseClient
+            .from('dentistas')
+            .select('id, nome, especialidade, cro')
+            .eq('clinica_id', clinicaId())
+            .order('nome');
+        if (!error) dentistas = data || [];
+    } catch (e) {
+        dentistas = [];
+    }
+    state.dentistasM9 = dentistas;
+    selProf.innerHTML = '<option value="">Selecione o profissional</option>' +
+        dentistas.map(d => `<option value="${d.id}">${d.nome || ''}</option>`).join('');
+}
+
 function rebuildSelectsFinanceiro() {
     const selMapaServico = document.getElementById('mapaServico');
     const selMapaInsumo = document.getElementById('mapaInsumo');
@@ -2650,7 +2672,7 @@ function rebuildSelectsFinanceiro() {
     if (selMapaInsumo) selMapaInsumo.innerHTML = state.insumos.map(i => `<option value="${i.id}">${i.nome}</option>`).join('') || '<option value="">Cadastre um insumo</option>';
     if (selAtdServico) selAtdServico.innerHTML = state.servicos.map(s => `<option value="${s.id}">${s.nome}</option>`).join('') || '<option value="">Cadastre um serviço</option>';
     if (selAtdPaciente) selAtdPaciente.innerHTML = state.pacientes.map(p => `<option value="${p.id}">${p.nome}</option>`).join('') || '<option value="">Cadastre um paciente</option>';
-    if (selAtdProfissional) selAtdProfissional.innerHTML = state.profissionais.map(p => `<option value="${p.id}">${p.nome}</option>`).join('') || '<option value="">Cadastre um profissional</option>';
+    popularDentistasM9();
 }
 
 async function salvarMapaInsumoServico() {
@@ -3832,7 +3854,7 @@ async function validarESalvarCroquiComoAtendimentos() {
     const data = document.getElementById('atdData').value || new Date().toISOString().slice(0, 10);
     if (!pacienteId) { alert('Selecione o paciente.'); return; }
     const paciente = (state.pacientes || []).find(p => String(p.id) === String(pacienteId));
-    const dentista = (state.profissionais || []).find(d => String(d.id) === String(profissionalId));
+    const dentista = (state.dentistasM9 || []).find(d => String(d.id) === String(profissionalId));
 
     let salvos = 0;
     for (const item of state.croqui) {
@@ -3865,7 +3887,7 @@ async function validarESalvarCroquiComoAtendimentos() {
 function montarHtmlPreOrcamento() {
     if (!state.croqui.length) return '';
     const paciente = (state.pacientes || []).find(p => String(p.id) === String(document.getElementById('atdPaciente').value));
-    const dentista = (state.profissionais || []).find(d => String(d.id) === String(document.getElementById('atdProfissional').value));
+    const dentista = (state.dentistasM9 || []).find(d => String(d.id) === String(document.getElementById('atdProfissional').value));
     const data = document.getElementById('atdData').value || new Date().toISOString().slice(0, 10);
     const linhas = state.croqui.map(i => `
         <tr>
