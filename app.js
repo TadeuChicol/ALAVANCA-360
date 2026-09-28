@@ -4015,9 +4015,6 @@ function enviarPreOrcamentoParaM7() {
         html: montarHtmlPreOrcamento(true)   // passa flag para filtrar
     };
 
-    // Guarda também o desconto geral no pré-orçamento (para o M7 usar)
-    state.preOrcamentoAtivo.desconto_geral_pct = parseFloat(document.getElementById('atdDescontoGeral')?.value) || 0;
-
     // Pré-preenche os selects REAIS do M7 ANTES de navegar
     const paciente = (state.pacientes || []).find(p => String(p.id) === String(pacienteId));
     const selCliente = document.getElementById('selectDocPaciente');
@@ -4027,9 +4024,9 @@ function enviarPreOrcamentoParaM7() {
     const selTipo = document.getElementById('selectTipoDoc');
     if (selTipo) selTipo.value = 'orcamento';
 
-    // Navega para o M7 — o switchTab já chama atualizarTemplateDocumento(),
-    // que agora monta o orçamento com os itens do state.preOrcamentoAtivo
+    // Navega para o M7 e FORÇA o preview a montar o orçamento com os itens
     switchTab('tab-documentos');
+    if (typeof atualizarTemplateDocumento === 'function') atualizarTemplateDocumento();
     alert('Pré-orçamento enviado para o M7. Revise os dados e finalize a emissão do orçamento lá.');
 
 }
