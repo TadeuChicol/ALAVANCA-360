@@ -2057,7 +2057,6 @@ async function emitirEDarComoProntoDocumento() {
 
     imprimirDocumentoPDF();
 }
-
 function atualizarTemplateDocumento() {
     const selPac = document.getElementById('selectDocPaciente');
     const selDent = document.getElementById('selectDocDentista');
@@ -2132,8 +2131,6 @@ function atualizarTemplateDocumento() {
             const subtotal = itensPre.reduce((s, x) => s + (Number(x.valor_final) || 0), 0);
             const descGeral = Number(pre.desconto_geral_pct || 0);
             const total = subtotal * (1 - descGeral / 100);
-            const lucro = itensPre.reduce((s, x) => s + (Number(x.margem_r) || 0), 0) - (subtotal * descGeral / 100);
-            const pct = total > 0 ? (lucro / total) * 100 : 0;
             corpoOrcamento = `
                 <div class="border p-3 my-4 text-xs bg-gray-50 rounded">
                     <p class="mb-2">Proposta clínica personalizada gerada através das réguas estéticas Alavanca 360®.</p>
@@ -2151,7 +2148,6 @@ function atualizarTemplateDocumento() {
                     <p class="text-right mt-2">Subtotal: <strong>${formatarMoeda(subtotal)}</strong></p>
                     ${descGeral ? `<p class="text-right">Desconto geral: <strong>${descGeral}%</strong></p>` : ''}
                     <p class="text-right font-bold text-base">TOTAL: ${formatarMoeda(total)}</p>
-                    <p class="text-right" style="color:${lucro < 0 ? '#b91c1c' : '#047857'};">Margem estimada: ${formatarMoeda(lucro)} (${pct.toFixed(2)}%)</p>
                 </div>`;
         } else {
             corpoOrcamento = `<div class="border p-3 my-4 text-xs bg-gray-50 rounded">Proposta clínica personalizada gerada através das réguas estéticas Alavanca 360®.</div>`;
@@ -3731,11 +3727,18 @@ async function preencherValoresServico() {
     const custoTotal = await buscarCustoTotalServico(servicoId);
     const precoTabela = buscarPrecoTabelaConvenio(servico, convenio);
     const lucroTabela = buscarLucroTabelaConvenio(servico, convenio, custoTotal);
+    // Desconto individual só para PARTICULAR — convênio não recebe desconto
+    const campoDesc = document.getElementById('atdDescontoLinha');
+    if (campoDesc) {
+        const ehParticular = convenio === 'PARTICULAR';
+        campoDesc.disabled = !ehParticular;
+        if (!ehParticular) campoDesc.value = '';
+    }
 
     if (campoPreco) campoPreco.value = precoTabela || '';
 
     // Aplica o desconto individual digitado (em %)
-    const descPct = parseFloat(document.getElementById('atdDescontoLinha').value) || 0;
+    const descPct = (convenio === 'PARTICULAR') ? (parseFloat(document.getElementById('atdDescontoLinha').value) || 0) : 0;
     const valorFinal = precoTabela * (1 - descPct / 100);
     const margemR$ = lucroTabela - (precoTabela * descPct / 100);
     const margemPct = valorFinal > 0 ? (margemR$ / valorFinal) * 100 : 0;
@@ -3770,7 +3773,7 @@ async function adicionarLinhaCroqui() {
     const custoTotal = await buscarCustoTotalServico(servicoId);
     const precoTabela = buscarPrecoTabelaConvenio(servico, convenio);
     const lucroTabela = buscarLucroTabelaConvenio(servico, convenio, custoTotal);
-    const descPct = parseFloat(document.getElementById('atdDescontoLinha').value) || 0;
+    const descPct = (convenio === 'PARTICULAR') ? (parseFloat(document.getElementById('atdDescontoLinha').value) || 0) : 0;
 
     state.croqui.push({
         id: 'c' + (++croquiSeq),
@@ -3808,6 +3811,7 @@ function renderizarCroqui() {
     tbody.innerHTML = state.croqui.map(item => {
         recalcLinha(item);
         const cor = item.margem_r < 0 ? 'text-rose-400 font-bold' : (item.margem_pct >= min ? 'text-emerald-400' : 'text-amber-300');
+        const podeDesconto = item.convenio === 'PARTICULAR';
         return `
             <tr class="border-b border-slate-800/60">
                 <td class="p-2 font-mono text-slate-500 text-xs">${item.codigo_externo || '—'}</td>
@@ -3816,8 +3820,9 @@ function renderizarCroqui() {
                 <td class="p-2 text-right text-slate-300">${formatarMoeda(item.preco_tabela)}</td>
                 <td class="p-2 text-right">
                     <input type="number" min="0" max="100" step="0.1" value="${item.desconto_pct}"
+                        ${podeDesconto ? '' : 'disabled'}
                         onchange="atualizarDescontoLinha('${item.id}', this.value)"
-                        class="w-16 bg-slate-950 border border-slate-800 p-1 rounded text-slate-200 text-right">
+                        class="w-16 bg-slate-950 border border-slate-800 p-1 rounded text-slate-200 text-right ${podeDesconto ? '' : 'opacity-40'}">
                 </td>
                 <td class="p-2 text-right font-bold text-slate-100">${formatarMoeda(item.valor_final)}</td>
                 <td class="p-2 text-right ${cor}">${formatarMoeda(item.margem_r)}</td>
@@ -3833,6 +3838,7 @@ function renderizarCroqui() {
 function atualizarDescontoLinha(id, valor) {
     const item = state.croqui.find(i => i.id === id);
     if (!item) return;
+    if (item.convenio !== 'PARTICULAR') { item.desconto_pct = 0; renderizarCroqui(); return; }
     item.desconto_pct = parseFloat(valor) || 0;
     renderizarCroqui();
 }
@@ -3923,12 +3929,16 @@ async function validarESalvarCroquiComoAtendimentos() {
 }
 
 // Gera o pré-orçamento (visual para levar ao paciente)
-function montarHtmlPreOrcamento() {
+function montarHtmlPreOrcamento(soParticular = false) {
     if (!state.croqui.length) return '';
+    const itensBase = soParticular
+        ? state.croqui.filter(i => i.convenio === 'PARTICULAR')
+        : state.croqui;
+    if (!itensBase.length) return '<p style="padding:16px;">Nenhum item particular para orçar.</p>';
     const paciente = (state.pacientes || []).find(p => String(p.id) === String(document.getElementById('atdPaciente').value));
     const dentista = (state.dentistasM9 || []).find(d => String(d.id) === String(document.getElementById('atdProfissional').value));
     const data = document.getElementById('atdData').value || new Date().toISOString().slice(0, 10);
-    const linhas = state.croqui.map(i => `
+    const linhas = itensBase.map(i => `
         <tr>
             <td style="padding:6px;border-bottom:1px solid #ddd;">${i.codigo_externo || '—'}</td>
             <td style="padding:6px;border-bottom:1px solid #ddd;">${i.servico_nome}</td>
@@ -3937,11 +3947,9 @@ function montarHtmlPreOrcamento() {
             <td style="padding:6px;border-bottom:1px solid #ddd;text-align:right;">${i.desconto_pct ? i.desconto_pct + '%' : '—'}</td>
             <td style="padding:6px;border-bottom:1px solid #ddd;text-align:right;">${formatarMoeda(i.valor_final)}</td>
         </tr>`).join('');
-    const subtotal = state.croqui.reduce((s, i) => s + i.valor_final, 0);
+    const subtotal = itensBase.reduce((s, i) => s + i.valor_final, 0);
     const descGeral = parseFloat(document.getElementById('atdDescontoGeral').value) || 0;
     const total = subtotal * (1 - descGeral / 100);
-    const lucro = state.croqui.reduce((s, i) => s + i.margem_r, 0) - (subtotal * descGeral / 100);
-    const pct = total > 0 ? (lucro / total) * 100 : 0;
     return `
         <div style="font-family:Arial,Helvetica,sans-serif;color:#111;padding:16px;">
             <h2 style="margin:0 0 4px;">Orçamento de Tratamento Estético</h2>
@@ -3962,7 +3970,6 @@ function montarHtmlPreOrcamento() {
             <p style="font-size:13px;margin:10px 0 2px;text-align:right;">Subtotal: ${formatarMoeda(subtotal)}</p>
             <p style="font-size:13px;margin:2px 0;text-align:right;">Desconto geral: ${descGeral ? descGeral + '%' : '—'}</p>
             <p style="font-size:16px;font-weight:bold;margin:2px 0;text-align:right;">TOTAL: ${formatarMoeda(total)}</p>
-            <p style="font-size:12px;margin:6px 0 0;text-align:right;color:${lucro < 0 ? '#b91c1c' : '#047857'};">Margem estimada: ${formatarMoeda(lucro)} (${pct.toFixed(2)}%)</p>
         </div>`;
 }
 
@@ -4004,8 +4011,8 @@ function enviarPreOrcamentoParaM7() {
         profissional_id: document.getElementById('atdProfissional').value || null,
         data,
         desconto_geral_pct: parseFloat(document.getElementById('atdDescontoGeral')?.value) || 0,
-        itens: state.croqui.map(i => ({ ...i })),
-        html: montarHtmlPreOrcamento()
+        itens: state.croqui.filter(i => i.convenio === 'PARTICULAR').map(i => ({ ...i })),
+        html: montarHtmlPreOrcamento(true)   // passa flag para filtrar
     };
 
     // Guarda também o desconto geral no pré-orçamento (para o M7 usar)
