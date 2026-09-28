@@ -2043,7 +2043,7 @@ async function emitirEDarComoProntoDocumento() {
             documento_html: conteudoHtml
         });
         state.prontuario.push(novaLinha);
-
+        state.preOrcamentoAtivo = null;   // ← limpa o pré-orçamento após emitir
         alert('Documento emitido e lançado no prontuário do M5. Edições e exclusões exigem auditoria (responsável + motivo).');
 
         const buscaAtual = (document.getElementById('matchCodeProntuario').value || '').toLowerCase();
@@ -2114,15 +2114,56 @@ function atualizarTemplateDocumento() {
         </div>
     `;
 
-    if (tipo === 'orcamento') {
+        if (tipo === 'orcamento') {
+        // Se veio um pré-orçamento do M9, monta o corpo com os itens reais
+        const pre = state.preOrcamentoAtivo;
+        const itensPre = (pre && pre.itens && pre.itens.length) ? pre.itens : [];
+        let corpoOrcamento = '';
+        if (itensPre.length) {
+            const linhas = itensPre.map(i => `
+                <tr class="border-b border-gray-200">
+                    <td class="py-1 px-2">${i.codigo_externo || '—'}</td>
+                    <td class="py-1 px-2">${i.servico_nome || ''}</td>
+                    <td class="py-1 px-2">${i.convenio || ''}</td>
+                    <td class="py-1 px-2 text-right">${formatarMoeda(i.preco_tabela || 0)}</td>
+                    <td class="py-1 px-2 text-right">${i.desconto_pct ? i.desconto_pct + '%' : '—'}</td>
+                    <td class="py-1 px-2 text-right font-bold">${formatarMoeda(i.valor_final || 0)}</td>
+                </tr>`).join('');
+            const subtotal = itensPre.reduce((s, x) => s + (Number(x.valor_final) || 0), 0);
+            const descGeral = Number(pre.desconto_geral_pct || 0);
+            const total = subtotal * (1 - descGeral / 100);
+            const lucro = itensPre.reduce((s, x) => s + (Number(x.margem_r) || 0), 0) - (subtotal * descGeral / 100);
+            const pct = total > 0 ? (lucro / total) * 100 : 0;
+            corpoOrcamento = `
+                <div class="border p-3 my-4 text-xs bg-gray-50 rounded">
+                    <p class="mb-2">Proposta clínica personalizada gerada através das réguas estéticas Alavanca 360®.</p>
+                    <table class="w-full text-xs border border-gray-300">
+                        <thead><tr class="bg-gray-100">
+                            <th class="py-1 px-2 text-left">Código</th>
+                            <th class="py-1 px-2 text-left">Serviço</th>
+                            <th class="py-1 px-2 text-left">Convênio</th>
+                            <th class="py-1 px-2 text-right">Preço Tabela</th>
+                            <th class="py-1 px-2 text-right">Desc.</th>
+                            <th class="py-1 px-2 text-right">Valor</th>
+                        </tr></thead>
+                        <tbody>${linhas}</tbody>
+                    </table>
+                    <p class="text-right mt-2">Subtotal: <strong>${formatarMoeda(subtotal)}</strong></p>
+                    ${descGeral ? `<p class="text-right">Desconto geral: <strong>${descGeral}%</strong></p>` : ''}
+                    <p class="text-right font-bold text-base">TOTAL: ${formatarMoeda(total)}</p>
+                    <p class="text-right" style="color:${lucro < 0 ? '#b91c1c' : '#047857'};">Margem estimada: ${formatarMoeda(lucro)} (${pct.toFixed(2)}%)</p>
+                </div>`;
+        } else {
+            corpoOrcamento = `<div class="border p-3 my-4 text-xs bg-gray-50 rounded">Proposta clínica personalizada gerada através das réguas estéticas Alavanca 360®.</div>`;
+        }
         preview.innerHTML = `
             ${cabecalho}
             <h2 class="text-center font-bold text-xs uppercase tracking-wider my-2">Planejamento Reabilitador Odontológico</h2>
             <p class="text-xs"><strong>Paciente:</strong> ${pacName}</p>
-            <div class="border p-3 my-4 text-xs bg-gray-50 rounded">Proposta clínica personalizada gerada através das réguas estéticas Alavanca 360®.</div>
+            ${corpoOrcamento}
             ${assinaturaValidador}
         `;
-        } else {
+    } else {
         const linhasMed = medicamentosM7.filter(m => m.medicamento).map(m =>
             `<tr class="border-b border-gray-200">
                 <td class="py-1 px-2">${m.medicamento}</td>
@@ -3959,31 +4000,32 @@ function enviarPreOrcamentoParaM7() {
     const data = document.getElementById('atdData').value || new Date().toISOString().slice(0, 10);
 
     // Guarda o pré-orçamento para o M7 consumir
-    state.preOrcamentoAtivo = {
+        state.preOrcamentoAtivo = {
         paciente_id: pacienteId,
         paciente_nome: (state.pacientes || []).find(p => String(p.id) === String(pacienteId))?.nome || '',
         profissional_id: document.getElementById('atdProfissional').value || null,
         data,
+        desconto_geral_pct: parseFloat(document.getElementById('atdDescontoGeral')?.value) || 0,
         itens: state.croqui.map(i => ({ ...i })),
         html: montarHtmlPreOrcamento()
     };
 
-    // Navega para o M7
-    irParaAbaM9(['tab-docs', 'tab-documentos', 'tab-emissao']);
+    // Guarda também o desconto geral no pré-orçamento (para o M7 usar)
+    state.preOrcamentoAtivo.desconto_geral_pct = parseFloat(document.getElementById('atdDescontoGeral')?.value) || 0;
 
-    // Pré-preenche o cliente/dentista no M7, se os selects existirem
-    const selCliente = document.getElementById('docCliente') || document.getElementById('docClienteAlvo')
-        || document.getElementById('selClienteDoc');
-    if (selCliente) selCliente.value = pacienteId;
-    const selDentista = document.getElementById('docDentista') || document.getElementById('selDentistaDoc');
+    // Pré-preenche os selects REAIS do M7 ANTES de navegar
+    const paciente = (state.pacientes || []).find(p => String(p.id) === String(pacienteId));
+    const selCliente = document.getElementById('selectDocPaciente');
+    if (selCliente && paciente) selCliente.value = paciente.nome;
+    const selDentista = document.getElementById('selectDocDentista');
     if (selDentista && state.preOrcamentoAtivo.profissional_id) selDentista.value = state.preOrcamentoAtivo.profissional_id;
+    const selTipo = document.getElementById('selectTipoDoc');
+    if (selTipo) selTipo.value = 'orcamento';
 
-    // Injeta o orçamento no preview do M7, se existir
-    const preview = document.getElementById('areaPreviewDocumento');
-    if (preview) preview.innerHTML = state.preOrcamentoAtivo.html;
-
+    // Navega para o M7 — o switchTab já chama atualizarTemplateDocumento(),
+    // que agora monta o orçamento com os itens do state.preOrcamentoAtivo
+    switchTab('tab-documentos');
     alert('Pré-orçamento enviado para o M7. Revise os dados e finalize a emissão do orçamento lá.');
-}
 
 // ============================================================
 // 12D. DASHBOARD VIVO
