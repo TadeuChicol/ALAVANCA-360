@@ -3389,8 +3389,6 @@ function mapearTabelaFinalV2(linhas) {
     cab.forEach((h, i) => {
         const t = String(h || '').toLowerCase();
         if (!h) return;
-        if (t.includes('ideal')) { idxIdeal = i; return; }
-        if (t.includes('partic')) { idxParticular = i; return; }
         if (t.includes('id_serv') || t.includes('nome_serv') || t.includes('codigo') || t.includes('código') || (t.includes('servico') && !t.includes('convenio'))) return;
         const ehConvenio = t.includes('convenio') || t.includes('convênio');
         const nome = ehConvenio ? h.replace(/^CONV[ÊE]NIO\s*/i, '').trim() : '';
@@ -4026,6 +4024,8 @@ function enviarPreOrcamentoParaM7() {
     // que agora monta o orçamento com os itens do state.preOrcamentoAtivo
     switchTab('tab-documentos');
     alert('Pré-orçamento enviado para o M7. Revise os dados e finalize a emissão do orçamento lá.');
+
+}
 
 // ============================================================
 // 12D. DASHBOARD VIVO
