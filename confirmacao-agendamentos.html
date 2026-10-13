@@ -26,10 +26,20 @@
   .btn-azul{background:#2563EB;}
   .btn-dourado{background:var(--dourado); color:#3A2B00;}
   .btn-cinza{background:#8B8790;}
+  .btn-vermelho{background:var(--vermelho);}
   .btn-branco{background:#fff; color:var(--bordo);}
   .banner{padding:12px 20px; font-size:14px; font-weight:600; display:none;}
   .banner.ok{display:block; background:#E9F9EF; color:#14613A; border-bottom:1px solid #BEEBD1;}
   .banner.erro{display:block; background:#FDECEA; color:#8C1D12; border-bottom:1px solid #F6C8C2;}
+  .tela-login{position:fixed; inset:0; background:linear-gradient(135deg,var(--bordo-escuro),var(--bordo)); display:none; align-items:center; justify-content:center; z-index:999;}
+  .tela-login.visivel{display:flex;}
+  .login-box{background:#fff; border-radius:16px; padding:32px 28px; max-width:360px; width:100%; box-shadow:0 12px 40px rgba(0,0,0,.3); text-align:center;}
+  .login-box .monograma{margin:0 auto 14px;}
+  .login-box h2{font-size:20px; color:var(--bordo); margin-bottom:4px;}
+  .login-box p{font-size:13px; color:var(--cinza); margin-bottom:18px;}
+  .login-box input{width:100%; padding:12px; margin-bottom:10px; border:1px solid #D8CBB5; border-radius:8px; font-size:14px;}
+  .login-box .btn{width:100%;}
+  .login-erro{color:#8C1D12; font-size:12px; font-weight:700; margin-top:8px; min-height:16px;}
   .container{max-width:1180px; margin:0 auto; padding:18px;}
   .painel{background:var(--papel); border-radius:14px; border:1px solid #EADFCE; box-shadow:0 2px 10px rgba(60,30,20,.06); margin-bottom:18px; overflow:hidden;}
   .painel-head{width:100%; background:#F4EDE2; border:none; cursor:pointer; padding:14px 18px; font-weight:700; font-size:14px; color:var(--bordo); display:flex; justify-content:space-between; align-items:center;}
@@ -65,6 +75,8 @@
   .badge-info{display:inline-block; font-size:11px; font-weight:800; padding:3px 9px; border-radius:999px; margin-right:4px;}
   .badge-info.ok{background:#E9F9EF; color:#14613A;}
   .badge-info.pend{background:#FDECEA; color:#8C1D12;}
+  .badge-info.cinza{background:#EFEBE4; color:#6B6470;}
+  .sec-titulo{font-size:15px; font-weight:800; color:var(--bordo); margin:14px 0 8px; text-transform:uppercase; letter-spacing:.4px;}
   .msg{background:#F8F3EA; border:1px dashed #CDBB96; border-radius:8px; padding:10px; font-size:12px; color:#4A444E; white-space:pre-wrap; max-height:130px; overflow:auto;}
   .card-acoes{display:flex; gap:8px; flex-wrap:wrap; margin-top:auto;}
   .btn-copiar{background:var(--bordo);}
@@ -82,6 +94,18 @@
 </style>
 </head>
 <body>
+<div class="tela-login" id="telaLogin">
+  <div class="login-box">
+    <div class="monograma">NAP</div>
+    <h2>Central de Confirmações</h2>
+    <p>Acesso restrito da clínica. Faça login para continuar.</p>
+    <input id="inpLoginEmail" type="email" placeholder="E-mail" autocomplete="username">
+    <input id="inpLoginSenha" type="password" placeholder="Senha" autocomplete="current-password">
+    <button class="btn btn-dourado" id="btnLoginGeral">🔐 Entrar</button>
+    <div class="login-erro" id="lblLoginGeralErro"></div>
+  </div>
+</div>
+
 <header class="topo">
   <div id="boxLogo"><span class="monograma" id="logoFallback">NAP</span></div>
   <div class="titulos">
@@ -92,6 +116,7 @@
   <div class="acoes-topo">
     <button class="btn btn-verde" id="btnAtualizar">🔄 Atualizar</button>
     <button class="btn btn-cinza" id="btnImprimir">🖨️ Imprimir</button>
+    <button class="btn btn-branco" id="btnSairTopo" style="display:none;">🚪 Sair</button>
   </div>
 </header>
 <div class="banner" id="banner"></div>
@@ -99,23 +124,16 @@
   <div class="painel">
     <button class="painel-head" id="cfgToggle">⚙️ Configurações &amp; Links (área restrita)<span>▼</span></button>
     <div class="painel-body" id="cfgBody" style="display:none;">
-      <div id="areaLogin">
-        <div class="campo"><label>E-mail master</label><input id="inpEmail" type="email" placeholder="seu@email.com"></div>
-        <div class="campo"><label>Senha</label><input id="inpSenha" type="password" placeholder="••••••"></div>
-        <button class="btn btn-dourado" id="btnLogin">🔐 Entrar</button>
-        <div id="lblLoginErro" style="color:#8C1D12;font-size:12px;font-weight:700;grid-column:1/-1;"></div>
-      </div>
-      <div id="areaConfig" style="display:none;">
-        <div class="campo"><label>URL da Logomarca (imagem)</label><input id="cfgUrlLogo" placeholder="https://.../logo.png"></div>
-        <div class="campo"><label>URL da Edge Function (agendamentos)</label><input id="cfgUrlFuncao" placeholder="https://.../functions/v1/calcom-bookings"></div>
-        <div class="campo"><label>Link da Agenda (Cal.com)</label><input id="cfgUrlCalcom" placeholder="https://cal.com/..."></div>
-        <div class="campo"><label>Link da Ficha de Anamnese</label><input id="cfgUrlAnamnese" placeholder="https://docs.google.com/forms/..."></div>
-        <div class="campo"><label>Link do Termo de Consentimento</label><input id="cfgUrlTermo" placeholder="https://.../termo-aceite.pdf"></div>
-        <div class="campo"><label>Nome da Clínica</label><input id="cfgClinica"></div>
-        <div class="campo"><label>Endereço</label><input id="cfgEndereco"></div>
-        <button class="btn btn-dourado salvar-cfg" id="btnSalvarCfg">💾 Salvar configuração</button>
-        <button class="btn btn-cinza salvar-cfg" id="btnSair">🚪 Sair</button>
-      </div>
+      <div class="campo"><label>URL da Logomarca (imagem)</label><input id="cfgUrlLogo" placeholder="https://.../logo.png"></div>
+      <div class="campo"><label>URL da Edge Function (agendamentos)</label><input id="cfgUrlFuncao" placeholder="https://.../functions/v1/calcom-bookings"></div>
+      <div class="campo"><label>Link da Agenda (Cal.com)</label><input id="cfgUrlCalcom" placeholder="https://cal.com/..."></div>
+      <div class="campo"><label>Link da Ficha de Anamnese</label><input id="cfgUrlAnamnese" placeholder="https://docs.google.com/forms/..."></div>
+      <div class="campo"><label>Link do Termo de Consentimento</label><input id="cfgUrlTermo" placeholder="https://.../termo-aceite.pdf"></div>
+      <div class="campo"><label>Link da Pesquisa de Satisfação</label><input id="cfgUrlPesquisa" placeholder="https://docs.google.com/forms/..."></div>
+      <div class="campo"><label>Nome da Clínica</label><input id="cfgClinica"></div>
+      <div class="campo"><label>Endereço</label><input id="cfgEndereco"></div>
+      <button class="btn btn-dourado salvar-cfg" id="btnSalvarCfg">💾 Salvar configuração</button>
+      <button class="btn btn-cinza salvar-cfg" id="btnSairCfg">🚪 Sair</button>
     </div>
   </div>
   <div class="links-rapidos" id="linksRapidos"></div>
@@ -123,7 +141,7 @@
     <button class="aba ativa" data-aba="agendados">✅ Agendados <span class="qtd" id="qtdAgendados">0</span></button>
     <button class="aba" data-aba="desagendados">↩️ Desagendados <span class="qtd" id="qtdDesagendados">0</span></button>
     <button class="aba" data-aba="48h">⏰ Próximas 48h <span class="qtd" id="qtd48h">0</span></button>
-    <button class="aba" data-aba="atendidos">📋 Atendidos <span class="qtd" id="qtdAtendidos">0</span></button>
+    <button class="aba" data-aba="atendidos">📋 Atendidos / Pós <span class="qtd" id="qtdAtendidos">0</span></button>
   </div>
   <div class="filtros" id="filtros"></div>
   <div class="stats">
@@ -131,20 +149,20 @@
     <div class="stat"><div class="num" id="stWhats">0</div><div class="rot">Com WhatsApp válido</div></div>
     <div class="stat"><div class="num" id="stCopiadas">0</div><div class="rot" id="stCopiadasRot">Mensagens copiadas hoje</div></div>
   </div>
-  <div class="cards" id="cards"></div>
+  <div id="areaCards"></div>
   <div class="vazio" id="vazio" style="display:none;">
     <div class="icone">📅</div>
-    <div>Nenhum agendamento encontrado para esta aba e filtro.</div>
+    <div>Nenhum agendamento encontrado para esta aba.</div>
   </div>
 </div>
 <footer>
-  Ferramenta semiautomática — as mensagens são enviadas manualmente pela recepção via WhatsApp.<br>
-  Automação total em breve. • NAP Odontologia Aquemênida • Suzano/SP
+  Ferramenta semiautomática: as mensagens são enviadas manualmente pela recepção via WhatsApp.<br>
+  Acesso restrito ao time da clínica. • NAP Odontologia Aquemênida • Suzano/SP
 </footer>
 <script>
 (function(){
   // ====== CONFIGURAÇÃO PADRÃO ======
-  // A chave anon do Supabase é pública por design (o navegador precisa dela).
+  // Chave anon do Supabase é pública por design (o navegador precisa dela).
   // A chave de serviço (service role) NUNCA fica aqui: só dentro das Edge Functions.
   var PADRAO = {
     urlLogo: 'https://gtcybiuxdpxixdjnshty.supabase.co/storage/v1/object/public/logos-clinicas/logo_9b1c13be-0634-4787-ab05-ae3714e6b501_1785772740542.png',
@@ -152,31 +170,39 @@
     urlCalcom: 'https://cal.com/rebeca-gomes-da-silva-zara-sorriso-real-suzano-rkq95x/consulta-odontologica-nap',
     urlAnamnese: 'https://docs.google.com/forms/d/e/1FAIpQLSdZ2A9lVIFI0uW_2lnUBXRguyBT3fHRPKTBgpIOa6c-i4Wu5A/viewform',
     urlTermo: 'https://SEU-SUPABASE.supabase.co/storage/v1/object/public/termos/termo-aceite.pdf',
+    urlPesquisa: 'https://docs.google.com/forms/d/e/1FAIpQLScl760jVupQFZSc9hNjECig0KkwTFQ7W-FIuK1qkledI2IhEw/viewform',
     clinicaNome: 'NAP - Odontologia Aquemênida',
     endereco: 'Rua Senador Luiz Carlos Prestes, 555 - Jardim Cacique - Suzano/SP'
   };
   var CHAVE_CFG = 'nap_cfg_v1';
   var CHAVE_COP = 'nap_cop_';
-  // ====== AUTENTICAÇÃO ADMIN VIA SUPABASE AUTH (login + senha guardados no Supabase) ======
+  var CHAVE_SESSAO = 'nap_admin_sessao';
+
+  // ====== AUTENTICAÇÃO VIA SUPABASE AUTH (login + senha guardados no Supabase) ======
   var SUPABASE_URL = 'https://gtcybiuxdpxixdjnshty.supabase.co';
   var SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0Y3liaXV4ZHB4aXhkam5zaHR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ2NTU1MTgsImV4cCI6MjEwMDIzMTUxOH0.WwLPJlLsJtykl3hxGc9y-nl2NvAzoCFLcl4c5c1t68k';
   var supabaseAuth = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
-  var CHAVE_SESSAO = 'nap_admin_sessao';
+
   function sessaoValida(){
     try{ return !!localStorage.getItem(CHAVE_SESSAO); }catch(e){ return false; }
   }
-  async function loginAdmin(email, senha){
-    var { data, error } = await supabaseAuth.auth.signInWithPassword({ email: email, password: senha });
-    if (error) return error.message;
-    localStorage.setItem(CHAVE_SESSAO, data.session.access_token);
-    return null;
+  function mostrarLogin(){
+    document.getElementById('telaLogin').classList.add('visivel');
   }
-  function logoutAdmin(){
-    localStorage.removeItem(CHAVE_SESSAO);
+  function esconderLogin(){
+    document.getElementById('telaLogin').classList.remove('visivel');
+    document.getElementById('btnSairTopo').style.display = '';
   }
+  function encerrarSessao(){
+    supabaseAuth.auth.signOut().then(function(){
+      try{ localStorage.removeItem(CHAVE_SESSAO); }catch(e){}
+      location.reload();
+    });
+  }
+
   var cfg = carregarCfg();
   var bookings = [];
-  var filtroAtivo = 'hoje';
+  var filtroAtivo = 'todos';
   var abaAtiva = 'agendados';
   var FILTROS = [
     {id:'hoje',   rotulo:'Hoje',    dias:0, exato:true},
@@ -187,6 +213,7 @@
     {id:'30d',    rotulo:'30 dias', dias:30},
     {id:'todos',  rotulo:'Todos',   dias:null}
   ];
+
   function carregarCfg(){
     try{ return Object.assign({}, PADRAO, JSON.parse(localStorage.getItem(CHAVE_CFG)||'{}')); }
     catch(e){ return Object.assign({}, PADRAO); }
@@ -197,6 +224,7 @@
     cfg.urlCalcom   = val('cfgUrlCalcom');
     cfg.urlAnamnese = val('cfgUrlAnamnese');
     cfg.urlTermo    = val('cfgUrlTermo');
+    cfg.urlPesquisa = val('cfgUrlPesquisa');
     cfg.clinicaNome = val('cfgClinica');
     cfg.endereco    = val('cfgEndereco');
     localStorage.setItem(CHAVE_CFG, JSON.stringify(cfg));
@@ -228,11 +256,27 @@
   function copiadasHoje(){
     return +(localStorage.getItem(CHAVE_COP+hojeStr())||0);
   }
+
   function montarMensagem(b){
     var anamnese = cfg.urlAnamnese || '';
     var termo = b.link_termo || cfg.urlTermo || '';
     return '🦷 '+ (b.nome||'Paciente') +', sua sessão está agendada para '+(b.data||'')+' às '+(b.hora||'')+'.\n📍 '+cfg.endereco+'\n\nChegue com 15 minutos de antecedência. Atraso máximo de 10 minutos, passou disso seu horário será remarcado para outro dia.\n\nPara a melhor experiência dentro da clínica, dois documentos são necessários:\n\n📋 Ficha de anamnese: para conhecermos seu histórico e te atender da melhor forma. Acesse: '+anamnese+'\n\n📜 Termo de consentimento: para sua segurança e a da clínica durante o atendimento. Confirme: '+termo+'\n\nEsperamos apenas que você observe com atenção e acesse os dois documentos para deixar tudo em ordem para o dia do seu atendimento. Esta mensagem é automática e não precisa ser respondida.';
   }
+  function montarMsgDesmarcado(b){
+    var nome = b.nome||'Paciente';
+    var quando = (b.data||'') + (b.hora ? ' às '+b.hora : '');
+    var linkAgenda = cfg.urlCalcom || '';
+    var txt = '🦷 '+nome+', seu horário de '+quando+' foi desmarcado.';
+    if(linkAgenda) txt += '\n\nSe precisar, agende um novo horário pelo link:\n'+linkAgenda;
+    txt += '\n\nEsta é uma mensagem automática, não precisa ser respondida.';
+    return txt;
+  }
+  function montarMsgPesquisa(b){
+    var nome = b.nome||'Paciente';
+    var link = b.link_pesquisa || cfg.urlPesquisa || '';
+    return '🦷 '+nome+', terminamos seu atendimento! 😊\nSua opinião é muito importante para nós.\nPreencha nossa pesquisa de satisfação (leva menos de 1 minuto):\n\n📋 '+link+'\n\nEsta é uma mensagem automática, não precisa ser respondida.';
+  }
+
   function aplicarConfig(){
     document.getElementById('lblClinica').textContent = cfg.clinicaNome;
     document.getElementById('lblEndereco').textContent = cfg.endereco;
@@ -249,11 +293,14 @@
     lk.innerHTML+='<a href="https://calendar.google.com/calendar/embed?src=sorriso.real.suzano%40gmail.com&ctz=America%2FSao_Paulo" target="_blank" rel="noopener">🗓️ Google Agenda</a>';
     if(cfg.urlAnamnese) lk.innerHTML+='<a href="'+cfg.urlAnamnese+'" target="_blank" rel="noopener">📋 Ficha de Anamnese</a>';
     if(cfg.urlTermo)    lk.innerHTML+='<a href="'+cfg.urlTermo+'" target="_blank" rel="noopener">📜 Termo de Consentimento</a>';
-    ['cfgUrlFuncao','cfgUrlLogo','cfgUrlCalcom','cfgUrlAnamnese','cfgUrlTermo','cfgClinica','cfgEndereco'].forEach(function(id){
+    if(cfg.urlPesquisa) lk.innerHTML+='<a href="'+cfg.urlPesquisa+'" target="_blank" rel="noopener">📝 Pesquisa de Satisfação</a>';
+    ['cfgUrlFuncao','cfgUrlLogo','cfgUrlCalcom','cfgUrlAnamnese','cfgUrlTermo','cfgUrlPesquisa','cfgClinica','cfgEndereco'].forEach(function(id){
       var el=document.getElementById(id);
       if(el) el.value = cfg[id]||'';
     });
   }
+
+  // ====== FILTROS E ABAS ======
   function renderFiltros(){
     var box=document.getElementById('filtros'); box.innerHTML='';
     FILTROS.forEach(function(f){
@@ -270,21 +317,34 @@
     if(f.exato) return dd===f.dias;
     return dd>=0 && dd<=f.dias;
   }
-  function listaPorAba(){
+  function emAba(b){
     var agora = new Date();
     var em48h = new Date(agora.getTime() + 48*60*60*1000);
-    return bookings.filter(function(b){
-      var st = b.status || 'agendado';
-      if(abaAtiva === 'desagendados') return st === 'desagendado' || !!b.desagendado_em;
-      if(abaAtiva === 'atendidos')    return !!b.atendido_em || st === 'atendido';
-      if(abaAtiva === '48h'){
-        if(!!b.atendido_em || st === 'desagendado' || st === 'atendido') return false;
-        if(!b.data_hora) return false;
-        var dt = new Date(b.data_hora);
-        return dt >= agora && dt <= em48h;
-      }
-      return st === 'agendado' && !b.atendido_em;
-    });
+    var st = b.status || 'agendado';
+    if(abaAtiva === 'desagendados') return st === 'desagendado' || !!b.desagendado_em;
+    if(abaAtiva === 'atendidos'){
+      if(st === 'desagendado' || !!b.desagendado_em) return false;
+      if(b.atendido_em || st === 'atendido' || st === 'faltou') return true;
+      if(!b.data_hora) return false;
+      return new Date(b.data_hora) < agora;
+    }
+    if(abaAtiva === '48h'){
+      if(!!b.atendido_em || st === 'desagendado' || st === 'atendido' || st === 'faltou') return false;
+      if(!b.data_hora) return false;
+      var dt = new Date(b.data_hora);
+      return dt >= agora && dt <= em48h;
+    }
+    if(!!b.atendido_em || st === 'desagendado' || st === 'atendido' || st === 'faltou') return false;
+    if(!b.data_hora) return false;
+    return new Date(b.data_hora) >= agora;
+  }
+  function listaDaAba(){
+    return bookings.filter(emAba);
+  }
+  function listaAplicandoFiltro(base){
+    if(abaAtiva === 'desagendados' || abaAtiva === 'atendidos' || filtroAtivo === 'todos') return base;
+    var f = FILTROS.find(function(x){return x.id===filtroAtivo;});
+    return base.filter(function(b){ return dentroJanela(b,f); });
   }
   function contaAbas(){
     var agendados=0, desagendados=0, h48=0, atendidos=0;
@@ -293,11 +353,11 @@
     bookings.forEach(function(b){
       var st = b.status || 'agendado';
       if(st === 'desagendado' || b.desagendado_em){ desagendados++; return; }
-      if(b.atendido_em || st === 'atendido'){ atendidos++; return; }
-      if(b.data_hora){
-        var dt = new Date(b.data_hora);
-        if(dt >= agora && dt <= em48h){ h48++; }
-      }
+      if(b.atendido_em || st === 'atendido' || st === 'faltou'){ atendidos++; return; }
+      if(!b.data_hora){ return; }
+      var dt = new Date(b.data_hora);
+      if(dt < agora){ atendidos++; return; }
+      if(dt <= em48h){ h48++; }
       agendados++;
     });
     document.getElementById('qtdAgendados').textContent = agendados;
@@ -305,66 +365,40 @@
     document.getElementById('qtd48h').textContent = h48;
     document.getElementById('qtdAtendidos').textContent = atendidos;
   }
-  function listaFiltrada(){
-    var f=FILTROS.find(function(x){return x.id===filtroAtivo;});
-    return listaPorAba().filter(function(b){ return dentroJanela(b,f); });
+
+  // ====== PERSISTÊNCIA (grava com o usuário logado, protegido por RLS) ======
+  async function gravarStatus(b, campos){
+    try{
+      var { data: sess } = await supabaseAuth.auth.getSession();
+      if(!sess || !sess.session){ throw new Error('Sessão expirada. Entre novamente.'); }
+      var { error } = await supabaseAuth
+        .from('agendamentos')
+        .update(campos)
+        .eq('calcom_booking_uid', b.calcom_booking_uid);
+      if(error) throw new Error(error.message);
+      banner('ok', 'Atualizado. Recarregando lista...');
+      carregar();
+    }catch(e){
+      banner('erro', 'Erro ao salvar: '+e.message);
+    }
   }
+  function marcarAtendido(b){ gravarStatus(b, { status:'atendido', atendido_em: new Date().toISOString() }); }
+  function marcarFaltou(b){ gravarStatus(b, { status:'faltou' }); }
+  function marcarDesmarcadoLocal(b){ gravarStatus(b, { status:'desagendado', desagendado_em: new Date().toISOString() }); }
+  function marcarNotificado(b){ gravarStatus(b, { notificacao_desagendada_enviada_em: new Date().toISOString() }); }
+  function marcarPesquisaEnviada(b){ gravarStatus(b, { pesquisa_enviada_em: new Date().toISOString() }); }
+
+  // ====== RENDER ======
   function esc(s){ return String(s||'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
-  function render(){
-    renderFiltros();
-    contaAbas();
-    var lista=listaFiltrada();
-    var cartoes=document.getElementById('cards'); cartoes.innerHTML='';
-    var vazio=document.getElementById('vazio');
-    vazio.style.display = lista.length? 'none':'block';
-    document.getElementById('stFiltro').textContent = lista.length;
-    document.getElementById('stWhats').textContent = lista.filter(function(b){return b.telefone;}).length;
-    document.getElementById('stCopiadas').textContent = copiadasHoje();
-    document.getElementById('stCopiadasRot').textContent = 'Mensagens copiadas hoje ('+hojeStr()+')';
-    lista.forEach(function(b){
-      var card=document.createElement('div'); card.className='card';
-      var tel=formatarTelefone(b.telefone);
-      var msg=(b.mensagem_pronta||montarMensagem(b));
-      var wa = b.link_whatsapp || (b.telefone ? 'https://wa.me/'+String(b.telefone).replace(/\D/g,'')+'?text='+encodeURIComponent(msg) : '');
-      var badgesStatus = '';
-      if(abaAtiva === 'agendados' || abaAtiva === '48h'){
-        badgesStatus += (b.anamnese_preenchida_em ? '<span class="badge-info ok">Anamnese ok</span>' : '<span class="badge-info pend">Anamnese pendente</span>');
-        badgesStatus += (b.termo_aceite_em ? '<span class="badge-info ok">Aceite ok</span>' : '<span class="badge-info pend">Aceite pendente</span>');
-      }
-      if(abaAtiva === 'atendidos'){
-        badgesStatus += (b.pesquisa_enviada_em ? '<span class="badge-info ok">Pesquisa enviada</span>' : '<span class="badge-info pend">Pesquisa pendente</span>');
-        if(b.pesquisa_respondida_em) badgesStatus += '<span class="badge-info ok">Respondida</span>';
-      }
-      card.innerHTML =
-        '<div class="pac">'+esc(b.nome||'Paciente')+'</div>'+
-        '<div class="quando">📅 '+(b.data||'')+' às '+(b.hora||'')+'</div>'+
-        '<div class="tel">📞 '+(tel||'<span style="color:#8C1D12">Sem telefone</span>')+'</div>'+
-        (b.telefone?'<span class="badge ok">WhatsApp válido</span>':'<span class="badge sem">Sem WhatsApp — buscar número na ficha do paciente</span>')+
-        badgesStatus+
-        '<div class="msg">'+esc(msg)+'</div>';
-      var acoes=document.createElement('div'); acoes.className='card-acoes';
-      var cop=document.createElement('button'); cop.className='btn btn-copiar'; cop.textContent='📋 Copiar mensagem';
-      cop.onclick=function(){ copiarMensagem(b,cop); };
-      var waBtn=document.createElement('a');
-      waBtn.className='btn btn-whats'+(wa?'':' des'); waBtn.target='_blank'; waBtn.rel='noopener';
-      waBtn.textContent='💬 Abrir WhatsApp';
-      if(wa) waBtn.href=wa; else waBtn.disabled=true;
-      acoes.appendChild(cop); acoes.appendChild(waBtn);
-      card.appendChild(acoes);
-      cartoes.appendChild(card);
-    });
-  }
-  function copiarMensagem(b,btn){
-    var msg=(b.mensagem_pronta||montarMensagem(b));
-    var fazer=function(){ return navigator.clipboard.writeText(msg); };
-    var ok=function(){
-      btn.textContent='✅ Copiado!';
-      setTimeout(function(){ btn.textContent='📋 Copiar mensagem'; },1600);
-      var chave=CHAVE_COP+hojeStr();
-      localStorage.setItem(chave, copiadasHoje()+1);
-      document.getElementById('stCopiadas').textContent=copiadasHoje();
+  function copiarTexto(msg, btn, onOk){
+    var rot = btn.getAttribute('data-rotulo') || '📋 Copiar';
+    var fazer = function(){ return navigator.clipboard.writeText(msg); };
+    var ok = function(){
+      btn.textContent = '✅ Copiado!';
+      setTimeout(function(){ btn.textContent = rot; },1600);
+      if(onOk) onOk();
     };
-    if(navigator.clipboard&&navigator.clipboard.writeText){ fazer().then(ok).catch(function(){ fallbackCopiar(msg,ok); }); }
+    if(navigator.clipboard && navigator.clipboard.writeText){ fazer().then(ok).catch(function(){ fallbackCopiar(msg,ok); }); }
     else fallbackCopiar(msg,ok);
   }
   function fallbackCopiar(msg,ok){
@@ -373,73 +407,257 @@
     try{ document.execCommand('copy'); ok(); }catch(e){ alert('Não foi possível copiar automaticamente. Selecione o texto e copie manualmente.'); }
     document.body.removeChild(ta);
   }
+
+  function criarBotao(classe, rotulo, onclick, dataRotulo){
+    var b = document.createElement('button');
+    b.className = 'btn '+classe;
+    b.textContent = rotulo;
+    b.setAttribute('data-rotulo', dataRotulo || rotulo);
+    b.onclick = onclick;
+    return b;
+  }
+  function linkWhats(b, msg){
+    var tel = b.telefone ? String(b.telefone).replace(/\D/g,'') : '';
+    return tel ? 'https://wa.me/'+tel+'?text='+encodeURIComponent(msg) : '';
+  }
+
+  function renderCard(b){
+    var card=document.createElement('div'); card.className='card';
+    var tel=formatarTelefone(b.telefone);
+    var st = b.status || 'agendado';
+
+    var infoLinha =
+      '<div class="pac">'+esc(b.nome||'Paciente')+'</div>'+
+      '<div class="quando">📅 '+(b.data||'')+(b.hora?' às '+b.hora:'')+'</div>'+
+      '<div class="tel">📞 '+(tel||'<span style="color:#8C1D12">Sem telefone</span>')+'</div>';
+
+    var badges = '';
+    if(abaAtiva === 'agendados' || abaAtiva === '48h'){
+      badges += (b.anamnese_preenchida_em ? '<span class="badge-info ok">Anamnese ok</span>' : '<span class="badge-info pend">Anamnese pendente</span>');
+      badges += (b.termo_aceite_em ? '<span class="badge-info ok">Aceite ok</span>' : '<span class="badge-info pend">Aceite pendente</span>');
+    }
+    if(abaAtiva === 'desagendados'){
+      badges += (b.notificacao_desagendada_enviada_em ? '<span class="badge-info ok">Notificado</span>' : '<span class="badge-info pend">Notificação pendente</span>');
+    }
+    if(abaAtiva === 'atendidos'){
+      if(st === 'atendido' || b.atendido_em){
+        badges += (b.pesquisa_enviada_em ? '<span class="badge-info ok">Pesquisa enviada</span>' : '<span class="badge-info pend">Pesquisa pendente</span>');
+        if(b.pesquisa_respondida_em) badges += '<span class="badge-info ok">Respondida</span>';
+      } else if(st === 'faltou'){
+        badges += '<span class="badge-info cinza">Não compareceu</span>';
+      } else {
+        badges += '<span class="badge-info pend">Aguardando classificação</span>';
+      }
+    }
+
+    card.innerHTML = infoLinha + badges;
+
+    var msg = b.mensagem_pronta || montarMensagem(b);
+    var caixaMsg = document.createElement('div');
+    caixaMsg.className = 'msg';
+    caixaMsg.textContent = msg;
+    card.appendChild(caixaMsg);
+
+    var acoes = document.createElement('div'); acoes.className='card-acoes';
+
+    if(abaAtiva === 'agendados' || abaAtiva === '48h'){
+      var cop = criarBotao('btn-copiar', '📋 Copiar mensagem', function(){ copiarTexto(montarMensagem(b), cop); });
+      var waLink = linkWhats(b, montarMensagem(b));
+      var wa = document.createElement('a');
+      wa.className = 'btn btn-whats'+(waLink?'':' des');
+      wa.target='_blank'; wa.rel='noopener';
+      wa.textContent = '💬 Abrir WhatsApp';
+      if(waLink) wa.href=waLink; else wa.disabled=true;
+      var desm = criarBotao('btn-cinza', '↩️ Marcar desmarcado', function(){ marcarDesmarcadoLocal(b); });
+      acoes.appendChild(cop); acoes.appendChild(wa); acoes.appendChild(desm);
+    }
+
+    if(abaAtiva === 'desagendados'){
+      var copDes = criarBotao('btn-copiar', '📋 Copiar msg. desmarcado', function(){ copiarTexto(montarMsgDesmarcado(b), copDes, function(){ marcarNotificado(b); }); }, '📋 Copiar msg. desmarcado');
+      var waDesLink = linkWhats(b, montarMsgDesmarcado(b));
+      var waDes = document.createElement('a');
+      waDes.className = 'btn btn-whats'+(waDesLink?'':' des');
+      waDes.target='_blank'; waDes.rel='noopener';
+      waDes.textContent = '💬 Notificar no WhatsApp';
+      waDes.onclick = function(){ marcarNotificado(b); };
+      if(waDesLink) waDes.href=waDesLink; else waDes.disabled=true;
+      acoes.appendChild(copDes); acoes.appendChild(waDes);
+    }
+
+    if(abaAtiva === 'atendidos'){
+      if(st === 'atendido' || b.atendido_em){
+        var copPes = criarBotao('btn-copiar', '📋 Copiar pesquisa', function(){ copiarTexto(montarMsgPesquisa(b), copPes, function(){ marcarPesquisaEnviada(b); }); }, '📋 Copiar pesquisa');
+        var waPesLink = linkWhats(b, montarMsgPesquisa(b));
+        var waPes = document.createElement('a');
+        waPes.className = 'btn btn-whats'+(waPesLink?'':' des');
+        waPes.target='_blank'; waPes.rel='noopener';
+        waPes.textContent = '💬 Enviar pesquisa';
+        waPes.onclick = function(){ marcarPesquisaEnviada(b); };
+        if(waPesLink) waPes.href=waPesLink; else waPes.disabled=true;
+        acoes.appendChild(copPes); acoes.appendChild(waPes);
+      } else if(st === 'faltou'){
+        var cons = criarBotao('btn-verde', '✅ Foi atendido (corrigir)', function(){ marcarAtendido(b); });
+        acoes.appendChild(cons);
+      } else {
+        var okAt = criarBotao('btn-verde', '✅ Atendido', function(){ marcarAtendido(b); });
+        var naoAt = criarBotao('btn-vermelho', '❌ Não compareceu', function(){ marcarFaltou(b); });
+        var desmAt = criarBotao('btn-cinza', '↩️ Desmarcado', function(){ marcarDesmarcadoLocal(b); });
+        acoes.appendChild(okAt); acoes.appendChild(naoAt); acoes.appendChild(desmAt);
+      }
+    }
+
+    card.appendChild(acoes);
+    return card;
+  }
+
+  function render(){
+    if(abaAtiva === 'desagendados' || abaAtiva === 'atendidos'){
+      document.getElementById('filtros').style.display = 'none';
+      document.getElementById('filtros').innerHTML = '';
+    } else {
+      document.getElementById('filtros').style.display = '';
+      renderFiltros();
+    }
+    contaAbas();
+
+    var base = listaDaAba();
+    var lista = listaAplicandoFiltro(base);
+    var area = document.getElementById('areaCards');
+    area.innerHTML = '';
+
+    var vazio = document.getElementById('vazio');
+    vazio.style.display = lista.length ? 'none' : 'block';
+
+    document.getElementById('stFiltro').textContent = lista.length;
+    document.getElementById('stWhats').textContent = lista.filter(function(b){return b.telefone;}).length;
+    document.getElementById('stCopiadas').textContent = copiadasHoje();
+    document.getElementById('stCopiadasRot').textContent = 'Mensagens copiadas hoje ('+hojeStr()+')';
+
+    if(abaAtiva === 'atendidos'){
+      var agora = new Date();
+      var paraClassificar = lista.filter(function(b){
+        return (b.status === 'agendado') && !b.atendido_em && b.data_hora && new Date(b.data_hora) < agora;
+      });
+      var atendidos = lista.filter(function(b){ return b.atendido_em || b.status === 'atendido'; });
+      var faltaram = lista.filter(function(b){ return b.status === 'faltou' && !b.atendido_em; });
+
+      if(paraClassificar.length){
+        var t1 = document.createElement('div'); t1.className='sec-titulo';
+        t1.textContent = 'Para classificar ('+paraClassificar.length+')';
+        area.appendChild(t1);
+        var g1 = document.createElement('div'); g1.className='cards';
+        paraClassificar.forEach(function(b){ g1.appendChild(renderCard(b)); });
+        area.appendChild(g1);
+      }
+      if(atendidos.length){
+        var t2 = document.createElement('div'); t2.className='sec-titulo';
+        t2.textContent = 'Atendidos ('+atendidos.length+')';
+        area.appendChild(t2);
+        var g2 = document.createElement('div'); g2.className='cards';
+        atendidos.forEach(function(b){ g2.appendChild(renderCard(b)); });
+        area.appendChild(g2);
+      }
+      if(faltaram.length){
+        var t3 = document.createElement('div'); t3.className='sec-titulo';
+        t3.textContent = 'Não compareceram ('+faltaram.length+')';
+        area.appendChild(t3);
+        var g3 = document.createElement('div'); g3.className='cards';
+        faltaram.forEach(function(b){ g3.appendChild(renderCard(b)); });
+        area.appendChild(g3);
+      }
+      if(!paraClassificar.length && !atendidos.length && !faltaram.length){
+        vazio.style.display = 'block';
+      }
+      return;
+    }
+
+    var grade = document.createElement('div'); grade.className='cards';
+    lista.forEach(function(b){ grade.appendChild(renderCard(b)); });
+    area.appendChild(grade);
+  }
+
   function banner(tipo,texto){
     var b=document.getElementById('banner'); b.className='banner '+tipo; b.textContent=texto;
   }
+
   async function carregar(){
     var btn=document.getElementById('btnAtualizar'); var textoAnt=btn.textContent;
     btn.textContent='⏳ Atualizando...'; btn.disabled=true;
-    banner('ok','');
     try{
       var resp=await fetch(cfg.urlFuncao,{cache:'no-store'});
-      if(!resp.ok){ banner('erro','Erro HTTP '+resp.status+' ao acessar a Edge Function. Verifique a URL.'); bookings=[]; }
+      if(!resp.ok){ banner('erro','Erro HTTP '+resp.status+' ao acessar a Edge Function.'); bookings=[]; }
       else{
         var j=await resp.json();
         if(j.ok===true||Array.isArray(j)){ bookings=Array.isArray(j)?j:(j.bookings||[]); }
         else{ banner('erro','A Edge Function retornou erro: '+(j.erro||j.status||'desconhecido')); bookings=[]; }
       }
     }catch(e){
-      banner('erro','Falha de conexão. Verifique CORS e a URL da Edge Function. Nenhum dado de demonstração é exibido.');
+      banner('erro','Falha de conexão. Verifique CORS e a URL da Edge Function.');
       bookings=[];
     }
-    if(bookings.length){ banner('ok','Conectado: '+bookings.length+' agendamento(s) sincronizados via Edge Function.'); }
+    if(bookings.length){ banner('ok','Conectado: '+bookings.length+' agendamento(s) sincronizados.'); }
     render();
     btn.textContent=textoAnt; btn.disabled=false;
   }
+
   // ====== EVENTOS ======
   document.getElementById('btnAtualizar').onclick=carregar;
   document.getElementById('btnImprimir').onclick=function(){ window.print(); };
+  document.getElementById('btnSairTopo').onclick=encerrarSessao;
+  document.getElementById('btnSairCfg').onclick=encerrarSessao;
+
   document.getElementById('cfgToggle').onclick=function(){
-    if(!sessaoValida()){
-      document.getElementById('cfgBody').style.display='grid';
-      document.getElementById('areaLogin').style.display='block';
-      document.getElementById('areaConfig').style.display='none';
-      return;
-    }
-    document.getElementById('areaLogin').style.display='none';
-    document.getElementById('areaConfig').style.display='grid';
+    if(!sessaoValida()){ mostrarLogin(); return; }
     var b=document.getElementById('cfgBody');
     var vis=b.style.display!=='none';
     b.style.display=vis?'none':'grid';
     this.children[0].textContent=vis?'▼':'▲';
   };
-  document.getElementById('btnLogin').onclick=async function(){
-    var email=document.getElementById('inpEmail').value.trim();
-    var senha=document.getElementById('inpSenha').value;
-    var erro=await loginAdmin(email,senha);
-    if(erro){ document.getElementById('lblLoginErro').textContent='Falha: '+erro; return; }
-    document.getElementById('cfgBody').style.display='grid';
-    document.getElementById('areaLogin').style.display='none';
-    document.getElementById('areaConfig').style.display='grid';
-    document.getElementById('lblLoginErro').textContent='';
+
+  document.getElementById('btnLoginGeral').onclick=async function(){
+    var email=document.getElementById('inpLoginEmail').value.trim();
+    var senha=document.getElementById('inpLoginSenha').value;
+    var errEl=document.getElementById('lblLoginGeralErro');
+    errEl.textContent='';
+    if(!email||!senha){ errEl.textContent='Informe e-mail e senha.'; return; }
+    var { error }=await supabaseAuth.auth.signInWithPassword({ email:email, password:senha });
+    if(error){ errEl.textContent='Falha: '+error.message; return; }
+    localStorage.setItem(CHAVE_SESSAO,'1');
+    esconderLogin();
+    carregar();
   };
-  document.getElementById('btnSair').onclick=function(){ logoutAdmin(); location.reload(); };
+  document.getElementById('inpLoginSenha').addEventListener('keydown',function(e){
+    if(e.key==='Enter') document.getElementById('btnLoginGeral').click();
+  });
+
   document.getElementById('btnSalvarCfg').onclick=function(){
     salvarCfg(); aplicarConfig(); carregar();
     document.getElementById('cfgBody').style.display='none';
     document.getElementById('cfgToggle').children[0].textContent='▼';
   };
+
   document.querySelectorAll('.aba').forEach(function(btn){
     btn.onclick=function(){
       document.querySelectorAll('.aba').forEach(function(x){ x.classList.remove('ativa'); });
       btn.classList.add('ativa');
-      abaAtiva = btn.dataset.aba;
+      abaAtiva=btn.dataset.aba;
       render();
     };
   });
-  // ====== INIT ======
+
+  // ====== INIT (exige login para ver qualquer dado) ======
   aplicarConfig();
-  carregar();
+  (async function init(){
+    var { data } = await supabaseAuth.auth.getSession();
+    if(data && data.session){
+      localStorage.setItem(CHAVE_SESSAO,'1');
+      esconderLogin();
+      carregar();
+    } else {
+      try{ localStorage.removeItem(CHAVE_SESSAO); }catch(e){}
+      mostrarLogin();
+    }
+  })();
 })();
 </script>
 </body>
