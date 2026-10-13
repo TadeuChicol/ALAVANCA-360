@@ -40,6 +40,11 @@
   .links-rapidos{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:18px;}
   .links-rapidos a{text-decoration:none; background:var(--papel); border:1px solid #EADFCE; color:var(--bordo); font-weight:700; font-size:13px; padding:10px 14px; border-radius:10px; display:inline-flex; align-items:center; gap:6px;}
   .links-rapidos a:hover{border-color:var(--dourado); background:#FFF9EC;}
+  .abas{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;}
+  .aba{border:1px solid #D8CBB5; background:var(--papel); color:var(--texto); padding:9px 16px; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer; transition:.15s;}
+  .aba .qtd{background:#F1E8D8; border-radius:999px; padding:1px 8px; margin-left:4px; font-size:12px;}
+  .aba.ativa{background:var(--bordo); color:#fff; border-color:var(--bordo);}
+  .aba.ativa .qtd{background:rgba(255,255,255,.25);}
   .filtros{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;}
   .chip{border:1px solid #D8CBB5; background:var(--papel); color:var(--texto); padding:9px 14px; border-radius:999px; font-size:13px; font-weight:700; cursor:pointer; transition:.15s;}
   .chip .qtd{background:#F1E8D8; border-radius:999px; padding:1px 8px; margin-left:4px; font-size:12px;}
@@ -57,6 +62,9 @@
   .badge{display:inline-block; font-size:11px; font-weight:800; padding:3px 9px; border-radius:999px;}
   .badge.ok{background:#E9F9EF; color:#14613A;}
   .badge.sem{background:#FDECEA; color:#8C1D12;}
+  .badge-info{display:inline-block; font-size:11px; font-weight:800; padding:3px 9px; border-radius:999px; margin-right:4px;}
+  .badge-info.ok{background:#E9F9EF; color:#14613A;}
+  .badge-info.pend{background:#FDECEA; color:#8C1D12;}
   .msg{background:#F8F3EA; border:1px dashed #CDBB96; border-radius:8px; padding:10px; font-size:12px; color:#4A444E; white-space:pre-wrap; max-height:130px; overflow:auto;}
   .card-acoes{display:flex; gap:8px; flex-wrap:wrap; margin-top:auto;}
   .btn-copiar{background:var(--bordo);}
@@ -67,14 +75,13 @@
   footer{text-align:center; font-size:12px; color:var(--cinza); padding:20px; border-top:1px solid #EADFCE; margin-top:26px;}
   @media print{
     .topo{background:var(--bordo) !important; -webkit-print-color-adjust:exact; print-color-adjust:exact;}
-    .painel,.links-rapidos,.acoes-topo,.btn,.filtros,.banner{display:none !important;}
+    .painel,.links-rapidos,.acoes-topo,.btn,.filtros,.abas,.banner{display:none !important;}
     .cards{grid-template-columns:1fr;}
     .card{break-inside:avoid; border:1px solid #000;}
   }
 </style>
 </head>
 <body>
-
 <header class="topo">
   <div id="boxLogo"><span class="monograma" id="logoFallback">NAP</span></div>
   <div class="titulos">
@@ -87,11 +94,8 @@
     <button class="btn btn-cinza" id="btnImprimir">🖨️ Imprimir</button>
   </div>
 </header>
-
 <div class="banner" id="banner"></div>
-
 <div class="container">
-
   <div class="painel">
     <button class="painel-head" id="cfgToggle">⚙️ Configurações &amp; Links (área restrita)<span>▼</span></button>
     <div class="painel-body" id="cfgBody" style="display:none;">
@@ -106,6 +110,7 @@
         <div class="campo"><label>URL da Edge Function (agendamentos)</label><input id="cfgUrlFuncao" placeholder="https://.../functions/v1/calcom-bookings"></div>
         <div class="campo"><label>Link da Agenda (Cal.com)</label><input id="cfgUrlCalcom" placeholder="https://cal.com/..."></div>
         <div class="campo"><label>Link da Ficha de Anamnese</label><input id="cfgUrlAnamnese" placeholder="https://docs.google.com/forms/..."></div>
+        <div class="campo"><label>Link do Termo de Consentimento</label><input id="cfgUrlTermo" placeholder="https://.../termo-aceite.pdf"></div>
         <div class="campo"><label>Nome da Clínica</label><input id="cfgClinica"></div>
         <div class="campo"><label>Endereço</label><input id="cfgEndereco"></div>
         <button class="btn btn-dourado salvar-cfg" id="btnSalvarCfg">💾 Salvar configuração</button>
@@ -113,50 +118,50 @@
       </div>
     </div>
   </div>
-
   <div class="links-rapidos" id="linksRapidos"></div>
-
+  <div class="abas">
+    <button class="aba ativa" data-aba="agendados">✅ Agendados <span class="qtd" id="qtdAgendados">0</span></button>
+    <button class="aba" data-aba="desagendados">↩️ Desagendados <span class="qtd" id="qtdDesagendados">0</span></button>
+    <button class="aba" data-aba="48h">⏰ Próximas 48h <span class="qtd" id="qtd48h">0</span></button>
+    <button class="aba" data-aba="atendidos">📋 Atendidos <span class="qtd" id="qtdAtendidos">0</span></button>
+  </div>
   <div class="filtros" id="filtros"></div>
-
   <div class="stats">
     <div class="stat"><div class="num" id="stFiltro">0</div><div class="rot" id="stFiltroRot">Consultas no filtro</div></div>
     <div class="stat"><div class="num" id="stWhats">0</div><div class="rot">Com WhatsApp válido</div></div>
     <div class="stat"><div class="num" id="stCopiadas">0</div><div class="rot" id="stCopiadasRot">Mensagens copiadas hoje</div></div>
   </div>
-
   <div class="cards" id="cards"></div>
   <div class="vazio" id="vazio" style="display:none;">
     <div class="icone">📅</div>
-    <div>Nenhum agendamento encontrado para este filtro.</div>
+    <div>Nenhum agendamento encontrado para esta aba e filtro.</div>
   </div>
 </div>
-
 <footer>
   Ferramenta semiautomática — as mensagens são enviadas manualmente pela recepção via WhatsApp.<br>
   Automação total em breve. • NAP Odontologia Aquemênida • Suzano/SP
 </footer>
-
 <script>
 (function(){
   // ====== CONFIGURAÇÃO PADRÃO ======
+  // A chave anon do Supabase é pública por design (o navegador precisa dela).
+  // A chave de serviço (service role) NUNCA fica aqui: só dentro das Edge Functions.
   var PADRAO = {
     urlLogo: 'https://gtcybiuxdpxixdjnshty.supabase.co/storage/v1/object/public/logos-clinicas/logo_9b1c13be-0634-4787-ab05-ae3714e6b501_1785772740542.png',
     urlFuncao: 'https://gtcybiuxdpxixdjnshty.supabase.co/functions/v1/calcom-bookings',
     urlCalcom: 'https://cal.com/rebeca-gomes-da-silva-zara-sorriso-real-suzano-rkq95x/consulta-odontologica-nap',
     urlAnamnese: 'https://docs.google.com/forms/d/e/1FAIpQLSdZ2A9lVIFI0uW_2lnUBXRguyBT3fHRPKTBgpIOa6c-i4Wu5A/viewform',
+    urlTermo: 'https://SEU-SUPABASE.supabase.co/storage/v1/object/public/termos/termo-aceite.pdf',
     clinicaNome: 'NAP - Odontologia Aquemênida',
     endereco: 'Rua Senador Luiz Carlos Prestes, 555 - Jardim Cacique - Suzano/SP'
   };
   var CHAVE_CFG = 'nap_cfg_v1';
   var CHAVE_COP = 'nap_cop_';
-
-  // ====== AUTENTICAÇÃO ADMIN VIA SUPABASE AUTH ======
-  // >>> PASSO OBRIGATÓRIO: troque ABAIXO pela sua chave anon (Project Settings > API > anon public) <<<
+  // ====== AUTENTICAÇÃO ADMIN VIA SUPABASE AUTH (login + senha guardados no Supabase) ======
   var SUPABASE_URL = 'https://gtcybiuxdpxixdjnshty.supabase.co';
   var SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0Y3liaXV4ZHB4aXhkam5zaHR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ2NTU1MTgsImV4cCI6MjEwMDIzMTUxOH0.WwLPJlLsJtykl3hxGc9y-nl2NvAzoCFLcl4c5c1t68k';
   var supabaseAuth = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
   var CHAVE_SESSAO = 'nap_admin_sessao';
-
   function sessaoValida(){
     try{ return !!localStorage.getItem(CHAVE_SESSAO); }catch(e){ return false; }
   }
@@ -169,11 +174,10 @@
   function logoutAdmin(){
     localStorage.removeItem(CHAVE_SESSAO);
   }
-
   var cfg = carregarCfg();
   var bookings = [];
   var filtroAtivo = 'hoje';
-
+  var abaAtiva = 'agendados';
   var FILTROS = [
     {id:'hoje',   rotulo:'Hoje',    dias:0, exato:true},
     {id:'amanha', rotulo:'Amanhã',  dias:1, exato:true},
@@ -183,7 +187,6 @@
     {id:'30d',    rotulo:'30 dias', dias:30},
     {id:'todos',  rotulo:'Todos',   dias:null}
   ];
-
   function carregarCfg(){
     try{ return Object.assign({}, PADRAO, JSON.parse(localStorage.getItem(CHAVE_CFG)||'{}')); }
     catch(e){ return Object.assign({}, PADRAO); }
@@ -193,12 +196,12 @@
     cfg.urlFuncao   = val('cfgUrlFuncao');
     cfg.urlCalcom   = val('cfgUrlCalcom');
     cfg.urlAnamnese = val('cfgUrlAnamnese');
+    cfg.urlTermo    = val('cfgUrlTermo');
     cfg.clinicaNome = val('cfgClinica');
     cfg.endereco    = val('cfgEndereco');
     localStorage.setItem(CHAVE_CFG, JSON.stringify(cfg));
   }
   function val(id){ var el=document.getElementById(id); return el?el.value.trim():''; }
-
   function hojeStr(){
     return new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date());
   }
@@ -226,9 +229,10 @@
     return +(localStorage.getItem(CHAVE_COP+hojeStr())||0);
   }
   function montarMensagem(b){
-    return '🦷 Olá, '+ (b.nome||'Paciente') +'! Sua sessão está agendada para '+(b.data||'')+' às '+(b.hora||'')+'.\n📍 '+cfg.endereco+'\n\nPrecisamos que você preencha sua ficha de anamnese para um atendimento de excelência:\n📋 '+(b.link_anamnese||cfg.urlAnamnese)+'\n\nEsta é uma mensagem automática, não precisa ser respondida.';
+    var anamnese = cfg.urlAnamnese || '';
+    var termo = b.link_termo || cfg.urlTermo || '';
+    return '🦷 '+ (b.nome||'Paciente') +', sua sessão está agendada para '+(b.data||'')+' às '+(b.hora||'')+'.\n📍 '+cfg.endereco+'\n\nChegue com 15 minutos de antecedência. Atraso máximo de 10 minutos, passou disso seu horário será remarcado para outro dia.\n\nPara a melhor experiência dentro da clínica, dois documentos são necessários:\n\n📋 Ficha de anamnese: para conhecermos seu histórico e te atender da melhor forma. Acesse: '+anamnese+'\n\n📜 Termo de consentimento: para sua segurança e a da clínica durante o atendimento. Confirme: '+termo+'\n\nEsperamos apenas que você observe com atenção e acesse os dois documentos para deixar tudo em ordem para o dia do seu atendimento. Esta mensagem é automática e não precisa ser respondida.';
   }
-
   function aplicarConfig(){
     document.getElementById('lblClinica').textContent = cfg.clinicaNome;
     document.getElementById('lblEndereco').textContent = cfg.endereco;
@@ -244,12 +248,12 @@
     if(cfg.urlCalcom)   lk.innerHTML+='<a href="'+cfg.urlCalcom+'" target="_blank" rel="noopener">📅 Agenda no Cal.com</a>';
     lk.innerHTML+='<a href="https://calendar.google.com/calendar/embed?src=sorriso.real.suzano%40gmail.com&ctz=America%2FSao_Paulo" target="_blank" rel="noopener">🗓️ Google Agenda</a>';
     if(cfg.urlAnamnese) lk.innerHTML+='<a href="'+cfg.urlAnamnese+'" target="_blank" rel="noopener">📋 Ficha de Anamnese</a>';
-    ['cfgUrlFuncao','cfgUrlLogo','cfgUrlCalcom','cfgUrlAnamnese','cfgClinica','cfgEndereco'].forEach(function(id){
+    if(cfg.urlTermo)    lk.innerHTML+='<a href="'+cfg.urlTermo+'" target="_blank" rel="noopener">📜 Termo de Consentimento</a>';
+    ['cfgUrlFuncao','cfgUrlLogo','cfgUrlCalcom','cfgUrlAnamnese','cfgUrlTermo','cfgClinica','cfgEndereco'].forEach(function(id){
       var el=document.getElementById(id);
       if(el) el.value = cfg[id]||'';
     });
   }
-
   function renderFiltros(){
     var box=document.getElementById('filtros'); box.innerHTML='';
     FILTROS.forEach(function(f){
@@ -266,15 +270,49 @@
     if(f.exato) return dd===f.dias;
     return dd>=0 && dd<=f.dias;
   }
+  function listaPorAba(){
+    var agora = new Date();
+    var em48h = new Date(agora.getTime() + 48*60*60*1000);
+    return bookings.filter(function(b){
+      var st = b.status || 'agendado';
+      if(abaAtiva === 'desagendados') return st === 'desagendado' || !!b.desagendado_em;
+      if(abaAtiva === 'atendidos')    return !!b.atendido_em || st === 'atendido';
+      if(abaAtiva === '48h'){
+        if(!!b.atendido_em || st === 'desagendado' || st === 'atendido') return false;
+        if(!b.data_hora) return false;
+        var dt = new Date(b.data_hora);
+        return dt >= agora && dt <= em48h;
+      }
+      return st === 'agendado' && !b.atendido_em;
+    });
+  }
+  function contaAbas(){
+    var agendados=0, desagendados=0, h48=0, atendidos=0;
+    var agora = new Date();
+    var em48h = new Date(agora.getTime() + 48*60*60*1000);
+    bookings.forEach(function(b){
+      var st = b.status || 'agendado';
+      if(st === 'desagendado' || b.desagendado_em){ desagendados++; return; }
+      if(b.atendido_em || st === 'atendido'){ atendidos++; return; }
+      if(b.data_hora){
+        var dt = new Date(b.data_hora);
+        if(dt >= agora && dt <= em48h){ h48++; }
+      }
+      agendados++;
+    });
+    document.getElementById('qtdAgendados').textContent = agendados;
+    document.getElementById('qtdDesagendados').textContent = desagendados;
+    document.getElementById('qtd48h').textContent = h48;
+    document.getElementById('qtdAtendidos').textContent = atendidos;
+  }
   function listaFiltrada(){
     var f=FILTROS.find(function(x){return x.id===filtroAtivo;});
-    return bookings.filter(function(b){ return dentroJanela(b,f); });
+    return listaPorAba().filter(function(b){ return dentroJanela(b,f); });
   }
-
   function esc(s){ return String(s||'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
-
   function render(){
     renderFiltros();
+    contaAbas();
     var lista=listaFiltrada();
     var cartoes=document.getElementById('cards'); cartoes.innerHTML='';
     var vazio=document.getElementById('vazio');
@@ -283,20 +321,27 @@
     document.getElementById('stWhats').textContent = lista.filter(function(b){return b.telefone;}).length;
     document.getElementById('stCopiadas').textContent = copiadasHoje();
     document.getElementById('stCopiadasRot').textContent = 'Mensagens copiadas hoje ('+hojeStr()+')';
-
     lista.forEach(function(b){
       var card=document.createElement('div'); card.className='card';
       var tel=formatarTelefone(b.telefone);
       var msg=(b.mensagem_pronta||montarMensagem(b));
       var wa = b.link_whatsapp || (b.telefone ? 'https://wa.me/'+String(b.telefone).replace(/\D/g,'')+'?text='+encodeURIComponent(msg) : '');
-
+      var badgesStatus = '';
+      if(abaAtiva === 'agendados' || abaAtiva === '48h'){
+        badgesStatus += (b.anamnese_preenchida_em ? '<span class="badge-info ok">Anamnese ok</span>' : '<span class="badge-info pend">Anamnese pendente</span>');
+        badgesStatus += (b.termo_aceite_em ? '<span class="badge-info ok">Aceite ok</span>' : '<span class="badge-info pend">Aceite pendente</span>');
+      }
+      if(abaAtiva === 'atendidos'){
+        badgesStatus += (b.pesquisa_enviada_em ? '<span class="badge-info ok">Pesquisa enviada</span>' : '<span class="badge-info pend">Pesquisa pendente</span>');
+        if(b.pesquisa_respondida_em) badgesStatus += '<span class="badge-info ok">Respondida</span>';
+      }
       card.innerHTML =
         '<div class="pac">'+esc(b.nome||'Paciente')+'</div>'+
         '<div class="quando">📅 '+(b.data||'')+' às '+(b.hora||'')+'</div>'+
         '<div class="tel">📞 '+(tel||'<span style="color:#8C1D12">Sem telefone</span>')+'</div>'+
         (b.telefone?'<span class="badge ok">WhatsApp válido</span>':'<span class="badge sem">Sem WhatsApp — buscar número na ficha do paciente</span>')+
+        badgesStatus+
         '<div class="msg">'+esc(msg)+'</div>';
-
       var acoes=document.createElement('div'); acoes.className='card-acoes';
       var cop=document.createElement('button'); cop.className='btn btn-copiar'; cop.textContent='📋 Copiar mensagem';
       cop.onclick=function(){ copiarMensagem(b,cop); };
@@ -309,7 +354,6 @@
       cartoes.appendChild(card);
     });
   }
-
   function copiarMensagem(b,btn){
     var msg=(b.mensagem_pronta||montarMensagem(b));
     var fazer=function(){ return navigator.clipboard.writeText(msg); };
@@ -329,7 +373,6 @@
     try{ document.execCommand('copy'); ok(); }catch(e){ alert('Não foi possível copiar automaticamente. Selecione o texto e copie manualmente.'); }
     document.body.removeChild(ta);
   }
-
   function banner(tipo,texto){
     var b=document.getElementById('banner'); b.className='banner '+tipo; b.textContent=texto;
   }
@@ -353,7 +396,6 @@
     render();
     btn.textContent=textoAnt; btn.disabled=false;
   }
-
   // ====== EVENTOS ======
   document.getElementById('btnAtualizar').onclick=carregar;
   document.getElementById('btnImprimir').onclick=function(){ window.print(); };
@@ -387,7 +429,14 @@
     document.getElementById('cfgBody').style.display='none';
     document.getElementById('cfgToggle').children[0].textContent='▼';
   };
-
+  document.querySelectorAll('.aba').forEach(function(btn){
+    btn.onclick=function(){
+      document.querySelectorAll('.aba').forEach(function(x){ x.classList.remove('ativa'); });
+      btn.classList.add('ativa');
+      abaAtiva = btn.dataset.aba;
+      render();
+    };
+  });
   // ====== INIT ======
   aplicarConfig();
   carregar();
