@@ -183,6 +183,22 @@
   var SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0Y3liaXV4ZHB4aXhkam5zaHR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ2NTU1MTgsImV4cCI6MjEwMDIzMTUxOH0.WwLPJlLsJtykl3hxGc9y-nl2NvAzoCFLcl4c5c1t68k';
   var supabaseAuth = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
+  // Status EFETIVO do paciente: cruza o telefone com TODOS os agendamentos.
+  // Serve para remarcados: se respondeu anamnese/termo em qualquer marcação,
+  // o status herdado vale para a nova marcação.
+  function statusPacientePorTelefone(b){
+    var tel = b.telefone ? String(b.telefone).replace(/\D/g,'') : '';
+    var st = { anamnese: !!b.anamnese_preenchida_em, termo: !!b.termo_aceite_em };
+    if(!tel) return st;
+    bookings.forEach(function(x){
+      if(!x.telefone) return;
+      if(String(x.telefone).replace(/\D/g,'') !== tel) return;
+      if(x.anamnese_preenchida_em) st.anamnese = true;
+      if(x.termo_aceite_em) st.termo = true;
+    });
+    return st;
+  }
+
   function sessaoValida(){
     try{ return !!localStorage.getItem(CHAVE_SESSAO); }catch(e){ return false; }
   }
@@ -270,9 +286,10 @@
   var txt = '🦷 '+nome+', lembrando que sua consulta é '+quando+'.';
   txt += '\n📍 '+cfg.endereco;
   txt += '\nChegue com 15 minutos de antecedência. Atraso máximo de 10 minutos, passou disso seu horário será remarcado para outro dia.';
+  var stPac = statusPacientePorTelefone(b);
   var pendentes = [];
-  if(!b.anamnese_preenchida_em) pendentes.push('📋 Ficha de anamnese (ainda não preenchida): '+cfg.urlAnamnese);
-  if(!b.termo_aceite_em) pendentes.push('📜 Termo de consentimento (ainda não aceito): '+cfg.urlTermo);
+  if(!stPac.anamnese) pendentes.push('📋 Ficha de anamnese (ainda não preenchida): '+cfg.urlAnamnese);
+  if(!stPac.termo) pendentes.push('📜 Termo de consentimento (ainda não aceito): '+cfg.urlTermo);
   if(pendentes.length){
     txt += '\n\nPara deixar tudo em ordem antes do seu atendimento, ainda falta:\n'+pendentes.join('\n');
   } else {
@@ -411,15 +428,20 @@
 
   // ====== RENDER ======
 function montarMensagem(b){
-  var anamnese = cfg.urlAnamnese || '';
-  var termo = b.link_termo || cfg.urlTermo || '';
-  return '🦷 '+ (b.nome||'Paciente') +', sua sessão está agendada para '+(b.data||'')+' às '+(b.hora||'')+'.'+
-  '\n📍 '+cfg.endereco+
-  '\n\nChegue com 15 minutos de antecedência. Atraso máximo de 10 minutos, passou disso seu horário será remarcado para outro dia.'+
-  '\n\nPara a melhor experiência dentro da clínica, dois documentos são necessários:'+
-  '\n\n📋 Ficha de anamnese: para conhecermos seu histórico e te atender da melhor forma. Acesse: '+anamnese+
-  '\n\n📜 Termo de consentimento: para sua segurança e a da clínica durante o atendimento. Confirme: '+termo+
-  '\n\nEsperamos apenas que você observe com atenção e acesse os dois documentos para deixar tudo em ordem para o dia do seu atendimento. Esta mensagem é automática e não precisa ser respondida.';
+  var stPac = statusPacientePorTelefone(b);
+  var txt = '🦷 '+ (b.nome||'Paciente') +', sua sessão está agendada para '+(b.data||'')+' às '+(b.hora||'')+'.'+
+    '\n📍 '+cfg.endereco+
+    '\n\nChegue com 15 minutos de antecedência. Atraso máximo de 10 minutos, passou disso seu horário será remarcado para outro dia.';
+  var pendentes = [];
+  if(!stPac.anamnese) pendentes.push('📋 Ficha de anamnese: '+cfg.urlAnamnese);
+  if(!stPac.termo) pendentes.push('📜 Termo de consentimento: '+cfg.urlTermo);
+  if(pendentes.length){
+    txt += '\n\nPara deixar tudo em ordem, ainda falta:\n'+pendentes.join('\n');
+  } else {
+    txt += '\n\nSeus documentos já estão em dia. Até lá!';
+  }
+  txt += '\n\nEsta mensagem é automática e não precisa ser respondida.';
+  return txt;
 }
 function esc(s){ return String(s||'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
 function copiarTexto(msg, btn, onOk){
@@ -493,8 +515,7 @@ function renderCard(b){
     wa.target='_blank'; wa.rel='noopener';
     wa.textContent = '💬 Abrir WhatsApp';
     if(waLink) wa.href=waLink; else wa.disabled=true;
-    var desm = criarBotao('btn-cinza', '↩️ Marcar desmarcado', function(){ marcarDesmarcadoLocal(b); });
-    acoes.appendChild(cop); acoes.appendChild(wa); acoes.appendChild(desm);
+    acoes.appendChild(cop); acoes.appendChild(wa);
   }
   if(abaAtiva === 'desagendados'){
     var copDes = criarBotao('btn-copiar', '📋 Copiar msg. desmarcado', function(){ copiarTexto(montarMsgDesmarcado(b), copDes, function(){ marcarNotificado(b); }); }, '📋 Copiar msg. desmarcado');
@@ -525,8 +546,7 @@ function renderCard(b){
     } else {
       var okAt = criarBotao('btn-verde', '✅ Atendido', function(){ marcarAtendido(b); });
       var naoAt = criarBotao('btn-vermelho', '❌ Não compareceu', function(){ marcarFaltou(b); });
-      var desmAt = criarBotao('btn-cinza', '↩️ Desmarcado', function(){ marcarDesmarcadoLocal(b); });
-      acoes.appendChild(okAt); acoes.appendChild(naoAt); acoes.appendChild(desmAt);
+      acoes.appendChild(okAt); acoes.appendChild(naoAt);
     }
   }
   card.appendChild(acoes);
@@ -616,65 +636,82 @@ function render(){
     btn.textContent=textoAnt; btn.disabled=false;
   }
 
-  // ====== EVENTOS ======
+      // ====== EVENTOS ======
   document.getElementById('btnAtualizar').onclick=carregar;
   document.getElementById('btnImprimir').onclick=function(){ window.print(); };
   document.getElementById('btnSairTopo').onclick=encerrarSessao;
   document.getElementById('btnSairCfg').onclick=encerrarSessao;
-
-  document.getElementById('cfgToggle').onclick=function(){
-    if(!sessaoValida()){ mostrarLogin(); return; }
-    var b=document.getElementById('cfgBody');
-    var vis=b.style.display!=='none';
-    b.style.display=vis?'none':'grid';
-    this.children[0].textContent=vis?'▼':'▲';
+  // ====== BLINDAGEM MASTER (central independente do SaaS) ======
+  // 1) Esconde o painel de integração e o botão antigo ⚙️
+  var painelCfg = document.querySelector('.painel');
+  var cfgToggle = document.getElementById('cfgToggle');
+  if(painelCfg) painelCfg.style.display = 'none';
+  if(cfgToggle) cfgToggle.style.display = 'none';
+  // 2) Cria o botão do cadeado no topo
+  var btnInteg = document.createElement('button');
+  btnInteg.className = 'btn btn-dourado';
+  btnInteg.id = 'btnIntegracoes';
+  btnInteg.textContent = '🔐 Integrações (Master)';
+  var acoesTopo = document.querySelector('.acoes-topo');
+  if(acoesTopo) acoesTopo.insertBefore(btnInteg, document.getElementById('btnSairTopo'));
+  // 3) Ajusta o modal para "Acesso Master"
+  var h2Login = document.querySelector('.login-box h2');
+  var pLogin = document.querySelector('.login-box p');
+  if(h2Login) h2Login.textContent = '🔐 Acesso Master';
+  if(pLogin) pLogin.textContent = 'Somente o administrador do sistema. Login e senha de integração.';
+  // 4) Botão Cancelar no modal
+  var btnCancelar = document.createElement('button');
+  btnCancelar.className = 'btn btn-cinza';
+  btnCancelar.id = 'btnMasterCancelar';
+  btnCancelar.style.marginTop = '8px';
+  btnCancelar.style.width = '100%';
+  btnCancelar.textContent = 'Cancelar';
+  var loginBox = document.querySelector('.login-box');
+  if(loginBox) loginBox.appendChild(btnCancelar);
+  // 5) Cadeado abre o modal
+  btnInteg.onclick = function(){ document.getElementById('telaLogin').classList.add('visivel'); };
+  btnCancelar.onclick = function(){ document.getElementById('telaLogin').classList.remove('visivel'); };
+  // 6) Login valida o papel master no banco (RLS barra o resto)
+  document.getElementById('btnLoginGeral').onclick = async function(){
+    var email = document.getElementById('inpLoginEmail').value.trim();
+    var senha = document.getElementById('inpLoginSenha').value;
+    var errEl = document.getElementById('lblLoginGeralErro');
+    errEl.textContent = '';
+    if(!email || !senha){ errEl.textContent = 'Informe e-mail e senha.'; return; }
+    var { data: sess, error } = await supabaseAuth.auth.signInWithPassword({ email: email, password: senha });
+    if(error || !sess){ errEl.textContent = 'Acesso negado.'; return; }
+    var { data: perfil } = await supabaseAuth.from('perfis').select('papel').eq('id', sess.user.id).maybeSingle();
+    if(!perfil || perfil.papel !== 'master'){
+      await supabaseAuth.auth.signOut();
+      errEl.textContent = 'Acesso negado.';
+      return;
+    }
+    localStorage.setItem(CHAVE_SESSAO, '1');
+    document.getElementById('telaLogin').classList.remove('visivel');
+    if(painelCfg) painelCfg.style.display = '';
+    document.getElementById('cfgBody').style.display = 'grid';
+    document.getElementById('btnSairTopo').style.display = '';
   };
-
-  document.getElementById('btnLoginGeral').onclick=async function(){
-    var email=document.getElementById('inpLoginEmail').value.trim();
-    var senha=document.getElementById('inpLoginSenha').value;
-    var errEl=document.getElementById('lblLoginGeralErro');
-    errEl.textContent='';
-    if(!email||!senha){ errEl.textContent='Informe e-mail e senha.'; return; }
-    var { error }=await supabaseAuth.auth.signInWithPassword({ email:email, password:senha });
-    if(error){ errEl.textContent='Falha: '+error.message; return; }
-    localStorage.setItem(CHAVE_SESSAO,'1');
-    esconderLogin();
-    carregar();
-  };
-  document.getElementById('inpLoginSenha').addEventListener('keydown',function(e){
-    if(e.key==='Enter') document.getElementById('btnLoginGeral').click();
+  document.getElementById('inpLoginSenha').addEventListener('keydown', function(e){
+    if(e.key === 'Enter') document.getElementById('btnLoginGeral').click();
   });
-
-  document.getElementById('btnSalvarCfg').onclick=function(){
+  document.getElementById('btnSalvarCfg').onclick = function(){
     salvarCfg(); aplicarConfig(); carregar();
-    document.getElementById('cfgBody').style.display='none';
-    document.getElementById('cfgToggle').children[0].textContent='▼';
+    document.getElementById('cfgBody').style.display = 'none';
   };
-
   document.querySelectorAll('.aba').forEach(function(btn){
-    btn.onclick=function(){
+    btn.onclick = function(){
       document.querySelectorAll('.aba').forEach(function(x){ x.classList.remove('ativa'); });
       btn.classList.add('ativa');
-      abaAtiva=btn.dataset.aba;
+      abaAtiva = btn.dataset.aba;
       render();
     };
   });
-
-  // ====== INIT (exige login para ver qualquer dado) ======
+  // ====== INIT: clínica entra DIRETO, sem login ======
   aplicarConfig();
   (async function init(){
-    var { data } = await supabaseAuth.auth.getSession();
-    if(data && data.session){
-      localStorage.setItem(CHAVE_SESSAO,'1');
-      esconderLogin();
-      carregar();
-    } else {
-      try{ localStorage.removeItem(CHAVE_SESSAO); }catch(e){}
-      mostrarLogin();
-    }
+    esconderLogin();
+    document.getElementById('btnSairTopo').style.display = 'none';
+    carregar();
   })();
 })();
-</script>
-</body>
-</html>
