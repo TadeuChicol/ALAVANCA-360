@@ -169,7 +169,7 @@
     urlFuncao: 'https://gtcybiuxdpxixdjnshty.supabase.co/functions/v1/calcom-bookings',
     urlCalcom: 'https://cal.com/rebeca-gomes-da-silva-zara-sorriso-real-suzano-rkq95x/consulta-odontologica-nap',
     urlAnamnese: 'https://docs.google.com/forms/d/e/1FAIpQLSdZ2A9lVIFI0uW_2lnUBXRguyBT3fHRPKTBgpIOa6c-i4Wu5A/viewform',
-    urlTermo: 'https://SEU-SUPABASE.supabase.co/storage/v1/object/public/termos/termo-aceite.pdf',
+    urlTermo: 'https://docs.google.com/forms/d/e/1FAIpQLSeu0q-ZTfHmDovcSlOAknizj-QPB2DDJLR89VlPAHCsLEPSOA/viewform',
     urlPesquisa: 'https://docs.google.com/forms/d/e/1FAIpQLScl760jVupQFZSc9hNjECig0KkwTFQ7W-FIuK1qkledI2IhEw/viewform',
     clinicaNome: 'NAP - Odontologia Aquemênida',
     endereco: 'Rua Senador Luiz Carlos Prestes, 555 - Jardim Cacique - Suzano/SP'
@@ -215,8 +215,15 @@
   ];
 
   function carregarCfg(){
-    try{ return Object.assign({}, PADRAO, JSON.parse(localStorage.getItem(CHAVE_CFG)||'{}')); }
-    catch(e){ return Object.assign({}, PADRAO); }
+  var c;
+  try{ c = Object.assign({}, PADRAO, JSON.parse(localStorage.getItem(CHAVE_CFG)||'{}')); }
+  catch(e){ c = Object.assign({}, PADRAO); }
+  // ANTI-ERRO: se o termo ainda aponta para o placeholder quebrado (PDF antigo),
+  // substitui automaticamente pelo form real de aceite — mesmo que esteja salvo no navegador.
+  if(!c.urlTermo || /SEU-SUPABASE|termo-aceite\.pdf/i.test(c.urlTermo)){
+    c.urlTermo = PADRAO.urlTermo;
+  }
+  return c;
   }
   function salvarCfg(){
     cfg.urlLogo     = val('cfgUrlLogo');
@@ -257,10 +264,22 @@
     return +(localStorage.getItem(CHAVE_COP+hojeStr())||0);
   }
 
-  function montarMensagem(b){
-    var anamnese = cfg.urlAnamnese || '';
-    var termo = b.link_termo || cfg.urlTermo || '';
-    return '🦷 '+ (b.nome||'Paciente') +', sua sessão está agendada para '+(b.data||'')+' às '+(b.hora||'')+'.\n📍 '+cfg.endereco+'\n\nChegue com 15 minutos de antecedência. Atraso máximo de 10 minutos, passou disso seu horário será remarcado para outro dia.\n\nPara a melhor experiência dentro da clínica, dois documentos são necessários:\n\n📋 Ficha de anamnese: para conhecermos seu histórico e te atender da melhor forma. Acesse: '+anamnese+'\n\n📜 Termo de consentimento: para sua segurança e a da clínica durante o atendimento. Confirme: '+termo+'\n\nEsperamos apenas que você observe com atenção e acesse os dois documentos para deixar tudo em ordem para o dia do seu atendimento. Esta mensagem é automática e não precisa ser respondida.';
+  function montarMsg48h(b){
+  var nome = b.nome||'Paciente';
+  var quando = (b.data||'') + (b.hora ? ' às '+b.hora : '');
+  var txt = '🦷 '+nome+', lembrando que sua consulta é '+quando+'.';
+  txt += '\n📍 '+cfg.endereco;
+  txt += '\nChegue com 15 minutos de antecedência. Atraso máximo de 10 minutos, passou disso seu horário será remarcado para outro dia.';
+  var pendentes = [];
+  if(!b.anamnese_preenchida_em) pendentes.push('📋 Ficha de anamnese (ainda não preenchida): '+cfg.urlAnamnese);
+  if(!b.termo_aceite_em) pendentes.push('📜 Termo de consentimento (ainda não aceito): '+cfg.urlTermo);
+  if(pendentes.length){
+    txt += '\n\nPara deixar tudo em ordem antes do seu atendimento, ainda falta:\n'+pendentes.join('\n');
+  } else {
+    txt += '\n\nSeus documentos já estão em dia. Até lá!';
+  }
+  txt += '\n\nEsta mensagem é automática e não precisa ser respondida.';
+  return txt;
   }
   function montarMsgDesmarcado(b){
     var nome = b.nome||'Paciente';
@@ -323,7 +342,7 @@
     var st = b.status || 'agendado';
     if(abaAtiva === 'desagendados') return st === 'desagendado' || !!b.desagendado_em;
     if(abaAtiva === 'atendidos'){
-      if(st === 'desagendado' || !!b.desagendado_em) return false;
+      if(st === 'desagendado' || st === 'encerrado' || !!b.desagendado_em) return false;
       if(b.atendido_em || st === 'atendido' || st === 'faltou') return true;
       if(!b.data_hora) return false;
       return new Date(b.data_hora) < agora;
@@ -353,6 +372,7 @@
     bookings.forEach(function(b){
       var st = b.status || 'agendado';
       if(st === 'desagendado' || b.desagendado_em){ desagendados++; return; }
+      if(st === 'encerrado'){ return; }
       if(b.atendido_em || st === 'atendido' || st === 'faltou'){ atendidos++; return; }
       if(!b.data_hora){ return; }
       var dt = new Date(b.data_hora);
@@ -387,194 +407,190 @@
   function marcarDesmarcadoLocal(b){ gravarStatus(b, { status:'desagendado', desagendado_em: new Date().toISOString() }); }
   function marcarNotificado(b){ gravarStatus(b, { notificacao_desagendada_enviada_em: new Date().toISOString() }); }
   function marcarPesquisaEnviada(b){ gravarStatus(b, { pesquisa_enviada_em: new Date().toISOString() }); }
+  function marcarEncerrado(b){ gravarStatus(b, { status:'encerrado', encerrado_em: new Date().toISOString() }); }
 
   // ====== RENDER ======
-  function esc(s){ return String(s||'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
-  function copiarTexto(msg, btn, onOk){
-    var rot = btn.getAttribute('data-rotulo') || '📋 Copiar';
-    var fazer = function(){ return navigator.clipboard.writeText(msg); };
-    var ok = function(){
-      btn.textContent = '✅ Copiado!';
-      setTimeout(function(){ btn.textContent = rot; },1600);
-      if(onOk) onOk();
-    };
-    if(navigator.clipboard && navigator.clipboard.writeText){ fazer().then(ok).catch(function(){ fallbackCopiar(msg,ok); }); }
-    else fallbackCopiar(msg,ok);
+function montarMensagem(b){
+  var anamnese = cfg.urlAnamnese || '';
+  var termo = b.link_termo || cfg.urlTermo || '';
+  return '🦷 '+ (b.nome||'Paciente') +', sua sessão está agendada para '+(b.data||'')+' às '+(b.hora||'')+'.'+
+  '\n📍 '+cfg.endereco+
+  '\n\nChegue com 15 minutos de antecedência. Atraso máximo de 10 minutos, passou disso seu horário será remarcado para outro dia.'+
+  '\n\nPara a melhor experiência dentro da clínica, dois documentos são necessários:'+
+  '\n\n📋 Ficha de anamnese: para conhecermos seu histórico e te atender da melhor forma. Acesse: '+anamnese+
+  '\n\n📜 Termo de consentimento: para sua segurança e a da clínica durante o atendimento. Confirme: '+termo+
+  '\n\nEsperamos apenas que você observe com atenção e acesse os dois documentos para deixar tudo em ordem para o dia do seu atendimento. Esta mensagem é automática e não precisa ser respondida.';
+}
+function esc(s){ return String(s||'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+function copiarTexto(msg, btn, onOk){
+  var rot = btn.getAttribute('data-rotulo') || '📋 Copiar';
+  var fazer = function(){ return navigator.clipboard.writeText(msg); };
+  var ok = function(){
+    btn.textContent = '✅ Copiado!';
+    setTimeout(function(){ btn.textContent = rot; },1600);
+    if(onOk) onOk();
+  };
+  if(navigator.clipboard && navigator.clipboard.writeText){ fazer().then(ok).catch(function(){ fallbackCopiar(msg,ok); }); }
+  else fallbackCopiar(msg,ok);
+}
+function fallbackCopiar(msg,ok){
+  var ta=document.createElement('textarea'); ta.value=msg; ta.style.position='fixed'; ta.style.opacity='0';
+  document.body.appendChild(ta); ta.select();
+  try{ document.execCommand('copy'); ok(); }catch(e){ alert('Não foi possível copiar automaticamente. Selecione o texto e copie manualmente.'); }
+  document.body.removeChild(ta);
+}
+function criarBotao(classe, rotulo, onclick, dataRotulo){
+  var b = document.createElement('button');
+  b.className = 'btn '+classe;
+  b.textContent = rotulo;
+  b.setAttribute('data-rotulo', dataRotulo || rotulo);
+  b.onclick = onclick;
+  return b;
+}
+function linkWhats(b, msg){
+  var tel = b.telefone ? String(b.telefone).replace(/\D/g,'') : '';
+  return tel ? 'https://wa.me/'+tel+'?text='+encodeURIComponent(msg) : '';
+}
+function renderCard(b){
+  var card=document.createElement('div'); card.className='card';
+  var tel=formatarTelefone(b.telefone);
+  var st = b.status || 'agendado';
+  var infoLinha =
+    '<div class="pac">'+esc(b.nome||'Paciente')+'</div>'+
+    '<div class="quando">📅 '+(b.data||'')+(b.hora?' às '+b.hora:'')+'</div>'+
+    '<div class="tel">📞 '+(tel||'<span style="color:#8C1D12">Sem telefone</span>')+'</div>';
+  var badges = '';
+  if(abaAtiva === 'agendados' || abaAtiva === '48h'){
+    badges += (b.anamnese_preenchida_em ? '<span class="badge-info ok">Anamnese ok</span>' : '<span class="badge-info pend">Anamnese pendente</span>');
+    badges += (b.termo_aceite_em ? '<span class="badge-info ok">Aceite ok</span>' : '<span class="badge-info pend">Aceite pendente</span>');
   }
-  function fallbackCopiar(msg,ok){
-    var ta=document.createElement('textarea'); ta.value=msg; ta.style.position='fixed'; ta.style.opacity='0';
-    document.body.appendChild(ta); ta.select();
-    try{ document.execCommand('copy'); ok(); }catch(e){ alert('Não foi possível copiar automaticamente. Selecione o texto e copie manualmente.'); }
-    document.body.removeChild(ta);
+  if(abaAtiva === 'desagendados'){
+    badges += (b.notificacao_desagendada_enviada_em ? '<span class="badge-info ok">Notificado</span>' : '<span class="badge-info pend">Notificação pendente</span>');
   }
-
-  function criarBotao(classe, rotulo, onclick, dataRotulo){
-    var b = document.createElement('button');
-    b.className = 'btn '+classe;
-    b.textContent = rotulo;
-    b.setAttribute('data-rotulo', dataRotulo || rotulo);
-    b.onclick = onclick;
-    return b;
-  }
-  function linkWhats(b, msg){
-    var tel = b.telefone ? String(b.telefone).replace(/\D/g,'') : '';
-    return tel ? 'https://wa.me/'+tel+'?text='+encodeURIComponent(msg) : '';
-  }
-
-  function renderCard(b){
-    var card=document.createElement('div'); card.className='card';
-    var tel=formatarTelefone(b.telefone);
-    var st = b.status || 'agendado';
-
-    var infoLinha =
-      '<div class="pac">'+esc(b.nome||'Paciente')+'</div>'+
-      '<div class="quando">📅 '+(b.data||'')+(b.hora?' às '+b.hora:'')+'</div>'+
-      '<div class="tel">📞 '+(tel||'<span style="color:#8C1D12">Sem telefone</span>')+'</div>';
-
-    var badges = '';
-    if(abaAtiva === 'agendados' || abaAtiva === '48h'){
-      badges += (b.anamnese_preenchida_em ? '<span class="badge-info ok">Anamnese ok</span>' : '<span class="badge-info pend">Anamnese pendente</span>');
-      badges += (b.termo_aceite_em ? '<span class="badge-info ok">Aceite ok</span>' : '<span class="badge-info pend">Aceite pendente</span>');
-    }
-    if(abaAtiva === 'desagendados'){
-      badges += (b.notificacao_desagendada_enviada_em ? '<span class="badge-info ok">Notificado</span>' : '<span class="badge-info pend">Notificação pendente</span>');
-    }
-    if(abaAtiva === 'atendidos'){
-      if(st === 'atendido' || b.atendido_em){
-        badges += (b.pesquisa_enviada_em ? '<span class="badge-info ok">Pesquisa enviada</span>' : '<span class="badge-info pend">Pesquisa pendente</span>');
-        if(b.pesquisa_respondida_em) badges += '<span class="badge-info ok">Respondida</span>';
-      } else if(st === 'faltou'){
-        badges += '<span class="badge-info cinza">Não compareceu</span>';
-      } else {
-        badges += '<span class="badge-info pend">Aguardando classificação</span>';
-      }
-    }
-
-    card.innerHTML = infoLinha + badges;
-
-    var msg = b.mensagem_pronta || montarMensagem(b);
-    var caixaMsg = document.createElement('div');
-    caixaMsg.className = 'msg';
-    caixaMsg.textContent = msg;
-    card.appendChild(caixaMsg);
-
-    var acoes = document.createElement('div'); acoes.className='card-acoes';
-
-    if(abaAtiva === 'agendados' || abaAtiva === '48h'){
-      var cop = criarBotao('btn-copiar', '📋 Copiar mensagem', function(){ copiarTexto(montarMensagem(b), cop); });
-      var waLink = linkWhats(b, montarMensagem(b));
-      var wa = document.createElement('a');
-      wa.className = 'btn btn-whats'+(waLink?'':' des');
-      wa.target='_blank'; wa.rel='noopener';
-      wa.textContent = '💬 Abrir WhatsApp';
-      if(waLink) wa.href=waLink; else wa.disabled=true;
-      var desm = criarBotao('btn-cinza', '↩️ Marcar desmarcado', function(){ marcarDesmarcadoLocal(b); });
-      acoes.appendChild(cop); acoes.appendChild(wa); acoes.appendChild(desm);
-    }
-
-    if(abaAtiva === 'desagendados'){
-      var copDes = criarBotao('btn-copiar', '📋 Copiar msg. desmarcado', function(){ copiarTexto(montarMsgDesmarcado(b), copDes, function(){ marcarNotificado(b); }); }, '📋 Copiar msg. desmarcado');
-      var waDesLink = linkWhats(b, montarMsgDesmarcado(b));
-      var waDes = document.createElement('a');
-      waDes.className = 'btn btn-whats'+(waDesLink?'':' des');
-      waDes.target='_blank'; waDes.rel='noopener';
-      waDes.textContent = '💬 Notificar no WhatsApp';
-      waDes.onclick = function(){ marcarNotificado(b); };
-      if(waDesLink) waDes.href=waDesLink; else waDes.disabled=true;
-      acoes.appendChild(copDes); acoes.appendChild(waDes);
-    }
-
-    if(abaAtiva === 'atendidos'){
-      if(st === 'atendido' || b.atendido_em){
-        var copPes = criarBotao('btn-copiar', '📋 Copiar pesquisa', function(){ copiarTexto(montarMsgPesquisa(b), copPes, function(){ marcarPesquisaEnviada(b); }); }, '📋 Copiar pesquisa');
-        var waPesLink = linkWhats(b, montarMsgPesquisa(b));
-        var waPes = document.createElement('a');
-        waPes.className = 'btn btn-whats'+(waPesLink?'':' des');
-        waPes.target='_blank'; waPes.rel='noopener';
-        waPes.textContent = '💬 Enviar pesquisa';
-        waPes.onclick = function(){ marcarPesquisaEnviada(b); };
-        if(waPesLink) waPes.href=waPesLink; else waPes.disabled=true;
-        acoes.appendChild(copPes); acoes.appendChild(waPes);
-      } else if(st === 'faltou'){
-        var cons = criarBotao('btn-verde', '✅ Foi atendido (corrigir)', function(){ marcarAtendido(b); });
-        acoes.appendChild(cons);
-      } else {
-        var okAt = criarBotao('btn-verde', '✅ Atendido', function(){ marcarAtendido(b); });
-        var naoAt = criarBotao('btn-vermelho', '❌ Não compareceu', function(){ marcarFaltou(b); });
-        var desmAt = criarBotao('btn-cinza', '↩️ Desmarcado', function(){ marcarDesmarcadoLocal(b); });
-        acoes.appendChild(okAt); acoes.appendChild(naoAt); acoes.appendChild(desmAt);
-      }
-    }
-
-    card.appendChild(acoes);
-    return card;
-  }
-
-  function render(){
-    if(abaAtiva === 'desagendados' || abaAtiva === 'atendidos'){
-      document.getElementById('filtros').style.display = 'none';
-      document.getElementById('filtros').innerHTML = '';
+  if(abaAtiva === 'atendidos'){
+    if(st === 'atendido' || b.atendido_em){
+      badges += (b.pesquisa_enviada_em ? '<span class="badge-info ok">Pesquisa enviada</span>' : '<span class="badge-info pend">Pesquisa pendente</span>');
+      if(b.pesquisa_respondida_em) badges += '<span class="badge-info ok">Respondida</span>';
+    } else if(st === 'faltou'){
+      badges += '<span class="badge-info cinza">Não compareceu</span>';
     } else {
-      document.getElementById('filtros').style.display = '';
-      renderFiltros();
+      badges += '<span class="badge-info pend">Aguardando classificação</span>';
     }
-    contaAbas();
-
-    var base = listaDaAba();
-    var lista = listaAplicandoFiltro(base);
-    var area = document.getElementById('areaCards');
-    area.innerHTML = '';
-
-    var vazio = document.getElementById('vazio');
-    vazio.style.display = lista.length ? 'none' : 'block';
-
-    document.getElementById('stFiltro').textContent = lista.length;
-    document.getElementById('stWhats').textContent = lista.filter(function(b){return b.telefone;}).length;
-    document.getElementById('stCopiadas').textContent = copiadasHoje();
-    document.getElementById('stCopiadasRot').textContent = 'Mensagens copiadas hoje ('+hojeStr()+')';
-
-    if(abaAtiva === 'atendidos'){
-      var agora = new Date();
-      var paraClassificar = lista.filter(function(b){
-        return (b.status === 'agendado') && !b.atendido_em && b.data_hora && new Date(b.data_hora) < agora;
-      });
-      var atendidos = lista.filter(function(b){ return b.atendido_em || b.status === 'atendido'; });
-      var faltaram = lista.filter(function(b){ return b.status === 'faltou' && !b.atendido_em; });
-
-      if(paraClassificar.length){
-        var t1 = document.createElement('div'); t1.className='sec-titulo';
-        t1.textContent = 'Para classificar ('+paraClassificar.length+')';
-        area.appendChild(t1);
-        var g1 = document.createElement('div'); g1.className='cards';
-        paraClassificar.forEach(function(b){ g1.appendChild(renderCard(b)); });
-        area.appendChild(g1);
-      }
-      if(atendidos.length){
-        var t2 = document.createElement('div'); t2.className='sec-titulo';
-        t2.textContent = 'Atendidos ('+atendidos.length+')';
-        area.appendChild(t2);
-        var g2 = document.createElement('div'); g2.className='cards';
-        atendidos.forEach(function(b){ g2.appendChild(renderCard(b)); });
-        area.appendChild(g2);
-      }
-      if(faltaram.length){
-        var t3 = document.createElement('div'); t3.className='sec-titulo';
-        t3.textContent = 'Não compareceram ('+faltaram.length+')';
-        area.appendChild(t3);
-        var g3 = document.createElement('div'); g3.className='cards';
-        faltaram.forEach(function(b){ g3.appendChild(renderCard(b)); });
-        area.appendChild(g3);
-      }
-      if(!paraClassificar.length && !atendidos.length && !faltaram.length){
-        vazio.style.display = 'block';
-      }
-      return;
-    }
-
-    var grade = document.createElement('div'); grade.className='cards';
-    lista.forEach(function(b){ grade.appendChild(renderCard(b)); });
-    area.appendChild(grade);
   }
+  card.innerHTML = infoLinha + badges;
+  var msg = b.mensagem_pronta || (abaAtiva === '48h' ? montarMsg48h(b) : montarMensagem(b));
+  var caixaMsg = document.createElement('div');
+  caixaMsg.className = 'msg';
+  caixaMsg.textContent = msg;
+  card.appendChild(caixaMsg);
+  var acoes = document.createElement('div'); acoes.className='card-acoes';
+  if(abaAtiva === 'agendados' || abaAtiva === '48h'){
+    var msgAtual = abaAtiva === '48h' ? montarMsg48h(b) : montarMensagem(b);
+    var cop = criarBotao('btn-copiar', '📋 Copiar mensagem', function(){ copiarTexto(msgAtual, cop); });
+    var waLink = linkWhats(b, msgAtual);
+    var wa = document.createElement('a');
+    wa.className = 'btn btn-whats'+(waLink?'':' des');
+    wa.target='_blank'; wa.rel='noopener';
+    wa.textContent = '💬 Abrir WhatsApp';
+    if(waLink) wa.href=waLink; else wa.disabled=true;
+    var desm = criarBotao('btn-cinza', '↩️ Marcar desmarcado', function(){ marcarDesmarcadoLocal(b); });
+    acoes.appendChild(cop); acoes.appendChild(wa); acoes.appendChild(desm);
+  }
+  if(abaAtiva === 'desagendados'){
+    var copDes = criarBotao('btn-copiar', '📋 Copiar msg. desmarcado', function(){ copiarTexto(montarMsgDesmarcado(b), copDes, function(){ marcarNotificado(b); }); }, '📋 Copiar msg. desmarcado');
+    var waDesLink = linkWhats(b, montarMsgDesmarcado(b));
+    var waDes = document.createElement('a');
+    waDes.className = 'btn btn-whats'+(waDesLink?'':' des');
+    waDes.target='_blank'; waDes.rel='noopener';
+    waDes.textContent = '💬 Notificar no WhatsApp';
+    waDes.onclick = function(){ marcarNotificado(b); };
+    if(waDesLink) waDes.href=waDesLink; else waDes.disabled=true;
+    acoes.appendChild(copDes); acoes.appendChild(waDes);
+  }
+  if(abaAtiva === 'atendidos'){
+    if(st === 'atendido' || b.atendido_em){
+      var copPes = criarBotao('btn-copiar', '📋 Copiar pesquisa', function(){ copiarTexto(montarMsgPesquisa(b), copPes, function(){ marcarPesquisaEnviada(b); }); }, '📋 Copiar pesquisa');
+      var waPesLink = linkWhats(b, montarMsgPesquisa(b));
+      var waPes = document.createElement('a');
+      waPes.className = 'btn btn-whats'+(waPesLink?'':' des');
+      waPes.target='_blank'; waPes.rel='noopener';
+      waPes.textContent = '💬 Enviar pesquisa';
+      waPes.onclick = function(){ marcarPesquisaEnviada(b); };
+      if(waPesLink) waPes.href=waPesLink; else waPes.disabled=true;
+      acoes.appendChild(copPes); acoes.appendChild(waPes);
+    } else if(st === 'faltou'){
+      var cons = criarBotao('btn-verde', '✅ Foi atendido (corrigir)', function(){ marcarAtendido(b); });
+      var enc = criarBotao('btn-cinza', '🗂️ Encerrar (sai do processo)', function(){ marcarEncerrado(b); });
+      acoes.appendChild(cons); acoes.appendChild(enc);
+    } else {
+      var okAt = criarBotao('btn-verde', '✅ Atendido', function(){ marcarAtendido(b); });
+      var naoAt = criarBotao('btn-vermelho', '❌ Não compareceu', function(){ marcarFaltou(b); });
+      var desmAt = criarBotao('btn-cinza', '↩️ Desmarcado', function(){ marcarDesmarcadoLocal(b); });
+      acoes.appendChild(okAt); acoes.appendChild(naoAt); acoes.appendChild(desmAt);
+    }
+  }
+  card.appendChild(acoes);
+  return card;
+}
+function render(){
+  if(abaAtiva === 'desagendados' || abaAtiva === 'atendidos'){
+    document.getElementById('filtros').style.display = 'none';
+    document.getElementById('filtros').innerHTML = '';
+  } else {
+    document.getElementById('filtros').style.display = '';
+    renderFiltros();
+  }
+  contaAbas();
+  var base = listaDaAba();
+  var lista = listaAplicandoFiltro(base);
+  var area = document.getElementById('areaCards');
+  area.innerHTML = '';
+  var vazio = document.getElementById('vazio');
+  vazio.style.display = lista.length ? 'none' : 'block';
+  document.getElementById('stFiltro').textContent = lista.length;
+  document.getElementById('stWhats').textContent = lista.filter(function(b){return b.telefone;}).length;
+  document.getElementById('stCopiadas').textContent = copiadasHoje();
+  document.getElementById('stCopiadasRot').textContent = 'Mensagens copiadas hoje ('+hojeStr()+')';
+  if(abaAtiva === 'atendidos'){
+    var agora = new Date();
+    var paraClassificar = lista.filter(function(b){
+      return (b.status === 'agendado') && !b.atendido_em && b.data_hora && new Date(b.data_hora) < agora;
+    });
+    var atendidos = lista.filter(function(b){ return b.atendido_em || b.status === 'atendido'; });
+    var faltaram = lista.filter(function(b){ return b.status === 'faltou' && !b.atendido_em; });
+    if(paraClassificar.length){
+      var t1 = document.createElement('div'); t1.className='sec-titulo';
+      t1.textContent = 'Para classificar ('+paraClassificar.length+')';
+      area.appendChild(t1);
+      var g1 = document.createElement('div'); g1.className='cards';
+      paraClassificar.forEach(function(b){ g1.appendChild(renderCard(b)); });
+      area.appendChild(g1);
+    }
+    if(atendidos.length){
+      var t2 = document.createElement('div'); t2.className='sec-titulo';
+      t2.textContent = 'Atendidos ('+atendidos.length+')';
+      area.appendChild(t2);
+      var g2 = document.createElement('div'); g2.className='cards';
+      atendidos.forEach(function(b){ g2.appendChild(renderCard(b)); });
+      area.appendChild(g2);
+    }
+    if(faltaram.length){
+      var t3 = document.createElement('div'); t3.className='sec-titulo';
+      t3.textContent = 'Não compareceram ('+faltaram.length+')';
+      area.appendChild(t3);
+      var g3 = document.createElement('div'); g3.className='cards';
+      faltaram.forEach(function(b){ g3.appendChild(renderCard(b)); });
+      area.appendChild(g3);
+    }
+    if(!paraClassificar.length && !atendidos.length && !faltaram.length){
+      vazio.style.display = 'block';
+    }
+    return;
+  }
+  var grade = document.createElement('div'); grade.className='cards';
+  lista.forEach(function(b){ grade.appendChild(renderCard(b)); });
+  area.appendChild(grade);
+}
 
   function banner(tipo,texto){
     var b=document.getElementById('banner'); b.className='banner '+tipo; b.textContent=texto;
