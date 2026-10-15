@@ -242,14 +242,22 @@
   return c;
   }
   function salvarCfg(){
-    cfg.urlLogo     = val('cfgUrlLogo');
-    cfg.urlFuncao   = val('cfgUrlFuncao');
-    cfg.urlCalcom   = val('cfgUrlCalcom');
-    cfg.urlAnamnese = val('cfgUrlAnamnese');
-    cfg.urlTermo    = val('cfgUrlTermo');
-    cfg.urlPesquisa = val('cfgUrlPesquisa');
-    cfg.clinicaNome = val('cfgClinica');
-    cfg.endereco    = val('cfgEndereco');
+    // POKA-YOKE: campo vazio no formulário NUNCA apaga o valor já existente.
+    var pares = {
+      urlLogo:     'cfgUrlLogo',
+      urlFuncao:   'cfgUrlFuncao',
+      urlCalcom:   'cfgUrlCalcom',
+      urlAnamnese: 'cfgUrlAnamnese',
+      urlTermo:    'cfgUrlTermo',
+      urlPesquisa: 'cfgUrlPesquisa',
+      clinicaNome: 'cfgClinica',
+      endereco:    'cfgEndereco'
+    };
+    Object.keys(pares).forEach(function(chave){
+      var digitado = val(pares[chave]);
+      if(digitado){ cfg[chave] = digitado; }
+      // se vazio: mantém o valor atual — não toca
+    });
     localStorage.setItem(CHAVE_CFG, JSON.stringify(cfg));
   }
   function val(id){ var el=document.getElementById(id); return el?el.value.trim():''; }
