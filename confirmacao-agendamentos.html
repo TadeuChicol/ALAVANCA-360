@@ -632,7 +632,14 @@ function render(){
       if(!resp.ok){ banner('erro','Erro HTTP '+resp.status+' ao acessar a Edge Function.'); bookings=[]; }
       else{
         var j=await resp.json();
-        if(j.ok===true||Array.isArray(j)){ bookings=Array.isArray(j)?j:(j.bookings||[]); }
+        if(j.ok===true||Array.isArray(j)){
+          var bruto=Array.isArray(j)?j:(j.bookings||[]);
+          // NORMALIZA TELEFONE: aceita qualquer grafia que a Edge Function devolva
+          bookings=bruto.map(function(b){
+            b.telefone = b.telefone || b.phone || b.phoneNumber || b.attendee_phone || b.whatsapp || '';
+            return b;
+          });
+        }
         else{ banner('erro','A Edge Function retornou erro: '+(j.erro||j.status||'desconhecido')); bookings=[]; }
       }
     }catch(e){
