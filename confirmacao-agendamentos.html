@@ -508,7 +508,7 @@ function renderCard(b){
     }
   }
   card.innerHTML = infoLinha + badges;
-  var msg = b.mensagem_pronta || (abaAtiva === '48h' ? montarMsg48h(b) : montarMensagem(b));
+  var msg = (abaAtiva === 'desagendados') ? montarMsgDesmarcado(b) : (b.mensagem_pronta || (abaAtiva === '48h' ? montarMsg48h(b) : montarMensagem(b)));
   var caixaMsg = document.createElement('div');
   caixaMsg.className = 'msg';
   caixaMsg.textContent = msg;
