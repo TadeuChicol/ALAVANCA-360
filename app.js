@@ -5176,9 +5176,9 @@ function dispararContatoSuporteSaaS(meio) {
     const emailClinica = state.clinicaAtual?.email_responsavel || 'Não cadastrado';
 
     if (meio === 'telegram') {
-        // Todo suporte do instituto passa a ser via Telegram (menu do instituto)
-        const linkTelegram = state.configGlobal?.link_suporte_telegram || 'https://t.me/suporte_tce_bot';
-        window.open(linkTelegram, '_blank');
+    // Suporte do SaaS Alavanca 360: direto ao bot dedicado (sem passar pela triagem do Instituto)
+    const linkTelegram = state.configGlobal?.link_suporte_telegram || 'https://t.me/suporte_alavanca360_bot';
+    window.open(linkTelegram, '_blank');
     } else if (meio === 'email') {
         const emailConsultoria = state.configGlobal?.email_suporte || '';
         if (!emailConsultoria) { alert('E-mail do Suporte não configurado no HUB Master.'); return; }
