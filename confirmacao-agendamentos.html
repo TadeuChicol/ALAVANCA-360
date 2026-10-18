@@ -142,6 +142,7 @@
     <button class="aba" data-aba="desagendados">↩️ Desagendados <span class="qtd" id="qtdDesagendados">0</span></button>
     <button class="aba" data-aba="48h">⏰ Próximas 48h <span class="qtd" id="qtd48h">0</span></button>
     <button class="aba" data-aba="atendidos">📋 Atendidos / Pós <span class="qtd" id="qtdAtendidos">0</span></button>
+    <button class="aba" data-aba="concluidos">🏁 Concluídos <span class="qtd" id="qtdConcluidos">0</span></button>
   </div>
   <div class="filtros" id="filtros"></div>
   <div class="stats">
@@ -361,14 +362,33 @@
     if(f.exato) return dd===f.dias;
     return dd>=0 && dd<=f.dias;
   }
+  // ====== CICLO DE VIDA: quando o cliente SAI das abas de trabalho ======
+  function fluxoConcluido(b){
+    var st = b.status || 'agendado';
+    if(st === 'encerrado') return true;
+    if(st === 'faltou') return true;
+    if((st === 'desagendado' || !!b.desagendado_em) && b.notificacao_desagendada_enviada_em) return true;
+    if((st === 'atendido' || b.atendido_em) && b.pesquisa_respondida_em) return true;
+    return false;
+  }
+  function motivoSaida(b){
+    var st = b.status || 'agendado';
+    if(st === 'encerrado') return 'encerrado';
+    if(st === 'faltou') return 'faltou';
+    if((st === 'desagendado' || !!b.desagendado_em) && b.notificacao_desagendada_enviada_em) return 'notificado';
+    if((st === 'atendido' || b.atendido_em) && b.pesquisa_respondida_em) return 'completo';
+    return '';
+  }
   function emAba(b){
     var agora = new Date();
     var em48h = new Date(agora.getTime() + 48*60*60*1000);
     var st = b.status || 'agendado';
+    if(abaAtiva === 'concluidos') return fluxoConcluido(b);
+    if(fluxoConcluido(b)) return false; // REGRA DE OURO: concluído sai de TODAS as abas de trabalho
     if(abaAtiva === 'desagendados') return st === 'desagendado' || !!b.desagendado_em;
     if(abaAtiva === 'atendidos'){
       if(st === 'desagendado' || st === 'encerrado' || !!b.desagendado_em) return false;
-      if(b.atendido_em || st === 'atendido' || st === 'faltou') return true;
+      if(b.atendido_em || st === 'atendido') return true;
       if(!b.data_hora) return false;
       return new Date(b.data_hora) < agora;
     }
@@ -386,19 +406,19 @@
     return bookings.filter(emAba);
   }
   function listaAplicandoFiltro(base){
-    if(abaAtiva === 'desagendados' || abaAtiva === 'atendidos' || filtroAtivo === 'todos') return base;
+    if(abaAtiva === 'desagendados' || abaAtiva === 'atendidos' || abaAtiva === 'concluidos' || filtroAtivo === 'todos') return base;
     var f = FILTROS.find(function(x){return x.id===filtroAtivo;});
     return base.filter(function(b){ return dentroJanela(b,f); });
   }
   function contaAbas(){
-    var agendados=0, desagendados=0, h48=0, atendidos=0;
+    var agendados=0, desagendados=0, h48=0, atendidos=0, concluidos=0;
     var agora = new Date();
     var em48h = new Date(agora.getTime() + 48*60*60*1000);
     bookings.forEach(function(b){
       var st = b.status || 'agendado';
+      if(fluxoConcluido(b)){ concluidos++; return; }
       if(st === 'desagendado' || b.desagendado_em){ desagendados++; return; }
-      if(st === 'encerrado'){ return; }
-      if(b.atendido_em || st === 'atendido' || st === 'faltou'){ atendidos++; return; }
+      if(b.atendido_em || st === 'atendido'){ atendidos++; return; }
       if(!b.data_hora){ return; }
       var dt = new Date(b.data_hora);
       if(dt < agora){ atendidos++; return; }
@@ -409,6 +429,8 @@
     document.getElementById('qtdDesagendados').textContent = desagendados;
     document.getElementById('qtd48h').textContent = h48;
     document.getElementById('qtdAtendidos').textContent = atendidos;
+    var qc = document.getElementById('qtdConcluidos');
+    if(qc) qc.textContent = concluidos;
   }
 
   // ====== PERSISTÊNCIA (grava com o usuário logado, protegido por RLS) ======
@@ -431,7 +453,7 @@
   function marcarFaltou(b){ gravarStatus(b, { status:'faltou' }); }
   function marcarDesmarcadoLocal(b){ gravarStatus(b, { status:'desagendado', desagendado_em: new Date().toISOString() }); }
   function marcarNotificado(b){ gravarStatus(b, { notificacao_desagendada_enviada_em: new Date().toISOString() }); }
-  function marcarPesquisaEnviada(b){ gravarStatus(b, { pesquisa_enviada_em: new Date().toISOString() }); }
+  function marcarPesquisaEnviada(b){ gravarStatus(b, { pesquisa_enviada_em: new Date().toISOString(), pesquisa_tentativas: (b.pesquisa_tentativas||0) + 1 }); }
   function marcarEncerrado(b){ gravarStatus(b, { status:'encerrado', encerrado_em: new Date().toISOString() }); }
 
   // ====== RENDER ======
@@ -497,15 +519,23 @@ function renderCard(b){
   if(abaAtiva === 'desagendados'){
     badges += (b.notificacao_desagendada_enviada_em ? '<span class="badge-info ok">Notificado</span>' : '<span class="badge-info pend">Notificação pendente</span>');
   }
-  if(abaAtiva === 'atendidos'){
+    if(abaAtiva === 'atendidos'){
     if(st === 'atendido' || b.atendido_em){
-      badges += (b.pesquisa_enviada_em ? '<span class="badge-info ok">Pesquisa enviada</span>' : '<span class="badge-info pend">Pesquisa pendente</span>');
-      if(b.pesquisa_respondida_em) badges += '<span class="badge-info ok">Respondida</span>';
-    } else if(st === 'faltou'){
-      badges += '<span class="badge-info cinza">Não compareceu</span>';
+      var tent = b.pesquisa_tentativas || 0;
+      badges += (b.pesquisa_enviada_em ? '<span class="badge-info ok">Pesquisa enviada ('+tent+'/3)</span>' : '<span class="badge-info pend">Pesquisa pendente</span>');
     } else {
       badges += '<span class="badge-info pend">Aguardando classificação</span>';
     }
+  }
+  if(abaAtiva === 'concluidos'){
+    var m = motivoSaida(b);
+    if(m === 'completo') badges += '<span class="badge-info ok">✅ Fluxo completo</span>';
+    if(m === 'notificado') badges += '<span class="badge-info cinza">↩️ Desagendado notificado</span>';
+    if(m === 'faltou') badges += '<span class="badge-info pend">❌ Não compareceu</span>';
+    if(m === 'encerrado') badges += '<span class="badge-info cinza">🗂️ Encerrado</span>';
+    badges += (b.anamnese_preenchida_em ? '<span class="badge-info ok">Anamnese ok</span>' : '<span class="badge-info cinza">Anamnese —</span>');
+    badges += (b.termo_aceite_em ? '<span class="badge-info ok">Aceite ok</span>' : '<span class="badge-info cinza">Aceite —</span>');
+    badges += (b.pesquisa_respondida_em ? '<span class="badge-info ok">Pesquisa ok</span>' : '<span class="badge-info cinza">Pesquisa —</span>');
   }
   card.innerHTML = infoLinha + badges;
   var msg = (abaAtiva === 'desagendados') ? montarMsgDesmarcado(b) : (b.mensagem_pronta || (abaAtiva === '48h' ? montarMsg48h(b) : montarMensagem(b)));
@@ -535,6 +565,12 @@ function renderCard(b){
     waDes.onclick = function(){ marcarNotificado(b); };
     if(waDesLink) waDes.href=waDesLink; else waDes.disabled=true;
     acoes.appendChild(copDes); acoes.appendChild(waDes);
+    var encDes = criarBotao('btn-cinza', '🗂️ Encerrar (sem notificar)', function(){ marcarEncerrado(b); });
+    acoes.appendChild(encDes);
+  }
+  if(abaAtiva === 'concluidos' && st === 'faltou'){
+    var cons5 = criarBotao('btn-verde', '✅ Foi atendido (corrigir)', function(){ marcarAtendido(b); });
+    acoes.appendChild(cons5);
   }
   if(abaAtiva === 'atendidos'){
     if(st === 'atendido' || b.atendido_em){
@@ -547,11 +583,7 @@ function renderCard(b){
       waPes.onclick = function(){ marcarPesquisaEnviada(b); };
       if(waPesLink) waPes.href=waPesLink; else waPes.disabled=true;
       acoes.appendChild(copPes); acoes.appendChild(waPes);
-    } else if(st === 'faltou'){
-      var cons = criarBotao('btn-verde', '✅ Foi atendido (corrigir)', function(){ marcarAtendido(b); });
-      var enc = criarBotao('btn-cinza', '🗂️ Encerrar (sai do processo)', function(){ marcarEncerrado(b); });
-      acoes.appendChild(cons); acoes.appendChild(enc);
-    } else {
+      } else {
       var okAt = criarBotao('btn-verde', '✅ Atendido', function(){ marcarAtendido(b); });
       var naoAt = criarBotao('btn-vermelho', '❌ Não compareceu', function(){ marcarFaltou(b); });
       acoes.appendChild(okAt); acoes.appendChild(naoAt);
@@ -561,7 +593,7 @@ function renderCard(b){
   return card;
 }
 function render(){
-  if(abaAtiva === 'desagendados' || abaAtiva === 'atendidos'){
+  if(abaAtiva === 'desagendados' || abaAtiva === 'atendidos' || abaAtiva === 'concluidos'){
     document.getElementById('filtros').style.display = 'none';
     document.getElementById('filtros').innerHTML = '';
   } else {
