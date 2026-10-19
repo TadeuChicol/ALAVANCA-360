@@ -176,12 +176,12 @@ async function carregarConfigGlobal() {
             logo_metodo_url: 'images/logo-alavanca-360.png',
             nome_consultoria: 'Alavanca 360 Consultoria',
             email_suporte: 'contato@tce-tadeuchicolempowerment.cloud',
-            link_suporte_telegram: 'https://t.me/suporte_tce_bot',
+            link_suporte_telegram: 'https://t.me/suporte_alavanca360_bot',
             logo_consultoria_url: ''
         };
     }
     if (!cfg.email_suporte) cfg.email_suporte = 'contato@tce-tadeuchicolempowerment.cloud';
-    if (!cfg.link_suporte_telegram) cfg.link_suporte_telegram = 'https://t.me/suporte_tce_bot';
+    if (!cfg.link_suporte_telegram) cfg.link_suporte_telegram = 'https://t.me/suporte_alavanca360_bot';
     if (!cfg.nome_consultoria) cfg.nome_consultoria = 'Alavanca 360 Consultoria';
     state.configGlobal = cfg;
     if (typeof aplicarMarcaMetodoNaTelaLogin === 'function') aplicarMarcaMetodoNaTelaLogin();
@@ -348,7 +348,7 @@ function aplicarConfigNaInterface() {
     // 5.1 Redirecionamento Dinâmico do Telegram de Suporte
     const lnkTelegram = document.getElementById('lnkSuporteTelegram');
     if (lnkTelegram && cfg.link_suporte_telegram) {
-        lnkTelegram.href = cfg.link_suporte_telegram;
+        lnkTelegram.href = cfg.link_suporte_telegram || 'https://t.me/suporte_alavanca360_bot';
         lnkTelegram.target = '_blank';
         lnkTelegram.rel = 'noopener';
     }
@@ -730,6 +730,9 @@ function switchTab(tabId) {
             case 'tab-hub-clinica':
                 if (typeof aplicarConfigNaInterface === 'function') aplicarConfigNaInterface();
                 if (typeof preencherFormularioHubClinica === 'function') preencherFormularioHubClinica();
+                break;
+            case 'tab-hub-master':
+                if (typeof prepararHubMaster === 'function') prepararHubMaster();
                 break;
         }
     } catch (err) {
@@ -4328,7 +4331,7 @@ function aplicarConfigNaInterface() {
     // ✅ DEVE ESTAR ASSIM:
     const lnkTelegram = document.getElementById('lnkWhatsConsultoria');
     if (lnkTelegram) {
-       lnkTelegram.href = cfg.link_suporte_telegram || 'https://t.me/suporte_mmf_bot';
+       lnkTelegram.href = cfg.link_suporte_telegram || 'https://t.me/suporte_alavanca360_bot';
     }
 
     const lnkEmail = document.getElementById('lnkEmailConsultoria');
@@ -5014,7 +5017,7 @@ function aplicarConfigNaInterface() {
     // 2. BOTÃO DE SUPORTE TELEGRAM (link centralizado no HUB Master)
     const lnkTelegram = document.getElementById('lnkWhatsConsultoria');
     if (lnkTelegram) {
-        lnkTelegram.href = cfg.link_suporte_telegram || 'https://t.me/suporte_mmf_bot';
+        lnkTelegram.href = cfg.link_suporte_telegram || 'https://t.me/suporte_alavanca360_bot';
         lnkTelegram.target = '_blank';
         lnkTelegram.rel = 'noopener';
     }
