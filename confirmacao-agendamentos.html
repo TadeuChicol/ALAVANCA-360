@@ -476,7 +476,7 @@
   function marcarNotificado(b){ gravarStatus(b, { notificacao_desagendada_enviada_em: new Date().toISOString() }); }
   function marcarPesquisaEnviada(b){ gravarStatus(b, { pesquisa_enviada_em: new Date().toISOString(), pesquisa_tentativas: (b.pesquisa_tentativas||0) + 1 }); }
   function marcarEncerrado(b){
-    if(!confirm('Encerrar "'+(b.nome||'este paciente')+'" sem notificar?\n\nEle sai da aba Desagendados e vai para Concluídos. Nada é apagado.')) return;
+    if(!confirm('Arquivar "'+(b.nome||'este paciente')+'" sem notificar?\n\nEle sai desta aba e vai para Concluídos. Nada é apagado.')) return;
     gravarStatus(b, { status:'encerrado', encerrado_em: new Date().toISOString() });
   }
 
@@ -589,7 +589,7 @@ function renderCard(b){
     waDes.onclick = function(){ marcarNotificado(b); };
     if(waDesLink) waDes.href=waDesLink; else waDes.disabled=true;
     acoes.appendChild(copDes); acoes.appendChild(waDes);
-    var encDes = criarBotao('btn-cinza', '🗂️ Encerrar (sem notificar)', function(){ marcarEncerrado(b); });
+    var encDes = criarBotao('btn-cinza', '🗂️ Arquivar (sem notificar)', function(){ marcarEncerrado(b); });
     acoes.appendChild(encDes);
   }
   if(abaAtiva === 'concluidos' && st === 'faltou'){
