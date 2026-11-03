@@ -379,13 +379,28 @@
     if((st === 'atendido' || b.atendido_em) && b.pesquisa_respondida_em) return 'completo';
     return '';
   }
+  // ====== LIMPEZA AUTOMÁTICA: desagendado sem notificação há mais de 7 dias ======
+  var DIAS_LIMPEZA_DESAGENDADO = 7;
+  function desagendadoVencido(b){
+    var st = b.status || 'agendado';
+    if(st !== 'desagendado' && !b.desagendado_em) return false;
+    if(b.notificacao_desagendada_enviada_em) return false; // já notificado: não vence
+    var ref = b.data_hora ? new Date(b.data_hora) : (b.desagendado_em ? new Date(b.desagendado_em) : null);
+    if(!ref || isNaN(ref)) return false;
+    var limite = new Date(ref.getTime() + DIAS_LIMPEZA_DESAGENDADO*24*60*60*1000);
+    return new Date() > limite;
+  }
   function emAba(b){
     var agora = new Date();
     var em48h = new Date(agora.getTime() + 48*60*60*1000);
     var st = b.status || 'agendado';
     if(abaAtiva === 'concluidos') return fluxoConcluido(b);
     if(fluxoConcluido(b)) return false; // REGRA DE OURO: concluído sai de TODAS as abas de trabalho
-    if(abaAtiva === 'desagendados') return st === 'desagendado' || !!b.desagendado_em;
+    if(abaAtiva === 'desagendados'){
+      if(st !== 'desagendado' && !b.desagendado_em) return false;
+      if(desagendadoVencido(b)) return false; // vencido há +7 dias sem notificação: sai da aba
+      return true;
+    }
     if(abaAtiva === 'atendidos'){
       if(st === 'desagendado' || st === 'encerrado' || !!b.desagendado_em) return false;
       if(b.atendido_em || st === 'atendido') return true;
@@ -417,7 +432,10 @@
     bookings.forEach(function(b){
       var st = b.status || 'agendado';
       if(fluxoConcluido(b)){ concluidos++; return; }
-      if(st === 'desagendado' || b.desagendado_em){ desagendados++; return; }
+      if(st === 'desagendado' || b.desagendado_em){
+        if(!desagendadoVencido(b)) desagendados++;
+        return;
+      }
       if(b.atendido_em || st === 'atendido'){ atendidos++; return; }
       if(!b.data_hora){ return; }
       var dt = new Date(b.data_hora);
@@ -433,16 +451,19 @@
     if(qc) qc.textContent = concluidos;
   }
 
-  // ====== PERSISTÊNCIA (grava com o usuário logado, protegido por RLS) ======
+  // ====== ESCRITA VIA EDGE FUNCTION (sem exigir login da clínica) ======
+  var URL_STATUS = SUPABASE_URL + '/functions/v1/agendamento-status';
   async function gravarStatus(b, campos){
     try{
-      var { data: sess } = await supabaseAuth.auth.getSession();
-      if(!sess || !sess.session){ throw new Error('Sessão expirada. Entre novamente.'); }
-      var { error } = await supabaseAuth
-        .from('agendamentos')
-        .update(campos)
-        .eq('calcom_booking_uid', b.calcom_booking_uid);
-      if(error) throw new Error(error.message);
+      var resp = await fetch(URL_STATUS, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uid: b.calcom_booking_uid, campos: campos })
+      });
+      var j = await resp.json().catch(function(){ return {}; });
+      if(!resp.ok || j.ok !== true){
+        throw new Error(j.erro || ('HTTP ' + resp.status));
+      }
       banner('ok', 'Atualizado. Recarregando lista...');
       carregar();
     }catch(e){
@@ -454,7 +475,10 @@
   function marcarDesmarcadoLocal(b){ gravarStatus(b, { status:'desagendado', desagendado_em: new Date().toISOString() }); }
   function marcarNotificado(b){ gravarStatus(b, { notificacao_desagendada_enviada_em: new Date().toISOString() }); }
   function marcarPesquisaEnviada(b){ gravarStatus(b, { pesquisa_enviada_em: new Date().toISOString(), pesquisa_tentativas: (b.pesquisa_tentativas||0) + 1 }); }
-  function marcarEncerrado(b){ gravarStatus(b, { status:'encerrado', encerrado_em: new Date().toISOString() }); }
+  function marcarEncerrado(b){
+    if(!confirm('Encerrar "'+(b.nome||'este paciente')+'" sem notificar?\n\nEle sai da aba Desagendados e vai para Concluídos. Nada é apagado.')) return;
+    gravarStatus(b, { status:'encerrado', encerrado_em: new Date().toISOString() });
+  }
 
   // ====== RENDER ======
 function montarMensagem(b){
@@ -593,6 +617,8 @@ function renderCard(b){
   return card;
 }
 function render(){
+  var bl = document.getElementById('btnLimparVencidos');
+  if(bl) bl.style.display = (abaAtiva === 'desagendados') ? '' : 'none';
   if(abaAtiva === 'desagendados' || abaAtiva === 'atendidos' || abaAtiva === 'concluidos'){
     document.getElementById('filtros').style.display = 'none';
     document.getElementById('filtros').innerHTML = '';
@@ -686,6 +712,37 @@ function render(){
       // ====== EVENTOS ======
   document.getElementById('btnAtualizar').onclick=carregar;
   document.getElementById('btnImprimir').onclick=function(){ window.print(); };
+  // ====== LIMPEZA EM LOTE: encerra todos os desagendados vencidos ======
+  var btnLimpar = document.createElement('button');
+  btnLimpar.className = 'btn btn-cinza';
+  btnLimpar.id = 'btnLimparVencidos';
+  btnLimpar.textContent = '🧹 Limpar vencidos';
+  btnLimpar.style.display = 'none';
+  document.querySelector('.acoes-topo').insertBefore(btnLimpar, document.getElementById('btnSairTopo'));
+  btnLimpar.onclick = async function(){
+    var vencidos = bookings.filter(desagendadoVencido);
+    if(!vencidos.length){ banner('ok','Nenhum desagendado vencido para limpar.'); return; }
+    if(!confirm('Encerrar '+vencidos.length+' desagendado(s) vencido(s) sem notificar?\n\nEles vão para Concluídos. Nada é apagado.')) return;
+    btnLimpar.disabled = true; btnLimpar.textContent = '⏳ Limpando...';
+    var falhas = 0;
+    for(var i=0;i<vencidos.length;i++){
+      try{
+        var resp = await fetch(URL_STATUS, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            uid: vencidos[i].calcom_booking_uid,
+            campos: { status:'encerrado', encerrado_em: new Date().toISOString() }
+          })
+        });
+        var j = await resp.json().catch(function(){ return {}; });
+        if(!resp.ok || j.ok !== true) throw new Error(j.erro || ('HTTP ' + resp.status));
+      }catch(e){ falhas++; console.error('falha ao encerrar', vencidos[i].calcom_booking_uid, e); }
+    }
+    btnLimpar.disabled = false; btnLimpar.textContent = '🧹 Limpar vencidos';
+    banner(falhas ? 'erro' : 'ok', (vencidos.length - falhas)+' desagendado(s) encerrado(s).' + (falhas ? ' '+falhas+' falharam.' : ''));
+    carregar();
+  };
   document.getElementById('btnSairTopo').onclick=encerrarSessao;
   document.getElementById('btnSairCfg').onclick=encerrarSessao;
   // ====== BLINDAGEM MASTER (central independente do SaaS) ======
