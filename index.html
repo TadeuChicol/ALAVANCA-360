@@ -552,43 +552,58 @@
 
 <!-- MÓDULO 6: AGENDA INTERNA DA CLÍNICA -->
 <div id="tab-agenda" class="tab-content hidden w-full space-y-6">
-    <!-- Cabeçalho -->
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-    <div>
-        <h2 class="text-xl font-bold text-slate-100 flex items-center gap-2">
-            <i data-lucide="calendar" class="text-emerald-400 w-5 h-5"></i>
-            Módulo 6 — Quadro de Agendamentos & Recursos
-        </h2>
-        <p class="text-xs text-slate-400">Agenda de escassez (cliente) + agenda completa (clínica) + confirmações.</p>
+        <div>
+            <h2 class="text-xl font-bold text-slate-100 flex items-center gap-2">
+                <i data-lucide="calendar" class="text-emerald-400 w-5 h-5"></i>
+                Módulo 6 — Quadro de Agendamentos & Recursos
+            </h2>
+            <p class="text-xs text-slate-400">Agenda de escassez (cliente) + agenda completa (clínica) + confirmações.</p>
+        </div>
+        <a href="https://tadeuchicol.github.io/ALAVANCA-360/confirmacao-agendamentos.html"
+           target="_blank"
+           class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition shadow">
+            📋 Confirmação de Agendamentos
+        </a>
     </div>
-    <a href="https://tadeuchicol.github.io/ALAVANCA-360/confirmacao-agendamentos.html"
-       target="_blank"
-       class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition shadow">
-        📋 Confirmação de Agendamentos
-    </a>
-</div>
 
-    <!-- Bloco 1: Agenda de Escassez via Cal.com -->
     <div class="space-y-4">
         <div class="flex items-center justify-between gap-3 flex-wrap">
             <h3 class="text-sm font-bold text-emerald-400 uppercase tracking-wider">Agenda de Escassez</h3>
-            <a id="lnkAbrirCalCom" href="https://cal.com/rebeca-gomes-da-silva-zara-sorriso-real-suzano-rkq95x/consulta-odontologica-nap" target="_blank" rel="noopener" class="flex items-center gap-2 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-lg transition">
+            <a id="lnkAbrirCalCom" href="" target="_blank" rel="noopener"
+               class="flex items-center gap-2 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-lg transition">
                 <i data-lucide="external-link" class="w-4 h-4"></i> Abrir no Cal.com
             </a>
         </div>
-        <iframe id="iframeCalCom" src="https://cal.com/rebeca-gomes-da-silva-zara-sorriso-real-suzano-rkq95x/consulta-odontologica-nap?embed=true" class="w-full h-[70vh] rounded-xl border border-slate-800 bg-slate-950" frameborder="0" allow="fullscreen"></iframe>
+        <iframe id="iframeCalCom" src="about:blank"
+                class="w-full h-[70vh] rounded-xl border border-slate-800 bg-slate-950"
+                frameborder="0" allow="fullscreen"></iframe>
     </div>
+
+    <div class="space-y-4">
+        <div class="flex items-center justify-between gap-3 flex-wrap">
+            <h3 class="text-sm font-bold text-sky-400 uppercase tracking-wider">Agenda Completa (Google Agenda)</h3>
+            <a id="lnkAbrirGoogleAgenda" href="" target="_blank" rel="noopener"
+               class="flex items-center gap-2 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-lg transition">
+                <i data-lucide="external-link" class="w-4 h-4"></i> Abrir no Google Agenda
+            </a>
+        </div>
+        <iframe id="iframeGoogleAgenda" src="about:blank"
+                class="w-full h-[70vh] rounded-xl border border-slate-800 bg-slate-950"
+                frameborder="0" scrolling="no"></iframe>
+    </div>
+</div>
 
     <!-- Bloco 2: Agenda Completa via Google Agenda -->
     <div class="space-y-4">
         <div class="flex items-center justify-between gap-3 flex-wrap">
             <h3 class="text-sm font-bold text-sky-400 uppercase tracking-wider">Agenda Completa (Google Agenda)</h3>
-            <a id="lnkAbrirGoogleAgenda" href="https://calendar.google.com/calendar/embed?src=sorriso.real.suzano%40gmail.com&ctz=America%2FSao_Paulo" target="_blank" rel="noopener" class="flex items-center gap-2 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-lg transition">
-                <i data-lucide="external-link" class="w-4 h-4"></i> Abrir no Google Agenda
-            </a>
-        </div>
-        <iframe id="iframeGoogleAgenda" src="https://calendar.google.com/calendar/embed?src=sorriso.real.suzano%40gmail.com&ctz=America%2FSao_Paulo&mode=MONTH" class="w-full h-[70vh] rounded-xl border border-slate-800 bg-slate-950" frameborder="0" scrolling="no"></iframe>
+        <a id="lnkAbrirGoogleAgenda" href="" target="_blank" rel="noopener" class="...">
+            <i data-lucide="external-link" class="w-4 h-4"></i> Abrir no Google Agenda
+        </a>
     </div>
+    <iframe id="iframeGoogleAgenda" src="about:blank" class="..." frameborder="0" scrolling="no"></iframe>
+</div>
 </div>
 
         <!-- MÓDULO 7: ESTAÇÃO DE DOCUMENTOS (COM CREDIBILIDADE DE ASSINATURA) -->
@@ -1176,7 +1191,13 @@
             <h3 class="text-sm font-bold text-sky-400 uppercase tracking-wider">Integrações de Agendamento Externo</h3>
             <div>
                 <label class="block text-xs font-medium text-slate-400 mb-1">Link de Agendamento Cal.com (Autoatendimento do Paciente)</label>
-                <input type="url" id="hubClinicaCalCom" placeholder="https://cal.com/seu-usuario" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-200 focus:border-sky-500 focus:outline-none">
+                <input type="url" id="hubClinicaCalCom" placeholder="https://cal.com/seu-usuario/nome-do-evento" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-200 focus:border-sky-500 focus:outline-none">
+                <p class="text-[10px] text-rose-400 mt-1">⚠️ Cole apenas o link PÚBLICO do evento. Links com /settings, /event-types, /teams ou /availability são da área administrativa e serão recusados.</p>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1">E-mail da Agenda Google (espelhamento)</label>
+                <input type="email" id="hubClinicaGoogleAgenda" placeholder="agenda@clinica.com" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-200 focus:border-sky-500 focus:outline-none">
+                <p class="text-[10px] text-slate-500 mt-1">Só o e-mail. O sistema monta o embed do calendário automaticamente.</p>
             </div>
             <div>
                 <label class="block text-xs font-medium text-slate-400 mb-1">WhatsApp da Clínica (só dígitos, com DDD e 55)</label>
