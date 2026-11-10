@@ -122,13 +122,27 @@ async function apiCreate(table, data) {
 
 async function apiUpdate(table, id, data) {
     try {
-        const { data: retorno, error } = await supabaseClient
-            .from(table).update(data).eq('id', id).select('*');
+        let q = supabaseClient.from(table).update(data).eq('id', id);
+        const isTabelaGlobal = (table === 'clinicas' || table === 'consultoria_admins' || table === 'config_global');
+        if (!isTabelaGlobal) {
+            if (!state.clinicaAtual) {
+                alert('Sessão sem clínica vinculada. Operação bloqueada.');
+                return null;
+            }
+            q = q.eq('clinica_id', state.clinicaAtual.id);
+        } else if (table === 'config_global' && !state.isAdmin) {
+            alert('Apenas administradores da consultoria podem alterar configurações globais.');
+            return null;
+        }
+        const { data: retorno, error } = await q.select('*');
         if (error) {
             console.error('Erro ao atualizar a tabela ' + table + ':', error);
-            alert('⚠️ ERRO REAL DO BANCO:\nCódigo: ' + (error.code || '?')
-                + '\nMensagem: ' + (error.message || '?')
-                + '\nDetalhe: ' + (error.details || '-'));
+            const amigavel = error.code === '42501'
+                ? 'Sem permissão para alterar este registro.'
+                : error.code === '23505'
+                ? 'Já existe um registro com esses dados.'
+                : 'Não foi possível salvar. Tente novamente.';
+            alert(amigavel);
             return null;
         }
         return retorno && retorno[0] ? retorno[0] : null;
@@ -141,11 +155,13 @@ async function apiUpdate(table, id, data) {
 
 async function apiDelete(table, id) {
     try {
-        const { error } = await supabaseClient
-            .from(table)
-            .delete()
-            .eq('id', id);
-
+        let q = supabaseClient.from(table).delete().eq('id', id);
+        const isTabelaGlobal = (table === 'clinicas' || table === 'consultoria_admins' || table === 'config_global');
+        if (!isTabelaGlobal) {
+            if (!state.clinicaAtual) return false;
+            q = q.eq('clinica_id', state.clinicaAtual.id);
+        }
+        const { error } = await q;
         if (error) throw error;
         return true;
     } catch (e) {
@@ -227,11 +243,6 @@ async function initLoginScreen() {
 
 // Garante que a função esteja disponível globalmente para o HTML ou escuta o clique diretamente
 window.autenticarClinica = autenticarClinica;
-
-document.getElementById('btnEntrarSistema')?.addEventListener('click', (e) => {
-    e.preventDefault();
-    autenticarClinica();
-});
 
 // ============================================================
 // 3. RENDERIZADOR DE LOGOS E NOME DA CLÍNICA NO HEADER
@@ -446,11 +457,12 @@ function traduzErroSupabase(msg) {
         }
     }
 
-    const { data: clinicas, error } = await supabaseClient
+    const { data: _clinicasArr, error } = await supabaseClient
         .from('clinicas')
         .select('*')
         .eq('owner_user_id', user.id)
-        .maybeSingle();
+        .limit(1);
+    const clinicas = (_clinicasArr && _clinicasArr[0]) ? _clinicasArr[0] : null;
 
     if (!error && clinicas) {
         if (clinicas.ativo === false && !state.isAdmin) {
@@ -755,6 +767,7 @@ function preencherFormularioHubClinica() {
     const elWpp      = document.getElementById('hubClinicaWhatsApp') || document.getElementById('cfgWhatsApp'); // NOVO
     const elTelLink  = document.getElementById('clinicaTelegramLink');
     const elTelChave = document.getElementById('clinicaTelegramChave');
+    const elGcal = document.getElementById('hubClinicaGoogleAgenda');
 
     if (elNome)     elNome.value     = c.nome_clinica || c.nome || '';
     if (elEnd)      elEnd.value      = c.endereco || '';
@@ -765,6 +778,7 @@ function preencherFormularioHubClinica() {
     if (elWpp)      elWpp.value      = c.whatsapp || '';
     if (elTelLink)  elTelLink.value  = c.telegram_link || '';
     if (elTelChave) elTelChave.value = c.telegram_chave || '';
+    if (elGcal) elGcal.value = c.url_google_agenda || '';
 
     // Se já houver logomarca cadastrada no banco, mostra no preview
     if (c.logo_clinica_url) {
@@ -802,7 +816,10 @@ function converterLogoParaBase64(event, targetInputId = 'hubClinicaLogoUrl', tar
 // Disparado ao clicar em "Salvar Parâmetros Master"
 async function salvarHubMaster(event) {
     if (event) event.preventDefault();
-
+    if (!state.isAdmin) {
+        alert('Ação não permitida: apenas administradores da consultoria.');
+        return;
+    }
     const btnSalvar = event?.currentTarget || document.querySelector("button[onclick='salvarHubMaster()']");
     const textoOriginal = btnSalvar ? btnSalvar.innerHTML : 'Salvar Parâmetros Master';
 
@@ -851,12 +868,22 @@ async function salvarHubClinica(event) {
         return;
     }
     if (btnSalvar) { btnSalvar.disabled = true; btnSalvar.innerHTML = 'Salvando...'; }
+    const _urlCalcomTmp = (document.getElementById('hubClinicaCalCom') || document.getElementById('urlCalCom'))?.value.trim() || '';
+    if (_urlCalcomTmp) {
+        const _v = validarUrlCalcomPublica(_urlCalcomTmp);
+        if (!_v.ok) {
+            alert('❌ Link do Cal.com inválido: ' + _v.motivo);
+            if (btnSalvar) { btnSalvar.disabled = false; btnSalvar.innerHTML = textoOriginal; }
+            return;
+        }
+    }
 
     const dadosAtualizados = {
         nome: (document.getElementById('hubClinicaNome') || document.getElementById('nomeClinica'))?.value.trim() || '',
         nome_clinica: (document.getElementById('hubClinicaNome') || document.getElementById('nomeClinica'))?.value.trim() || '',
         endereco: (document.getElementById('hubClinicaEndereco') || document.getElementById('enderecoClinica'))?.value.trim() || '',
         url_calcom: (document.getElementById('hubClinicaCalCom') || document.getElementById('urlCalCom'))?.value.trim() || '',
+        url_google_agenda: (document.getElementById('hubClinicaGoogleAgenda'))?.value.trim() || '',
         email: (document.getElementById('hubClinicaEmail') || document.getElementById('emailClinica'))?.value.trim() || '',
         email_contato: (document.getElementById('hubClinicaEmail') || document.getElementById('emailClinica'))?.value.trim() || '',
         whatsapp: (document.getElementById('hubClinicaWhatsApp') || document.getElementById('cfgWhatsApp'))?.value.trim() || '',  // ← ANTES NÃO IA
@@ -923,12 +950,53 @@ function enviarLinkAgendamentoWhatsApp() {
     window.open(`https://wa.me/${wpp}?text=${msg}`, '_blank');
 }
 
+// ─── VALIDAÇÃO DE LINK PÚBLICO DO CAL.COM ───────────────────────
+function validarUrlCalcomPublica(url) {
+    if (!url) return { ok: false, motivo: 'URL vazia.' };
+    try {
+        const u = new URL(url);
+        if (!/(^|\.)cal\.com$/i.test(u.hostname)) {
+            return { ok: false, motivo: 'O domínio precisa ser cal.com.' };
+        }
+        const bloqueados = ['/settings', '/event-types', '/availability', '/teams',
+                            '/apps', '/workflows', '/routing', '/billing',
+                            '/developer', '/auth', '/login', '/signup'];
+        const path = u.pathname.toLowerCase();
+        if (bloqueados.some(p => path.startsWith(p))) {
+            return { ok: false, motivo: 'Este é um link administrativo. Use o link público do evento: cal.com/usuario/nome-do-evento' };
+        }
+        return { ok: true };
+    } catch {
+        return { ok: false, motivo: 'URL inválida.' };
+    }
+}
+// ────────────────────────────────────────────────────────────────
+
 function prepararAgendaM6() {
     const calcom = state.clinicaAtual?.url_calcom || '';
     const iframe = document.getElementById('iframeCalCom');
     const lnkAbrir = document.getElementById('lnkAbrirCalCom');
+    const check = validarUrlCalcomPublica(calcom);
+    if (!check.ok) {
+        console.warn('[M6] URL do Cal.com rejeitada:', check.motivo);
+        if (iframe) iframe.removeAttribute('src');
+        if (lnkAbrir) { lnkAbrir.removeAttribute('href'); lnkAbrir.style.opacity = '0.4'; }
+        return;
+    }
     if (iframe) iframe.src = calcom;
-    if (lnkAbrir) lnkAbrir.href = calcom;
+    if (lnkAbrir) { lnkAbrir.href = calcom; lnkAbrir.style.opacity = '1'; }
+        const gcal = state.clinicaAtual?.url_google_agenda || '';
+    const iframeG = document.getElementById('iframeGoogleAgenda');
+    const lnkG = document.getElementById('lnkAbrirGoogleAgenda');
+    if (gcal) {
+        const urlEmbedG = 'https://calendar.google.com/calendar/embed?src=' +
+                          encodeURIComponent(gcal) + '&ctz=America%2FSao_Paulo&mode=MONTH';
+        if (iframeG) iframeG.src = urlEmbedG;
+        if (lnkG) lnkG.href = urlEmbedG;
+    } else {
+        if (iframeG) iframeG.removeAttribute('src');
+        if (lnkG) lnkG.removeAttribute('href');
+    }
 }
 
 // ============================================================
