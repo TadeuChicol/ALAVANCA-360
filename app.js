@@ -281,8 +281,7 @@ window.autenticarClinica = autenticarClinica;
 
 // ============================================================
 // 3. RENDERIZADOR DE LOGOS E NOME DA CLÍNICA NO HEADER
-// ============================================================
-function atualizarLogosVisuais() {
+// ============================================================function atualizarLogosVisuais() {
     const clinica = state.clinicaAtual;
     const cfgGlobal = state.configGlobal;
 
@@ -321,7 +320,8 @@ window.autenticarClinica = autenticarClinica;
 // ============================================================
 
 function aplicarMarcaMetodoNaTelaLogin() {
-    const logoMetodo = (state.configGlobal && state.configGlobal.logo_metodo_url) || 'images/logo-alavanca-360.png';
+    const logoMetodo = (state.configGlobal && state.configGlobal.logo_metodo_url)
+    || 'https://gtcybiuxdpxixdjnshty.supabase.co/storage/v1/object/public/alavanca-logo/logo-alavanca360.png';
     document.querySelectorAll('.logo-metodo-alavanca').forEach(img => { 
         img.src = logoMetodo; 
     });
