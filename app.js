@@ -166,8 +166,9 @@ async function apiUpdate(table, id, data) {
             return retorno && retorno[0] ? retorno[0] : null;
         }
 
-        // 🛡️ TRAVA 4 — demais tabelas: obrigatório ter clínica e filtrar por ela
-        if (!state.clinicaAtual) {
+        // 🛡️ TRAVA 4 — tabelas de tenant: obrigatório ter clínica e filtrar por ela
+        const TABELAS_GLOBAIS = ['clinicas', 'consultoria_admins', 'config_global'];
+        if (!TABELAS_GLOBAIS.includes(table) && !state.clinicaAtual) {
             alert('Sessão sem clínica vinculada. Operação bloqueada.');
             return null;
         }
@@ -211,7 +212,8 @@ async function apiDelete(table, id) {
 }
 
 async function carregarConfigGlobal() {
-    // Busca o PRIMEIRO registro da tabela (o id é UUID, não 'global')
+    const LOGO_FALLBACK = 'https://gtcybiuxdpxixdjnshty.supabase.co/storage/v1/object/public/alavanca-logo/Logo_ALAVANCA%20360_fundo%20transparente.png';
+
     const { data, error } = await supabaseClient
         .from('config_global')
         .select('*')
@@ -220,21 +222,26 @@ async function carregarConfigGlobal() {
 
     if (error) console.error('[HUB Master] Erro ao buscar config_global:', error);
 
-    let cfg = data;
-    if (!cfg) {
-        cfg = {
-            id: 'global',
-            logo_metodo_url: 'images/logo-alavanca-360.png',
-            nome_consultoria: 'Alavanca 360 Consultoria',
-            email_suporte: 'contato@tce-tadeuchicolempowerment.cloud',
-            link_suporte_telegram: 'https://t.me/suporte_alavanca360_bot',
-            logo_consultoria_url: ''
-        };
+    // Se existir registro real no banco, usa ele; se não, usa defaults SANOS (URL absoluta)
+    const cfg = data || {
+        id: null,
+        logo_metodo_url: LOGO_FALLBACK,
+        logo_consultoria_url: '',
+        nome_consultoria: 'Alavanca 360 Consultoria',
+        email_suporte: 'contato@tce-tadeuchicolempowerment.cloud',
+        link_suporte_telegram: 'https://t.me/suporte_alavanca360_bot'
+    };
+
+    // Nunca deixa a logo cair em caminho relativo inexistente
+    if (!cfg.logo_metodo_url || cfg.logo_metodo_url.trim() === '' || cfg.logo_metodo_url.startsWith('images/')) {
+        cfg.logo_metodo_url = LOGO_FALLBACK;
     }
     if (!cfg.email_suporte) cfg.email_suporte = 'contato@tce-tadeuchicolempowerment.cloud';
     if (!cfg.link_suporte_telegram) cfg.link_suporte_telegram = 'https://t.me/suporte_alavanca360_bot';
     if (!cfg.nome_consultoria) cfg.nome_consultoria = 'Alavanca 360 Consultoria';
+
     state.configGlobal = cfg;
+
     if (typeof aplicarMarcaMetodoNaTelaLogin === 'function') aplicarMarcaMetodoNaTelaLogin();
 }
 
@@ -282,36 +289,6 @@ window.autenticarClinica = autenticarClinica;
 // ============================================================
 // 3. RENDERIZADOR DE LOGOS E NOME DA CLÍNICA NO HEADER
 // ============================================================
-function atualizarLogosVisuais() {
-    const clinica = state.clinicaAtual;
-    const cfgGlobal = state.configGlobal;
-
-    const imgLogoClinica = document.getElementById('imgLogoClinicaNav');
-    const iconDefault = document.getElementById('iconDefaultClinica');
-    const imgLogoMetodo = document.getElementById('imgLogoMetodoNav');
-    const lblNomeClinica = document.getElementById('lblNomeClinicaNav');
-
-    if (lblNomeClinica && clinica) {
-        lblNomeClinica.textContent = clinica.nome_clinica || clinica.nome || clinica.email_responsavel || 'Clínica Conectada';
-    }
-
-    if (clinica && clinica.logo_clinica_url) {
-        if (imgLogoClinica) {
-            imgLogoClinica.src = clinica.logo_clinica_url;
-            imgLogoClinica.classList.remove('hidden');
-        }
-        if (iconDefault) iconDefault.classList.add('hidden');
-    } else {
-        if (imgLogoClinica) imgLogoClinica.classList.add('hidden');
-        if (iconDefault) iconDefault.classList.remove('hidden');
-    }
-
-    const logoMetodoPadrao = 'https://gtcybiuxdpxixdjnshty.supabase.co/storage/v1/object/public/logos-clinicas/logo-alavanca360.png';
-    if (imgLogoMetodo) {
-        imgLogoMetodo.src = (cfgGlobal && cfgGlobal.logo_metodo_url) || logoMetodoPadrao;
-        imgLogoMetodo.classList.remove('hidden');
-    }
-}
 
 // ============================================================
 // APLICAÇÃO DE MARCA E INTEGRAÇÕES DINÂMICAS
@@ -319,7 +296,7 @@ function atualizarLogosVisuais() {
 
 function aplicarMarcaMetodoNaTelaLogin() {
     const logoMetodo = (state.configGlobal && state.configGlobal.logo_metodo_url)
-    || 'https://gtcybiuxdpxixdjnshty.supabase.co/storage/v1/object/public/alavanca-logo/logo-alavanca360.png';
+    || 'https://gtcybiuxdpxixdjnshty.supabase.co/storage/v1/object/public/alavanca-logo/Logo_ALAVANCA%20360_fundo%20transparente.png'
     document.querySelectorAll('.logo-metodo-alavanca').forEach(img => { 
         img.src = logoMetodo; 
     });
@@ -841,7 +818,11 @@ async function salvarHubMaster(event) {
             link_suporte_telegram: telegram_consultoria
         };
 
-        const idConfig = state.configGlobal?.id || 1;
+        if (!state.configGlobal?.id) {
+            alert('config_global não encontrada no banco. Crie o registro no SQL Editor antes de salvar.');
+            return;
+        }
+        const idConfig = state.configGlobal.id;
         const resultado = await apiUpdate('config_global', idConfig, payload);
 
         if (resultado) {
@@ -4416,25 +4397,32 @@ async function carregarConfiguracoesGlobais() {
 function atualizarLogosVisuais() {
     const clinica = state.clinicaAtual;
     const cfgGlobal = state.configGlobal;
+    const LOGO_FALLBACK = 'https://gtcybiuxdpxixdjnshty.supabase.co/storage/v1/object/public/alavanca-logo/Logo_ALAVANCA%20360_fundo%20transparente.png';
 
     const imgLogoClinica = document.getElementById('imgLogoClinicaNav');
     const iconDefault = document.getElementById('iconDefaultClinica');
     const imgLogoMetodo = document.getElementById('imgLogoMetodoNav');
     const logoConsultoriaContainer = document.getElementById('logoConsultoriaContainer');
     const imgLogoConsultoria = document.getElementById('imgLogoConsultoria');
+    const lblNomeClinica = document.getElementById('lblNomeClinicaNav');
+
+    if (lblNomeClinica && clinica) {
+        lblNomeClinica.textContent = clinica.nome_clinica || clinica.nome || 'Clínica Conectada';
+    }
 
     if (clinica && clinica.logo_clinica_url) {
-        imgLogoClinica.src = clinica.logo_clinica_url;
-        imgLogoClinica.classList.remove('hidden');
+        if (imgLogoClinica) {
+            imgLogoClinica.src = clinica.logo_clinica_url;
+            imgLogoClinica.classList.remove('hidden');
+        }
         if (iconDefault) iconDefault.classList.add('hidden');
     } else {
-        imgLogoClinica.classList.add('hidden');
+        if (imgLogoClinica) imgLogoClinica.classList.add('hidden');
         if (iconDefault) iconDefault.classList.remove('hidden');
     }
 
-    const logoMetodo = (cfgGlobal && cfgGlobal.logo_metodo_url) || 'images/logo-alavanca-360.png';
     if (imgLogoMetodo) {
-        imgLogoMetodo.src = logoMetodo;
+        imgLogoMetodo.src = (cfgGlobal && cfgGlobal.logo_metodo_url) || LOGO_FALLBACK;
         imgLogoMetodo.classList.remove('hidden');
     }
 
@@ -4727,36 +4715,6 @@ window.importarConfigCsv = importarConfigCsv;
 // ============================================================
 // 3. RENDERIZADOR DE LOGOS E NOME DA CLÍNICA NO HEADER
 // ============================================================
-function atualizarLogosVisuais() {
-    const clinica = state.clinicaAtual;
-    const cfgGlobal = state.configGlobal;
-
-    const imgLogoClinica = document.getElementById('imgLogoClinicaNav');
-    const iconDefault = document.getElementById('iconDefaultClinica');
-    const imgLogoMetodo = document.getElementById('imgLogoMetodoNav');
-    const lblNomeClinica = document.getElementById('lblNomeClinicaNav');
-
-    if (lblNomeClinica && clinica) {
-        lblNomeClinica.textContent = clinica.nome_clinica || clinica.nome || clinica.email_responsavel || 'Clínica Conectada';
-    }
-
-    if (clinica && clinica.logo_clinica_url) {
-        if (imgLogoClinica) {
-            imgLogoClinica.src = clinica.logo_clinica_url;
-            imgLogoClinica.classList.remove('hidden');
-        }
-        if (iconDefault) iconDefault.classList.add('hidden');
-    } else {
-        if (imgLogoClinica) imgLogoClinica.classList.add('hidden');
-        if (iconDefault) iconDefault.classList.remove('hidden');
-    }
-
-    const logoMetodoPadrao = 'https://gtcybiuxdpxixdjnshty.supabase.co/storage/v1/object/public/logos-clinicas/logo-alavanca360.png';
-    if (imgLogoMetodo) {
-        imgLogoMetodo.src = (cfgGlobal && cfgGlobal.logo_metodo_url) || logoMetodoPadrao;
-        imgLogoMetodo.classList.remove('hidden');
-    }
-}
 
 // ===== HUB CLÍNICA — DENTISTAS DA CLÍNICA =====
 function popularSelectDentistasM7() {
@@ -4925,7 +4883,7 @@ function aplicarPermissoesMenu() {
 function aplicarConfigNaInterface() {
     const cfg = state.configGlobal || {};
     // 1. Logomarca do Método em todas as telas
-    const logoMetodo = cfg.logo_metodo_url || 'images/logo-alavanca-360.png';
+    const logoMetodo = cfg.logo_metodo_url || 'https://gtcybiuxdpxixdjnshty.supabase.co/storage/v1/object/public/alavanca-logo/Logo_ALAVANCA%20360_fundo%20transparente.png'
     document.querySelectorAll('.logo-metodo-alavanca').forEach(img => { img.src = logoMetodo; });
     const imgRodape = document.getElementById('imgLogoSidebarRodape');
     if (imgRodape) imgRodape.src = logoMetodo;
