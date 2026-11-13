@@ -4511,7 +4511,8 @@ async function sincronizarTodasAbasPlanilha() {
     const falhas = [];
     for (const aba of Object.keys(MAPA_ABAS_PLANILHA)) {
         try {
-            const linhas = await buscarAbaGoogleSheets(spreadsheetId, aba);
+            const matriz = await buscarAbaGoogleSheets(spreadsheetId, aba);
+            const linhas = matrizParaObjetos(matriz);
             const config = MAPA_ABAS_PLANILHA[aba];
             const registros = (await Promise.all(linhas.map(config.mapear))).filter(Boolean);
             if (registros.length) {
@@ -4587,6 +4588,18 @@ function num(v) {
     if (/,/.test(s)) s = s.replace(/\./g, '').replace(',', '.');
     const n = parseFloat(s);
     return isNaN(n) ? 0 : n;
+}
+
+function matrizParaObjetos(matriz) {
+    if (!Array.isArray(matriz) || matriz.length < 2) return [];
+    const cabecalhos = (matriz[0] || []).map(c => String(c || '').trim());
+    return matriz.slice(1).map(linha => {
+        const obj = {};
+        cabecalhos.forEach((cab, i) => {
+            if (cab) obj[cab] = linha[i] !== undefined ? linha[i] : '';
+        });
+        return obj;
+    });
 }
 
 function mapearInsumo(linha) {
@@ -4681,7 +4694,8 @@ async function importarAba(aba, tabela) {
     if (!url) { alert('Configure o link da planilha no HUB Clínica.'); return; }
     const spreadsheetId = extrairIdPlanilha(url);
     if (!spreadsheetId) { alert('Link de planilha inválido.'); return; }
-    const linhas = await buscarAbaGoogleSheets(spreadsheetId, aba);
+    const matriz = await buscarAbaGoogleSheets(spreadsheetId, aba);
+    const linhas = matrizParaObjetos(matriz);
     const config = MAPA_ABAS_PLANILHA[aba];
     const registros = (await Promise.all(linhas.map(config.mapear))).filter(Boolean);
     if (registros.length) {
