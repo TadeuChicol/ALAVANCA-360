@@ -1,3 +1,4 @@
+
 // ============================================================
 // ESCUDO DE PROTEÇÃO — Protege a UI sem esconder erros internos
 // ============================================================
@@ -310,7 +311,6 @@ window.autenticarClinica = autenticarClinica;
         imgLogoMetodo.src = (cfgGlobal && cfgGlobal.logo_metodo_url) || logoMetodoPadrao;
         imgLogoMetodo.classList.remove('hidden');
     }
-}
 
 // Garante que a função esteja disponível globalmente
 window.autenticarClinica = autenticarClinica;
