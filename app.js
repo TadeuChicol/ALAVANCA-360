@@ -281,7 +281,8 @@ window.autenticarClinica = autenticarClinica;
 
 // ============================================================
 // 3. RENDERIZADOR DE LOGOS E NOME DA CLÍNICA NO HEADER
-// ============================================================function atualizarLogosVisuais() {
+// ============================================================
+function atualizarLogosVisuais() {
     const clinica = state.clinicaAtual;
     const cfgGlobal = state.configGlobal;
 
@@ -310,6 +311,7 @@ window.autenticarClinica = autenticarClinica;
         imgLogoMetodo.src = (cfgGlobal && cfgGlobal.logo_metodo_url) || logoMetodoPadrao;
         imgLogoMetodo.classList.remove('hidden');
     }
+}
 
 // Garante que a função esteja disponível globalmente
 window.autenticarClinica = autenticarClinica;
