@@ -313,9 +313,6 @@ function atualizarLogosVisuais() {
     }
 }
 
-// Garante que a função esteja disponível globalmente
-window.autenticarClinica = autenticarClinica;
-
 // ============================================================
 // APLICAÇÃO DE MARCA E INTEGRAÇÕES DINÂMICAS
 // ============================================================
