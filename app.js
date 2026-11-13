@@ -1003,6 +1003,7 @@ function prepararAgendaM6() {
         u.searchParams.set('embed', 'true');
         u.searchParams.set('layout', 'month_view');
         u.searchParams.set('hideEventTypeDetails', 'false');
+        u.searchParams.set('hidelogo', 'true');
         urlEmbed = u.toString();
     } catch (e) { /* mantém a original se o parse falhar */ }
 
@@ -3422,121 +3423,91 @@ function importarConfigCsv(modalidade) {
 
 // ============================================================
 // M8 — SINCRONIZAÇÃO POR CÓDIGO DO SERVIÇO (coluna A)
-// Particular -> TABELA_PARTICULAR
-// Bradesco   -> TABELA_CONVÊNIO-BRADESCO (fallback: TABELA_CONVÊNIO)
-// Coluna A = código | B = nome | C = preço | M = lucro líquido (R$)
-// Casa pelo CÓDIGO (não pelo nome). Ordena por numeração do código.
-// Valores reais, com sinal, sem maquiar.
+// Cada convênio tem sua própria aba na planilha.
+// Coluna A = código | C = preço | M = lucro líquido (R$)
 // ============================================================
 function normalizarCodigoM8(v) {
-    // "S001" -> "001" | "S 001" -> "001" | "001" -> "001"
     return String(v || '').replace(/[^0-9]/g, '');
+}
+
+// Lê uma aba de convênio/particular e devolve [{ codigo, preco, lucro }]
+function mapearTabelaConvenio(linhas) {
+    const out = [];
+    if (!Array.isArray(linhas) || linhas.length < 2) return out;
+    for (let r = 1; r < linhas.length; r++) {
+        const row = linhas[r] || [];
+        const cod = normalizarCodigoM8(row[0]);
+        if (!cod) continue;
+        const preco = parseNumeroBR(row[2]);
+        const lucro = parseNumeroBR(row[12]);
+        if (!preco && !lucro) continue;
+        out.push({ codigo: cod, preco, lucro });
+    }
+    return out;
 }
 
 function mapearTabelaPorCodigo(linhas) {
     const mapa = new Map();
-    if (!Array.isArray(linhas) || linhas.length < 2) return mapa;
-    for (let r = 1; r < linhas.length; r++) {
-        const row = linhas[r] || [];
-        const cod = normalizarCodigoM8(row[0]);   // coluna A = código
-        if (!cod) continue;
-        const preco = parseNumeroBR(row[2]);      // coluna C = preço
-        const lucro = parseNumeroBR(row[12]);     // coluna M = lucro líquido
-        mapa.set(cod, { preco, lucro });
-    }
+    (mapearTabelaConvenio(linhas) || []).forEach(r => mapa.set(r.codigo, { preco: r.preco, lucro: r.lucro }));
     return mapa;
 }
 
-function mapearTabelaFinalV2(linhas) {
-    let ih = -1;
-    for (let i = 0; i < linhas.length && ih === -1; i++) {
-        const linha = (linhas[i] || []).map(c => String(c || '').toLowerCase());
-        if (linha.some(c => c.includes('servico') || c.includes('serviço') || c.includes('nome_serv'))) ih = i;
-    }
-    if (ih === -1) return { convenios: [], precos: [], particulares: [], ideais: [] };
-    const cab  = (linhas[ih] || []).map(c => String(c || '').trim());
-    const cab2 = (linhas[ih + 1] || []).map(c => String(c || '').trim());
-    let idxIdeal = -1, idxParticular = -1;
-    const colsConv = [];
-    cab.forEach((h, i) => {
-        const t = String(h || '').toLowerCase();
-        if (!h) return;
-        if (t.includes('particular') || t.includes('partic')) { idxParticular = i; return; }
-        if (t.includes('ideal')) { idxIdeal = i; return; }
-        if (t.includes('id_serv') || t.includes('nome_serv') || t.includes('codigo') || t.includes('código') || (t.includes('servico') && !t.includes('convenio'))) return;
-        const ehConvenio = t.includes('convenio') || t.includes('convênio');
-        const nome = ehConvenio ? h.replace(/^CONV[ÊE]NIO\s*/i, '').trim() : '';
-        const nomeFinal = nome || (cab2[i] || '').trim();
-        if (nomeFinal) colsConv.push({ idx: i, nome: nomeFinal });
-    });
-    const convenios = colsConv.map(c => c.nome).filter(Boolean);
-    const precos = [], particulares = [], ideais = [];
-    for (let r = ih + 1; r < linhas.length; r++) {
-        const row = linhas[r];
-        const cod = String(row?.[0] || '').trim();
-        if (!/^(S\s*)?\d/.test(cod)) continue;
-        colsConv.forEach(c => {
-            const v = row[c.idx];
-            if (String(v ?? '').trim() !== '') precos.push({ servico_codigo: cod, convenio: c.nome, preco: parseNumeroBR(v) });
-        });
-        if (idxParticular !== -1 && String(row[idxParticular] ?? '').trim() !== '')
-            particulares.push({ servico_codigo: cod, preco: parseNumeroBR(row[idxParticular]) });
-        if (idxIdeal !== -1 && String(row[idxIdeal] ?? '').trim() !== '')
-            ideais.push({ servico_codigo: cod, preco: parseNumeroBR(row[idxIdeal]) });
-    }
-    return { convenios, precos, particulares, ideais };
-}
+const ABAS_CONVENIO_M8 = [
+    { aba: 'TABELA_CONVÊNIO_BRADESCO',    convenio: 'Bradesco' },
+    { aba: 'TABELA_CONVÊNIO_UNIMED',      convenio: 'Unimed' },
+    { aba: 'TABELA_CONVÊNIO_PORTO',       convenio: 'Porto Seguro' },
+    { aba: 'TABELA_CONVÊNIO_AMIL',        convenio: 'Amil' },
+    { aba: 'TABELA_CONVÊNIO_ODONTOPREV',  convenio: 'OdontoPrev' },
+    { aba: 'TABELA_CONVÊNIO_SULAMERICA',  convenio: 'Sulamerica' },
+    { aba: 'TABELA_CONVÊNIO_DENTALUNI',   convenio: 'Dentaluni' },
+    { aba: 'TABELA_CONVÊNIO_INTERMÉDICA', convenio: 'Intermédica' }
+];
 
 async function sincronizarM8PrecosMargens() {
     const clinicaId = state.clinicaAtual?.id || '';
     if (!clinicaId) { alert('Clínica não identificada. Abra o HUB Clínica e salve.'); return; }
-    // Guarda: essa função escreve em lote no Supabase; só o dono ou admin pode disparar
     if (!state.isAdmin && state.perfilUsuario !== 'owner') {
         alert('Apenas o responsável pela clínica pode sincronizar preços.');
         return;
     }
     const url = state.clinicaAtual?.url_planilha_nap || state.clinicaAtual?.url_planilha || '';
-    const id = extrairIdPlanilha(url);
-    if (!id) { alert('Configure o link do Google Sheets no HUB Clínica.'); return; }
+    const idPlanilha = extrairIdPlanilha(url);
+    if (!idPlanilha) { alert('Configure o link do Google Sheets no HUB Clínica.'); return; }
 
-    async function lerAba(nomes) {
-        for (const nome of nomes) {
-            try {
-                const l = await buscarAbaGoogleSheets(id, nome);
-                if (Array.isArray(l) && l.length > 1) return l;
-            } catch (e) { console.warn('[M8] Aba não encontrada: ' + nome, e); }
-        }
-        return [];
-    }
+    const precos = [];
+    const particulares = [];
+    const conveniosUsados = [];
 
-    const [tabFinal, tabPart, tabBradesco] = await Promise.all([
-        buscarAbaGoogleSheets(id, 'TABELA_FINAL'),
-        buscarAbaGoogleSheets(id, 'TABELA_PARTICULAR'),
-        buscarAbaGoogleSheets(id, 'TABELA_CONVÊNIO_BRADESCO')   // direto, SEM fallback
-    ]);
-    const { convenios, precos } = mapearTabelaFinalV2(tabFinal);
-
-    const partMap     = mapearTabelaPorCodigo(tabPart);
-    const bradescoMap = mapearTabelaPorCodigo(tabBradesco);
-
-    let atualizados = 0;
-    for (const s of (state.servicos || [])) {
-        const cod = normalizarCodigoM8(s.codigo_externo);
-        if (!cod) continue;
-        const pP = partMap.get(cod);
-        const pB = bradescoMap.get(cod);
+    // 1) Uma varredura por aba de convênio
+    for (const cfg of ABAS_CONVENIO_M8) {
+        let linhas = [];
         try {
-            await apiUpdate('servicos', s.id, {
-                clinica_id: clinicaId,
-                preco_particular: pP ? pP.preco : 0,
-                lucro_liquido_particular: pP ? pP.lucro : 0,
-                preco_convenio: pB ? pB.preco : 0,
-                lucro_liquido_convenio: pB ? pB.lucro : 0
-            });
-            atualizados++;
-        } catch (e) { console.error('Erro ao atualizar serviço', s.id, e); }
+            linhas = await buscarAbaGoogleSheets(idPlanilha, cfg.aba);
+        } catch (e) {
+            console.warn('[M8] aba não encontrada, seguindo:', cfg.aba);
+            continue;
+        }
+        if (!Array.isArray(linhas) || !linhas.length) continue;
+        const mapa = mapearTabelaConvenio(linhas);
+        if (!mapa.length) { console.warn('[M8] aba sem linhas válidas:', cfg.aba); continue; }
+        mapa.forEach(r => {
+            precos.push({ servico_codigo: r.codigo, convenio: cfg.convenio, preco: r.preco });
+        });
+        conveniosUsados.push(cfg.convenio);
+        console.log('[M8]', cfg.aba, '→', mapa.length, 'preços');
     }
 
+    // 2) Particular
+    let partMap = new Map();
+    try {
+        const linhasPart = await buscarAbaGoogleSheets(idPlanilha, 'TABELA_PARTICULAR');
+        partMap = mapearTabelaPorCodigo(linhasPart);
+        partMap.forEach((v, cod) => particulares.push({ servico_codigo: cod, preco: v.preco }));
+    } catch (e) {
+        console.warn('[M8] aba TABELA_PARTICULAR não encontrada.');
+    }
+
+    // 3) Grava preços por convênio
     if (precos.length && typeof supabaseClient !== 'undefined') {
         const { error: errDel } = await supabaseClient.from('precos_servico').delete().eq('clinica_id', clinicaId);
         if (!errDel) {
@@ -3547,16 +3518,37 @@ async function sincronizarM8PrecosMargens() {
         }
     }
 
-    state.conveniosDisponiveis = convenios; state.precosServico = precos;
-    renderizarModuloFinanceiroCompleto();
-    alert(`M8 sincronizado: ${atualizados} serviço(s) atualizado(s).\n`
-        + `Convênios detectados: ${convenios.join(', ') || 'nenhum'}.\n`
-        + `Particular: ${partMap.size} serviço(s) lido(s) da aba.\n`
-        + `Bradesco: ${bradescoMap.size} serviço(s) lido(s) da aba.\n`
-        + `Aba Bradesco usada: ${tabBradesco && tabBradesco.length ? 'encontrada (' + tabBradesco.length + ' linhas)' : 'NÃO ENCONTRADA (vazia)'}`);
-}
+    // 4) Atualiza os serviços (particular sempre; convênio só se houver)
+    let atualizados = 0;
+    const mapaBradesco = new Map();
+    precos.filter(p => p.convenio === 'Bradesco').forEach(p => mapaBradesco.set(normalizarCodigoM8(p.servico_codigo), p.preco));
 
-if (typeof sincronizarTudoDaPlanilha === 'function') sincronizarTudoDaPlanilha();
+    for (const s of (state.servicos || [])) {
+        const cod = normalizarCodigoM8(s.codigo_externo);
+        if (!cod) continue;
+        const pP = partMap.get(cod);
+        const precoBradesco = mapaBradesco.get(cod);
+        const payload = {
+            preco_particular: pP ? pP.preco : 0,
+            lucro_liquido_particular: pP ? pP.lucro : 0
+        };
+        if (precoBradesco !== undefined) {
+            payload.preco_convenio = precoBradesco;
+        }
+        try {
+            await apiUpdate('servicos', s.id, payload);
+            atualizados++;
+        } catch (e) { console.error('Erro ao atualizar serviço', s.id, e); }
+    }
+
+    state.conveniosDisponiveis = conveniosUsados;
+    state.precosServico = precos;
+    renderizarModuloFinanceiroCompleto();
+
+    alert(`M8 sincronizado: ${atualizados} serviço(s) atualizado(s).\n`
+        + `Convênios detectados: ${conveniosUsados.join(', ') || 'nenhum'}.\n`
+        + `Particular: ${partMap.size} serviço(s) lido(s).`);
+}
 
 // ============================================================
 // 12C. MÓDULO 9 — ATENDIMENTOS (CONVÊNIO / PARTICULAR / MISTO)
