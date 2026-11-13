@@ -581,14 +581,15 @@ async function carregarProntuario() {
 
 async function carregarDadosFinanceiros() {
     try {
-        const [insumos, servicos, mapa, fixos, config, atendimentos, custoView] = await Promise.all([
+        const [insumos, servicos, mapa, fixos, config, atendimentos, custoView, precosServico] = await Promise.all([
             apiList('insumos'),
             apiList('servicos'),
             apiList('mapa_insumos_servicos'),
             apiList('custos_fixos'),
             apiList('config_precificacao'),
             apiList('atendimentos'),
-            apiList('vw_custo_servico')
+            apiList('vw_custo_servico'),
+            apiList('precos_servico')
         ]);
         
         state.insumos = insumos || [];
@@ -598,6 +599,7 @@ async function carregarDadosFinanceiros() {
         state.configPrecificacao = config || [];
         state.atendimentos = atendimentos || [];
         state.custoServicoView = custoView || [];
+        state.precosServico = precosServico || [];
     } catch (error) {
         console.error('[Alavanca 360] Erro ao carregar dados financeiros:', error);
     }
@@ -3410,15 +3412,43 @@ function normalizarCodigoM8(v) {
 }
 
 // Lê uma aba de convênio/particular e devolve [{ codigo, preco, lucro }]
+// Lê pelo CABEÇALHO, não por posição fixa — funciona em qualquer aba
+// de convênio com a mesma estrutura (Bradesco, Unimed, Sulamerica...).
 function mapearTabelaConvenio(linhas) {
     const out = [];
     if (!Array.isArray(linhas) || linhas.length < 2) return out;
+    const headers = (linhas[0] || []).map(h => normalizarCabecalho(h));
+    // Localiza as colunas por nome, tolerando acento, caixa e variações
+    const achaCol = (opcoes) => {
+        for (const opc of opcoes) {
+            const alvo = normalizarCabecalho(opc);
+            const i = headers.findIndex(h => h === alvo);
+            if (i !== -1) return i;
+        }
+        for (const opc of opcoes) {
+            const alvo = normalizarCabecalho(opc);
+            const i = headers.findIndex(h => h && (h.includes(alvo) || alvo.includes(h)));
+            if (i !== -1) return i;
+        }
+        return -1;
+    };
+    // Código e serviço: sempre as 2 primeiras colunas de identificação
+    const iCodigo = 0;
+    // Preço: procura qualquer coluna que comece com "preco"/"preço"
+    let iPreco = achaCol(['preco', 'preço', 'valor', 'preco convenio', 'preco unimed',
+                          'preco sulamerica', 'preco porto', 'preco amil',
+                          'preco odontoprev', 'preco dentaluni', 'preco intermedica',
+                          'preco particular']);
+    // Lucro: procura "lucro" — é o que você já usa como métrica única
+    const iLucro = achaCol(['lucro liquido', 'lucro líquido', 'lucro', 'lucro liquido r$', 'margem']);
+    // Fallback: se o cabeçalho de preço não foi achado, usa a coluna C (índice 2)
+    if (iPreco === -1) iPreco = 2;
     for (let r = 1; r < linhas.length; r++) {
         const row = linhas[r] || [];
-        const cod = normalizarCodigoM8(row[0]);
+        const cod = normalizarCodigoM8(row[iCodigo]);
         if (!cod) continue;
-        const preco = parseNumeroBR(row[2]);
-        const lucro = parseNumeroBR(row[12]);
+        const preco = iPreco !== -1 ? parseNumeroBR(row[iPreco]) : 0;
+        const lucro = iLucro !== -1 ? parseNumeroBR(row[iLucro]) : 0;
         if (!preco && !lucro) continue;
         out.push({ codigo: cod, preco, lucro });
     }
@@ -3469,8 +3499,9 @@ async function sincronizarM8PrecosMargens() {
         if (!Array.isArray(linhas) || !linhas.length) continue;
         const mapa = mapearTabelaConvenio(linhas);
         if (!mapa.length) { console.warn('[M8] aba sem linhas válidas:', cfg.aba); continue; }
-        mapa.forEach(r => {
-            precos.push({ servico_codigo: r.codigo, convenio: cfg.convenio, preco: r.preco });
+            mapa.forEach(r => {
+            precos.push({ servico_codigo: r.codigo, convenio: cfg.convenio,
+                          preco: r.preco, lucro: r.lucro });
         });
         conveniosUsados.push(cfg.convenio);
         console.log('[M8]', cfg.aba, '→', mapa.length, 'preços');
@@ -3491,7 +3522,7 @@ async function sincronizarM8PrecosMargens() {
         const { error: errDel } = await supabaseClient.from('precos_servico').delete().eq('clinica_id', clinicaId);
         if (!errDel) {
             const { error: errIns } = await supabaseClient.from('precos_servico').insert(
-                precos.map(p => ({ clinica_id: clinicaId, servico_codigo: p.servico_codigo, convenio: p.convenio, preco: p.preco }))
+                precos.map(p => ({ clinica_id: clinicaId, servico_codigo: p.servico_codigo, convenio: p.convenio, preco: p.preco, lucro: Number(p.lucro) || 0 }))
             );
             if (errIns) console.error('Erro ao gravar precos_servico', errIns);
         }
@@ -3501,11 +3532,20 @@ async function sincronizarM8PrecosMargens() {
     let atualizados = 0;
     const mapaBradesco = new Map();
     precos.filter(p => p.convenio === 'Bradesco').forEach(p => mapaBradesco.set(normalizarCodigoM8(p.servico_codigo), p.preco));
+    const mapaPrecoPorConvenio = {};
+    const mapaLucroPorConvenio = {};
+    precos.forEach(p => {
+        const cod = normalizarCodigoM8(p.servico_codigo);
+        if (!cod) return;
+        if (!mapaPrecoPorConvenio[p.convenio]) mapaPrecoPorConvenio[p.convenio] = new Map();
+        if (!mapaLucroPorConvenio[p.convenio]) mapaLucroPorConvenio[p.convenio] = new Map();
+        mapaPrecoPorConvenio[p.convenio].set(cod, Number(p.preco) || 0);
+    });
 
     for (const s of (state.servicos || [])) {
         const cod = normalizarCodigoM8(s.codigo_externo);
         if (!cod) continue;
-        const pP = partMap.get(cod);
+                const pP = partMap.get(cod);
         const precoBradesco = mapaBradesco.get(cod);
         const payload = {
             preco_particular: pP ? pP.preco : 0,
@@ -3513,6 +3553,14 @@ async function sincronizarM8PrecosMargens() {
         };
         if (precoBradesco !== undefined) {
             payload.preco_convenio = precoBradesco;
+        }
+        // Lucro do convênio de referência (Bradesco) — antes nunca era gravado
+        const lucroBradesco = (() => {
+            const reg = precos.find(p => normalizarCodigoM8(p.servico_codigo) === cod && p.convenio === 'Bradesco');
+            return reg ? Number(reg.lucro) || 0 : null;
+        })();
+        if (lucroBradesco !== null) {
+            payload.lucro_liquido_convenio = lucroBradesco;
         }
         try {
             await apiUpdate('servicos', s.id, payload);
