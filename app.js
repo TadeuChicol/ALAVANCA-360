@@ -3417,8 +3417,9 @@ function normalizarCodigoM8(v) {
 function mapearTabelaConvenio(linhas) {
     const out = [];
     if (!Array.isArray(linhas) || linhas.length < 2) return out;
+
     const headers = (linhas[0] || []).map(h => normalizarCabecalho(h));
-    // Localiza as colunas por nome, tolerando acento, caixa e variações
+
     const achaCol = (opcoes) => {
         for (const opc of opcoes) {
             const alvo = normalizarCabecalho(opc);
@@ -3427,28 +3428,38 @@ function mapearTabelaConvenio(linhas) {
         }
         for (const opc of opcoes) {
             const alvo = normalizarCabecalho(opc);
-            const i = headers.findIndex(h => h && (h.includes(alvo) || alvo.includes(h)));
+            const i = headers.findIndex(h => h && alvo && (h === alvo || h.includes(alvo)));
             if (i !== -1) return i;
         }
         return -1;
     };
-    // Código e serviço: sempre as 2 primeiras colunas de identificação
+
+    // Coluna A = código, sempre.
     const iCodigo = 0;
-    // Preço: procura qualquer coluna que comece com "preco"/"preço"
-    let iPreco = achaCol(['preco', 'preço', 'valor', 'preco convenio', 'preco unimed',
-                          'preco sulamerica', 'preco porto', 'preco amil',
-                          'preco odontoprev', 'preco dentaluni', 'preco intermedica',
-                          'preco particular']);
-    // Lucro: procura "lucro" — é o que você já usa como métrica única
-    const iLucro = achaCol(['lucro liquido', 'lucro líquido', 'lucro', 'lucro liquido r$', 'margem']);
-    // Fallback: se o cabeçalho de preço não foi achado, usa a coluna C (índice 2)
-    if (iPreco === -1) iPreco = 2;
+
+    // Coluna C = tabela do convênio (índice 2 é o fallback correto)
+    let iPreco = achaCol([
+        'tabela convenio', 'tabela do convenio', 'tabela',
+        'preco tabela', 'preco convenio', 'preco',
+        'valor convenio', 'valor'
+    ]);
+    if (iPreco === -1 || iPreco === iCodigo) iPreco = 2;   // C
+
+    // Coluna M = lucro líquido (índice 12 é o fallback correto)
+    let iLucro = achaCol(['lucro liquido', 'lucro líquido', 'lucro']);
+    if (iLucro === -1) iLucro = 12;                        // M
+
+    console.log('[M8] headers:', headers.slice(0, 14),
+                '| iPreco:', iPreco, '| iLucro:', iLucro);
+
     for (let r = 1; r < linhas.length; r++) {
         const row = linhas[r] || [];
         const cod = normalizarCodigoM8(row[iCodigo]);
         if (!cod) continue;
-        const preco = iPreco !== -1 ? parseNumeroBR(row[iPreco]) : 0;
-        const lucro = iLucro !== -1 ? parseNumeroBR(row[iLucro]) : 0;
+
+        const preco = parseNumeroBR(row[iPreco]);
+        const lucro = parseNumeroBR(row[iLucro]);
+
         if (!preco && !lucro) continue;
         out.push({ codigo: cod, preco, lucro });
     }
@@ -3519,13 +3530,19 @@ async function sincronizarM8PrecosMargens() {
 
     // 3) Grava preços por convênio
     if (precos.length && typeof supabaseClient !== 'undefined') {
-        const { error: errDel } = await supabaseClient.from('precos_servico').delete().eq('clinica_id', clinicaId);
-        if (!errDel) {
-            const { error: errIns } = await supabaseClient.from('precos_servico').insert(
-                precos.map(p => ({ clinica_id: clinicaId, servico_codigo: p.servico_codigo, convenio: p.convenio, preco: p.preco, lucro: Number(p.lucro) || 0 }))
+        const { error: errUp } = await supabaseClient
+            .from('precos_servico')
+            .upsert(
+                precos.map(p => ({
+                    clinica_id: clinicaId,
+                    servico_codigo: p.servico_codigo,
+                    convenio: p.convenio,
+                    preco: p.preco,
+                    lucro: Number(p.lucro) || 0
+                })),
+                { onConflict: 'clinica_id,servico_codigo,convenio' }
             );
-            if (errIns) console.error('Erro ao gravar precos_servico', errIns);
-        }
+        if (errUp) console.error('[M8] erro no upsert precos_servico', errUp);
     }
 
     // 4) Atualiza os serviços (particular sempre; convênio só se houver)
