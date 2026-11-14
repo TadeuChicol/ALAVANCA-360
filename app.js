@@ -698,6 +698,7 @@ function switchTab(tabId) {
                 if (typeof renderizarModuloFinanceiroCompleto === 'function') renderizarModuloFinanceiroCompleto();
                 if (typeof popularSelectsAtendimento === 'function') popularSelectsAtendimento();
                 if (typeof popularDentistasM9 === 'function') popularDentistasM9();
+                if (typeof popularConveniosM9 === 'function') popularConveniosM9();
                 break;
             case 'tab-comercial':
                 if (typeof calcularFunilComercial === 'function') calcularFunilComercial();
@@ -1859,21 +1860,6 @@ function renderizarAgendaLocal() {
     }).join('');
 }
 
-function prepararEdicaoAgenda(id) {
-    const a = state.agendamentos.find(x => x.id === id);
-    if (!a) return;
-
-    document.getElementById('agendaIndexEditando').value = a.id;
-    document.getElementById('agPaciente').value = a.paciente_nome || '';
-    document.getElementById('agData').value = a.data_hora || '';
-    document.getElementById('agDentista').value = a.dentista || '';
-    document.getElementById('agCadeira').value = a.cadeira_sala || '';
-    document.getElementById('agProcedimento').value = a.procedimento || '';
-
-    document.getElementById('lblTituloAgendaForm').textContent = 'Modificar Agendamento';
-    document.getElementById('btnLimparAgendaForm').classList.remove('hidden');
-}
-
 function limparAgendaForm() {
     document.getElementById('agendaIndexEditando').value = '-1';
     document.getElementById('agPaciente').value = '';
@@ -2350,22 +2336,22 @@ function renderizarTabelaPrecos() {
     const filtro = sel ? sel.value : convs[0];
     const part = filtro === 'PARTICULAR';
     const servicos = (state.servicos || []).filter(s => String(s.codigo_externo || '').trim());
-    const precosServico = state.precosServico || [];
 
-    const pegaPreco = s => {
-        if (part) return Number(s.preco_particular || 0);
-        if (filtro === 'Bradesco') return Number(s.preco_convenio || 0);
-        const p = precosServico.find(x => String(x.servico_codigo).trim() === String(s.codigo_externo).trim() && x.convenio === filtro);
-        return p ? Number(p.preco || 0) : 0;
+    const pegaRegistro = (s) => {
+        const reg = buscarRegistroPreco(s, filtro);
+        if (reg) return { preco: Number(reg.preco || 0), lucro: Number(reg.lucro || 0) };
+        return { preco: 0, lucro: 0 };
     };
-    const pegaLucro = s => part ? Number(s.lucro_liquido_particular || 0) : Number(s.lucro_liquido_convenio || 0);
 
     const linhas = servicos
-        .map(s => ({ s, preco: pegaPreco(s), lucro: pegaLucro(s) }))
+        .map(s => {
+            const r = pegaRegistro(s);
+            return { s, preco: r.preco, lucro: r.lucro, temTabela: r.preco > 0 };
+        })
         .sort((a, b) => {
             const na = parseInt(String(a.s.codigo_externo || '').replace(/\D/g, ''), 10) || 0;
             const nb = parseInt(String(b.s.codigo_externo || '').replace(/\D/g, ''), 10) || 0;
-            return na - nb;   // ordem por número do serviço (S01, S02, S03...)
+            return na - nb;
         });
 
     const fmt = v => { const n = Number(v) || 0; return n !== 0 ? formatarMoeda(n) : '—'; };
@@ -2385,7 +2371,11 @@ function renderizarTabelaPrecos() {
             <tr class="border-b border-slate-800/60">
                 <td class="p-2 font-mono text-slate-500 text-xs">${String(l.s.codigo_externo || '').trim()}</td>
                 <td class="p-2 font-medium text-slate-200">${l.s.nome || '—'}</td>
-                <td class="p-2 text-right font-bold text-slate-100">${fmt(l.preco)}</td>
+                <td class="p-2 text-right font-bold text-slate-100">
+                    ${l.temTabela
+                        ? formatarMoeda(l.preco)
+                        : '<span class="text-amber-400 text-[11px] font-normal">tabela pendente</span>'}
+                </td>
                 <td class="p-2 text-right ${classeLucro(l.lucro)}">${fmt(l.lucro)}</td>
             </tr>`).join('');
         html = `<table class="w-full text-left text-sm text-slate-300">
@@ -2717,24 +2707,6 @@ function renderizarResultadosCustos() {
     tbody.innerHTML = html;
 }
 
-// Atualiza só o preço (Convênio ou Particular) de um serviço já cadastrado,
-// sem precisar reabrir/reenviar o formulário inteiro — usado principalmente
-// depois de uma importação de CSV que trouxe custo mas não preço de venda.
-async function atualizarPrecoServico(id, campo, valor) {
-    const novoValor = parseFloat(valor) || 0;
-    try {
-        const atualizado = await apiUpdate('servicos', id, { [campo]: novoValor });
-        const idx = state.servicos.findIndex(s => s.id === id);
-        if (idx >= 0) state.servicos[idx] = atualizado;
-        await recarregarCustoServicoView();
-        renderizarResultadoCustos();
-        renderizarDashboardVivo();
-    } catch (e) {
-        console.error(e);
-        alert('Erro ao atualizar preço do serviço.');
-    }
-}
-
 // Popula o select de profissional do M9 SEMPRE da tabela dentistas (Hub Clínica),
 // a MESMA fonte que o M7 usa. Grava em state.dentistasM9 para o M9 linkar com o M7.
 async function popularDentistasM9() {
@@ -2756,6 +2728,27 @@ async function popularDentistasM9() {
         dentistas.map(d => `<option value="${d.id}">${d.nome || ''}</option>`).join('');
 }
 
+// Preenche o select de convênio do M9 a partir do que existe em precos_servico.
+// Ordem: Particular primeiro, depois os convênios alfabéticos. Se a base ainda
+// estiver vazia, cai para CONVENIOS_PREVISTOS para não deixar o select vazio.
+function popularConveniosM9() {
+    const sel = document.getElementById('atdConvenioLinha');
+    if (!sel) return;
+    const atual = sel.value;
+    const daBase = [...new Set((state.precosServico || []).map(p => p.convenio).filter(Boolean))];
+    const convenios = daBase.length
+        ? daBase.filter(c => c !== 'PARTICULAR').sort((a, b) => a.localeCompare(b, 'pt-BR'))
+        : [...CONVENIOS_PREVISTOS].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+
+    const temParticular = daBase.length === 0 || daBase.includes('PARTICULAR');
+    let html = '<option value="">Selecione o convênio</option>';
+    if (temParticular) html += '<option value="PARTICULAR">Particular</option>';
+    html += convenios.map(c => `<option value="${c}">${c}</option>`).join('');
+    sel.innerHTML = html;
+    if (atual && [...sel.options].some(o => o.value === atual)) sel.value = atual;
+    else sel.value = '';
+}
+
 function rebuildSelectsFinanceiro() {
     const selMapaServico = document.getElementById('mapaServico');
     const selMapaInsumo = document.getElementById('mapaInsumo');
@@ -2768,6 +2761,7 @@ function rebuildSelectsFinanceiro() {
     if (selAtdServico) selAtdServico.innerHTML = state.servicos.map(s => `<option value="${s.id}">${s.nome}</option>`).join('') || '<option value="">Cadastre um serviço</option>';
     if (selAtdPaciente) selAtdPaciente.innerHTML = state.pacientes.map(p => `<option value="${p.id}">${p.nome}</option>`).join('') || '<option value="">Cadastre um paciente</option>';
     popularDentistasM9();
+    popularConveniosM9();
 }
 
 async function salvarMapaInsumoServico() {
@@ -3061,20 +3055,7 @@ function encontrarTodosIndices(headers, opcoes) {
     return indices;
 }
 
-// --- 3. Número em formato brasileiro: "1 000,00" | "40,00%" | "0,57" | "12" ---
-function parseNumeroBR(valor) {
-  if (valor == null || valor === '') return 0;
-  if (typeof valor === 'number') return isNaN(valor) ? 0 : valor;
-  let s = String(valor).trim();
-  // já é número puro (ex.: "42.36")
-  if (/^-?\d+(\.\d+)?$/.test(s)) return parseFloat(s) || 0;
-  // formato brasileiro: remove separador de milhar (.) e converte vírgula (,) em decimal
-  s = s.replace(/\s/g, '').replace(/\./g, '').replace(/,/g, '.');
-  const n = parseFloat(s);
-  return isNaN(n) ? 0 : n;
-}
-
-// --- 4. Wrapper padrão: lê o arquivo, roda o parser específico da entidade ---
+// --- 3. Wrapper padrão: lê o arquivo, roda o parser específico da entidade ---
 function processarArquivoCsv(input, statusEl, callback) {
     if (!input || !input.files || input.files.length === 0) {
         if (statusEl) statusEl.textContent = 'Selecione um arquivo CSV.';
@@ -3101,7 +3082,7 @@ function processarArquivoCsv(input, statusEl, callback) {
     leitor.readAsText(arquivo, 'UTF-8');
 }
 
-// --- 5. IMPORTAR INSUMOS (aba "CUSTOS_INSUMOS_UNID" do Google Sheets) ---
+// --- 4. IMPORTAR INSUMOS (aba "CUSTOS_INSUMOS_UNID" do Google Sheets) ---
 function importarInsumosCsv() {
     const input = document.getElementById('inputCsvInsumos');
     const status = document.getElementById('lblImportStatus');
@@ -3168,7 +3149,7 @@ function importarInsumosCsv() {
     });
 }
 
-// --- 6. IMPORTAR SERVIÇOS/PROCEDIMENTOS (aba "SERVIÇOS_PROCEDIMENTOS") ---
+// --- 5. IMPORTAR SERVIÇOS/PROCEDIMENTOS (aba "SERVIÇOS_PROCEDIMENTOS") ---
 function importarServicosCsv() {
     const input = document.getElementById('inputCsvServicos');
     const status = document.getElementById('lblImportStatusServicos');
@@ -3243,7 +3224,7 @@ function importarServicosCsv() {
     });
 }
 
-// --- 7. IMPORTAR MAPA INSUMO×SERVIÇO (aba "MAP_INSUMOS_SERVICOS") ---
+// --- 6. IMPORTAR MAPA INSUMO×SERVIÇO (aba "MAP_INSUMOS_SERVICOS") ---
 // Requer que Insumos e Serviços já tenham sido importados antes (o vínculo
 // é resolvido casando pelo código/nome dos dois já cadastrados no sistema).
 function importarMapaInsumosServicosCsv() {
@@ -3309,7 +3290,7 @@ function importarMapaInsumosServicosCsv() {
     });
 }
 
-// --- 8. IMPORTAR CUSTOS FIXOS (aba "CUSTOS_FIXOS_VARIAVEIS") ---
+// --- 7. IMPORTAR CUSTOS FIXOS (aba "CUSTOS_FIXOS_VARIAVEIS") ---
 function importarCustosFixosCsv() {
     const input = document.getElementById('inputCsvFixos');
     const status = document.getElementById('lblImportStatusFixos');
@@ -3352,7 +3333,7 @@ function importarCustosFixosCsv() {
     });
 }
 
-// --- 9. IMPORTAR CONFIG CONVÊNIO/PARTICULAR (abas "CONFIG_CONVENIO"/"CONFIG_PARTICULAR") ---
+// --- 8. IMPORTAR CONFIG CONVÊNIO/PARTICULAR (abas "CONFIG_CONVENIO"/"CONFIG_PARTICULAR") ---
 // Formato "chave → valor" (1 parâmetro por linha), diferente das demais abas.
 const MAPA_CONFIG_PARAMS = [
     { chaves: ['pro labore desejado', 'pro labore desejado r$'], campo: 'pro_labore_desejado' },
@@ -3407,19 +3388,42 @@ function importarConfigCsv(modalidade) {
 // Cada convênio tem sua própria aba na planilha.
 // Coluna A = código | C = preço | M = lucro líquido (R$)
 // ============================================================
+
+// Identificador estável do serviço. Preserva "S001" como "S001".
+// NÃO remove zero à esquerda, NÃO remove a letra. Só limpa espaços e caixa.
 function normalizarCodigoM8(v) {
-    return String(v || '').replace(/[^0-9]/g, '');
+    return String(v == null ? '' : v).trim().toUpperCase();
 }
 
 // Lê uma aba de convênio/particular e devolve [{ codigo, preco, lucro }]
 // Lê pelo CABEÇALHO, não por posição fixa — funciona em qualquer aba
 // de convênio com a mesma estrutura (Bradesco, Unimed, Sulamerica...).
+function parseNumeroBR(valor) {
+    if (valor == null || valor === '') return 0;
+    if (typeof valor === 'number') return isNaN(valor) ? 0 : valor;
+    let s = String(valor).trim()
+        .replace(/R\$/g, '')
+        .replace(/%/g, '')
+        .replace(/\s/g, '');
+    if (s === '' || /^#/.test(s)) return 0;                // #DIV/0!, #N/A etc.
+    const temVirgula = s.includes(',');
+    const temPonto = s.includes('.');
+    if (temVirgula && temPonto) {
+        // Formato BR completo: 1.726,138 → ponto é milhar, vírgula é decimal
+        s = s.replace(/\./g, '').replace(',', '.');
+    } else if (temVirgula) {
+        // Só vírgula: decimal BR
+        s = s.replace(',', '.');
+    }
+    // Só ponto: já está no formato decimal, não mexe
+    const n = parseFloat(s);
+    return isNaN(n) ? 0 : n;
+}
+
 function mapearTabelaConvenio(linhas) {
     const out = [];
     if (!Array.isArray(linhas) || linhas.length < 2) return out;
-
     const headers = (linhas[0] || []).map(h => normalizarCabecalho(h));
-
     const achaCol = (opcoes) => {
         for (const opc of opcoes) {
             const alvo = normalizarCabecalho(opc);
@@ -3433,36 +3437,28 @@ function mapearTabelaConvenio(linhas) {
         }
         return -1;
     };
-
-    // Coluna A = código, sempre.
     const iCodigo = 0;
-
-    // Coluna C = tabela do convênio (índice 2 é o fallback correto)
     let iPreco = achaCol([
-        'tabela convenio', 'tabela do convenio', 'tabela',
-        'preco tabela', 'preco convenio', 'preco',
-        'valor convenio', 'valor'
+        'tabela convenio', 'tabela do convenio',
+        'tabela particular', 'tabela do particular'
     ]);
-    if (iPreco === -1 || iPreco === iCodigo) iPreco = 2;   // C
+    if (iPreco === -1 || iPreco === iCodigo) iPreco = 2;
+    let iLucro = achaCol(['lucro liquido', 'lucro líquido']);
+    if (iLucro === -1) iLucro = 12;
 
-    // Coluna M = lucro líquido (índice 12 é o fallback correto)
-    let iLucro = achaCol(['lucro liquido', 'lucro líquido', 'lucro']);
-    if (iLucro === -1) iLucro = 12;                        // M
-
-    console.log('[M8] headers:', headers.slice(0, 14),
-                '| iPreco:', iPreco, '| iLucro:', iLucro);
-
+    let comPreco = 0, semPreco = 0, vazias = 0;
     for (let r = 1; r < linhas.length; r++) {
         const row = linhas[r] || [];
         const cod = normalizarCodigoM8(row[iCodigo]);
-        if (!cod) continue;
-
+        if (!cod) { vazias++; continue; }
         const preco = parseNumeroBR(row[iPreco]);
         const lucro = parseNumeroBR(row[iLucro]);
-
-        if (!preco && !lucro) continue;
-        out.push({ codigo: cod, preco, lucro });
+        if (preco > 0) comPreco++; else semPreco++;
+        out.push({ codigo: cod, preco, lucro, tem_tabela: preco > 0 });
     }
+    console.log('[M8] colunas → preço:', iPreco, '| lucro:', iLucro,
+                '| lidos:', out.length, '| com preço:', comPreco,
+                '| zerados:', semPreco, '| ignoradas:', vazias);
     return out;
 }
 
@@ -3473,19 +3469,19 @@ function mapearTabelaPorCodigo(linhas) {
 }
 
 const ABAS_CONVENIO_M8 = [
-    { aba: 'TABELA_CONVÊNIO_BRADESCO',    convenio: 'Bradesco' },
-    { aba: 'TABELA_CONVÊNIO_UNIMED',      convenio: 'Unimed' },
-    { aba: 'TABELA_CONVÊNIO_PORTO',       convenio: 'Porto Seguro' },
-    { aba: 'TABELA_CONVÊNIO_AMIL',        convenio: 'Amil' },
-    { aba: 'TABELA_CONVÊNIO_ODONTOPREV',  convenio: 'OdontoPrev' },
-    { aba: 'TABELA_CONVÊNIO_SULAMERICA',  convenio: 'Sulamerica' },
-    { aba: 'TABELA_CONVÊNIO_DENTALUNI',   convenio: 'Dentaluni' },
-    { aba: 'TABELA_CONVÊNIO_INTERMÉDICA', convenio: 'Intermédica' }
+    { abas: ['TABELA_CONVÊNIO_BRADESCO', 'TABELA_CONVENIO_BRADESCO'],       convenio: 'Bradesco' },
+    { abas: ['TABELA_CONVÊNIO_UNIMED', 'TABELA_CONVENIO_UNIMED'],           convenio: 'Unimed' },
+    { abas: ['TABELA_CONVÊNIO_PORTO', 'TABELA_CONVENIO_PORTO'],             convenio: 'Porto Seguro' },
+    { abas: ['TABELA_CONVÊNIO_AMIL', 'TABELA_CONVENIO_AMIL'],               convenio: 'Amil' },
+    { abas: ['TABELA_CONVÊNIO_ODONTOPREV', 'TABELA_CONVENIO_ODONTOPREV'],   convenio: 'OdontoPrev' },
+    { abas: ['TABELA_CONVÊNIO_SULAMERICA', 'TABELA_CONVENIO_SULAMERICA'],   convenio: 'Sulamerica' },
+    { abas: ['TABELA_CONVÊNIO_DENTALUNI', 'TABELA_CONVENIO_DENTALUNI'],     convenio: 'Dentaluni' },
+    { abas: ['TABELA_CONVÊNIO_INTERMÉDICA', 'TABELA_CONVENIO_INTERMEDICA'], convenio: 'Intermédica' }
 ];
 
 async function sincronizarM8PrecosMargens() {
-    const clinicaId = state.clinicaAtual?.id || '';
-    if (!clinicaId) { alert('Clínica não identificada. Abra o HUB Clínica e salve.'); return; }
+    const idClinica = state.clinicaAtual?.id || '';
+    if (!idClinica) { alert('Clínica não identificada. Abra o HUB Clínica e salve.'); return; }
     if (!state.isAdmin && state.perfilUsuario !== 'owner') {
         alert('Apenas o responsável pela clínica pode sincronizar preços.');
         return;
@@ -3495,103 +3491,120 @@ async function sincronizarM8PrecosMargens() {
     if (!idPlanilha) { alert('Configure o link do Google Sheets no HUB Clínica.'); return; }
 
     const precos = [];
-    const particulares = [];
-    const conveniosUsados = [];
+    const relatorio = [];
 
-    // 1) Uma varredura por aba de convênio
     for (const cfg of ABAS_CONVENIO_M8) {
-        let linhas = [];
-        try {
-            linhas = await buscarAbaGoogleSheets(idPlanilha, cfg.aba);
-        } catch (e) {
-            console.warn('[M8] aba não encontrada, seguindo:', cfg.aba);
+        let linhas = [], abaUsada = '';
+        for (const nomeAba of cfg.abas) {
+            try {
+                const l = await buscarAbaGoogleSheets(idPlanilha, nomeAba);
+                if (Array.isArray(l) && l.length > 1) { linhas = l; abaUsada = nomeAba; break; }
+            } catch (e) { /* tenta a próxima grafia */ }
+        }
+        if (!linhas.length) {
+            relatorio.push(`${cfg.convenio}: ABA NÃO ENCONTRADA`);
+            console.warn('[M8] aba não respondeu:', cfg.abas[0]);
             continue;
         }
-        if (!Array.isArray(linhas) || !linhas.length) continue;
         const mapa = mapearTabelaConvenio(linhas);
-        if (!mapa.length) { console.warn('[M8] aba sem linhas válidas:', cfg.aba); continue; }
-            mapa.forEach(r => {
-            precos.push({ servico_codigo: r.codigo, convenio: cfg.convenio,
-                          preco: r.preco, lucro: r.lucro });
+        if (!mapa.length) {
+            relatorio.push(`${cfg.convenio}: 0 serviços lidos`);
+            continue;
+        }
+        let comPreco = 0;
+        mapa.forEach(r => {
+            if (r.preco > 0) comPreco++;
+            precos.push({
+                servico_codigo: r.codigo,
+                convenio: cfg.convenio,
+                preco: r.preco,
+                lucro: r.lucro
+            });
         });
-        conveniosUsados.push(cfg.convenio);
-        console.log('[M8]', cfg.aba, '→', mapa.length, 'preços');
+        relatorio.push(`${cfg.convenio}: ${mapa.length} lidos, ${comPreco} com tabela, ${mapa.length - comPreco} zerados`);
     }
 
-    // 2) Particular
+    // PARTICULAR — mesmo motor, cabeçalho próprio
     let partMap = new Map();
     try {
         const linhasPart = await buscarAbaGoogleSheets(idPlanilha, 'TABELA_PARTICULAR');
-        partMap = mapearTabelaPorCodigo(linhasPart);
-        partMap.forEach((v, cod) => particulares.push({ servico_codigo: cod, preco: v.preco }));
+        const mapaPart = mapearTabelaConvenio(linhasPart);
+        let comPreco = 0;
+        mapaPart.forEach(r => {
+            if (r.preco > 0) comPreco++;
+            partMap.set(r.codigo, { preco: r.preco, lucro: r.lucro });
+            precos.push({
+                servico_codigo: r.codigo,
+                convenio: 'PARTICULAR',
+                preco: r.preco,
+                lucro: r.lucro
+            });
+        });
+        relatorio.push(`Particular: ${mapaPart.length} lidos, ${comPreco} com preço`);
     } catch (e) {
-        console.warn('[M8] aba TABELA_PARTICULAR não encontrada.');
+        relatorio.push('Particular: ABA NÃO ENCONTRADA');
+        console.warn('[M8] aba TABELA_PARTICULAR falhou:', e);
     }
 
-    // 3) Grava preços por convênio
-    if (precos.length && typeof supabaseClient !== 'undefined') {
+    // GRAVAÇÃO — upsert puro, sem delete, com a chave única
+    if (precos.length) {
         const { error: errUp } = await supabaseClient
             .from('precos_servico')
             .upsert(
                 precos.map(p => ({
-                    clinica_id: clinicaId,
+                    clinica_id: idClinica,
                     servico_codigo: p.servico_codigo,
                     convenio: p.convenio,
                     preco: p.preco,
-                    lucro: Number(p.lucro) || 0
+                    lucro: p.lucro
                 })),
                 { onConflict: 'clinica_id,servico_codigo,convenio' }
             );
-        if (errUp) console.error('[M8] erro no upsert precos_servico', errUp);
+        if (errUp) {
+            console.error('[M8] erro no upsert precos_servico', errUp);
+            alert('Erro ao gravar preços: ' + errUp.message);
+            return;
+        }
     }
 
-    // 4) Atualiza os serviços (particular sempre; convênio só se houver)
+    // Atualiza servicos com particular (e Bradesco, como antes) — SEM zerar o que não veio
     let atualizados = 0;
     const mapaBradesco = new Map();
-    precos.filter(p => p.convenio === 'Bradesco').forEach(p => mapaBradesco.set(normalizarCodigoM8(p.servico_codigo), p.preco));
-    const mapaPrecoPorConvenio = {};
-    const mapaLucroPorConvenio = {};
-    precos.forEach(p => {
-        const cod = normalizarCodigoM8(p.servico_codigo);
-        if (!cod) return;
-        if (!mapaPrecoPorConvenio[p.convenio]) mapaPrecoPorConvenio[p.convenio] = new Map();
-        if (!mapaLucroPorConvenio[p.convenio]) mapaLucroPorConvenio[p.convenio] = new Map();
-        mapaPrecoPorConvenio[p.convenio].set(cod, Number(p.preco) || 0);
-    });
+    precos.filter(p => p.convenio === 'Bradesco')
+          .forEach(p => mapaBradesco.set(p.servico_codigo, p));
 
     for (const s of (state.servicos || [])) {
         const cod = normalizarCodigoM8(s.codigo_externo);
         if (!cod) continue;
-                const pP = partMap.get(cod);
-        const precoBradesco = mapaBradesco.get(cod);
-        const payload = {
-            preco_particular: pP ? pP.preco : 0,
-            lucro_liquido_particular: pP ? pP.lucro : 0
-        };
-        if (precoBradesco !== undefined) {
-            payload.preco_convenio = precoBradesco;
+        const pP = partMap.get(cod);
+        const pB = mapaBradesco.get(cod);
+        const payload = {};
+        if (pP) {
+            payload.preco_particular = pP.preco;
+            payload.lucro_liquido_particular = pP.lucro;
         }
-        // Lucro do convênio de referência (Bradesco) — antes nunca era gravado
-        const lucroBradesco = (() => {
-            const reg = precos.find(p => normalizarCodigoM8(p.servico_codigo) === cod && p.convenio === 'Bradesco');
-            return reg ? Number(reg.lucro) || 0 : null;
-        })();
-        if (lucroBradesco !== null) {
-            payload.lucro_liquido_convenio = lucroBradesco;
+        if (pB) {
+            payload.preco_convenio = pB.preco;
+            payload.lucro_liquido_convenio = pB.lucro;
         }
+        if (!Object.keys(payload).length) continue;   // nada a atualizar — não zera
         try {
             await apiUpdate('servicos', s.id, payload);
             atualizados++;
-        } catch (e) { console.error('Erro ao atualizar serviço', s.id, e); }
+        } catch (e) { console.error('[M8] erro ao atualizar serviço', s.id, e); }
     }
 
-    state.conveniosDisponiveis = conveniosUsados;
+    state.conveniosDisponiveis = [...new Set(precos.map(p => p.convenio).filter(c => c !== 'PARTICULAR'))];
     state.precosServico = precos;
     renderizarModuloFinanceiroCompleto();
+    if (typeof popularConveniosM9 === 'function') popularConveniosM9();
 
-    alert(`M8 sincronizado: ${atualizados} serviço(s) atualizado(s).\n`
-        + `Convênios detectados: ${conveniosUsados.join(', ') || 'nenhum'}.\n`
-        + `Particular: ${partMap.size} serviço(s) lido(s).`);
+    alert(
+        'Sincronização concluída.\n\n' +
+        relatorio.join('\n') +
+        `\n\nServiços atualizados: ${atualizados}\n` +
+        `Registros gravados em precos_servico: ${precos.length}`
+    );
 }
 
 // ============================================================
@@ -3785,30 +3798,33 @@ if (!state.croqui) state.croqui = [];
 
 function buscarPrecoTabelaConvenio(servico, convenio) {
     if (!servico) return 0;
-    if (convenio === 'PARTICULAR') return Number(servico.preco_particular || 0);
-    if (convenio === 'Bradesco') return Number(servico.preco_convenio || 0);
-    // Demais convênios: preço vem da tabela precos_servico (preenchida no M8)
-    const p = (state.precosServico || []).find(x =>
-        String(x.servico_codigo).trim() === String(servico.codigo_externo || '').trim() &&
-        x.convenio === convenio
-    );
-    return p ? Number(p.preco || 0) : 0;
+    return buscarRegistroPreco(servico, convenio)?.preco ?? 0;
+}
+
+function buscarRegistroPreco(servico, convenio) {
+    if (!servico) return null;
+    const cod = normalizarCodigoM8(servico.codigo_externo);
+    if (!cod) return null;
+    if (convenio === 'PARTICULAR') {
+        const proprio = (state.precosServico || []).find(
+            x => normalizarCodigoM8(x.servico_codigo) === cod && x.convenio === 'PARTICULAR'
+        );
+        if (proprio) return proprio;
+        return { preco: Number(servico.preco_particular || 0),
+                 lucro: Number(servico.lucro_liquido_particular || 0),
+                 tem_tabela: Number(servico.preco_particular || 0) > 0 };
+    }
+    return (state.precosServico || []).find(
+        x => normalizarCodigoM8(x.servico_codigo) === cod && x.convenio === convenio
+    ) || null;
 }
 
 function buscarLucroTabelaConvenio(servico, convenio, custoTotal) {
-    if (!servico) return 0;
-    const preco = buscarPrecoTabelaConvenio(servico, convenio);
-    if (convenio === 'PARTICULAR') {
-        const l = Number(servico.lucro_liquido_particular || 0);
-        return l || (preco - custoTotal);
-    }
-    if (convenio === 'Bradesco') {
-        const l = Number(servico.lucro_liquido_convenio || 0);
-        return l || (preco - custoTotal);
-    }
-    // Unimed, Intermédica etc.: a aba M8 ainda não grava lucro desses →
-    // usa estimativa preço − custo (fonte de verdade da planilha quando houver).
-    return preco - custoTotal;
+    const reg = buscarRegistroPreco(servico, convenio);
+    if (!reg) return 0;
+    // Lucro da planilha (coluna M) é a verdade. Só estima se a linha não existir.
+    if (reg.lucro !== undefined && reg.lucro !== null) return Number(reg.lucro) || 0;
+    return (Number(reg.preco) || 0) - (Number(custoTotal) || 0);
 }
 
 function buscarCustoTotalServico(servicoId) {
@@ -3873,7 +3889,16 @@ async function preencherValoresServico() {
                 <span>Valor final: <strong>${formatarMoeda(valorFinal)}</strong></span>
                 <span>Lucro líquido: <strong>${formatarMoeda(margemR$)}</strong></span>
                 <span class="${cor}">Margem: <strong>${margemPct.toFixed(2)}%</strong> (mín. ${min}%)</span>
-                <span class="text-slate-500">${lucroTabela <= 0 ? '⚠ atenção: lucro zero/negativo' : ''}</span>
+                ${(() => {
+                    const reg = buscarRegistroPreco(servico, convenio);
+                    if (reg && !(Number(reg.preco) > 0)) {
+                        return '<span class="text-amber-400 font-bold">⚠ tabela deste convênio ainda não recebida — valor zerado na planilha</span>';
+                    }
+                    if (lucroTabela <= 0) {
+                        return '<span class="text-slate-500">⚠ atenção: lucro zero/negativo</span>';
+                    }
+                    return '';
+                })()}
             </div>`;
     }
 }
@@ -5205,6 +5230,14 @@ function dispararDocumentoCliente(meio) {
         window.open(`mailto:${emailPac}?subject=${assunto}&body=${corpo}`, '_blank');
     }
 }
+
+// Guarda de colisão: avisa no console se algum nome de função global duplicar
+(function verificarColisoesGlobais() {
+    const nomes = Object.keys(window).filter(k => typeof window[k] === 'function');
+    const vistos = new Set(), dup = [];
+    nomes.forEach(n => { if (vistos.has(n)) dup.push(n); vistos.add(n); });
+    if (dup.length) console.warn('[APP] Funções globais duplicadas:', dup);
+})();
 
 // ============================================================
 // LÓGICA DE PERSISTÊNCIA NO SUPABASE: HUB MASTER & HUB CLÍNICA
